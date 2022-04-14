@@ -4,7 +4,7 @@
     "machine_id": 0,
     "local_port": 12346,
     "local_meta_port": 12347,
-    "use_pm": 1,
+    "use_pm": 0,
     "mem_size_GB": 8,
     "log_buf_size_GB": 1,
     "pm_root": "/dev/dax0.1",

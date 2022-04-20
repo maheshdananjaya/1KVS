@@ -11,8 +11,8 @@ SET(CMAKE_INCLUDE_PATH ${CMAKE_INCLUDE_PATH} "/usr/local/include/boost")
 SET(CMAKE_LIBRARY_PATH ${CMAKE_LIBRARY_PATH} "/usr/local/lib")
 #-DBoost_NO_BOOST_CMAKE=TRUE
 
-set( boost_INCLUDE_DIR /usr/local/include )
-set( boost_LIB_DIR/usr/local/lib )
+set(boost_INCLUDE_DIR /usr/local/include )
+set(boost_LIB_DIR /usr/local/lib )
 
 FIND_PACKAGE(Boost)
 IF (Boost_FOUND)
@@ -29,7 +29,7 @@ else()
 endif()
 
 
-link_directories(usr/local/lib)
+link_directories(/usr/local/lib)
 include_directories(
         include
         thirdparty

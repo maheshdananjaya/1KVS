@@ -30,12 +30,12 @@ done
 
 echo "Create build directory";
 mkdir build
-CMAKE_CMD="cmake 
+#-DBOOST_ROOT=/usr/local/include \
+CMAKE_CMD="cmake \
       -DBoost_NO_SYSTEM_PATHS=TRUE \
       -DBoost_NO_BOOST_CMAKE=TRUE \
-      -DBOOST_ROOT=/usr/local/include \
-      -DBOOST_INCLUDEDIR=/usr/local/include
-      -DBOOST_LIBRARYDIR=/usr/local/lib
+      -DBOOST_INCLUDEDIR=/usr/local/include \
+      -DBOOST_LIBRARYDIR=/usr/local/lib \
       -DCMAKE_BUILD_TYPE=${BUILD_TYPE} ../"
 echo ${CMAKE_CMD}
 cd ./build

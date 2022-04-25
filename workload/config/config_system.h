@@ -4,7 +4,7 @@
 #pragma once
 
 #include <unistd.h>
-
+#include <assert.h>     /* assert */
 #include <string>
 
 void ModifyComputeNodeConfig(int argc, char* argv[]) {

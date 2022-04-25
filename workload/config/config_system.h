@@ -9,7 +9,7 @@
 
 void ModifyComputeNodeConfig(int argc, char* argv[]) {
   std::string config_file = "../../../config/compute_node_config.json";
-  std::cout << "num args -" + std::string(argc) << std::endl;
+  //std::cout << "num args -" + std::string(argc) << std::endl;
   if (argc == 3) {
   	std::cout << "inside if" << std::endl;
   	assert(argv[2] != NULL && argv[3] != NULL);

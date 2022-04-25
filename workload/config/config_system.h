@@ -9,13 +9,15 @@
 
 void ModifyComputeNodeConfig(int argc, char* argv[]) {
   std::string config_file = "../../../config/compute_node_config.json";
-  std::cout << "num args -" + argc << std::endl;
+  std::cout << "num args -" + std::string(argc) << std::endl;
   if (argc == 3) {
   	std::cout << "inside if" << std::endl;
   	assert(argv[2] != NULL && argv[3] != NULL);
-  	std::cout << std::string(argv[2]) << "  " << std::string(argv[3])  << std::endl;
-    std::string s1 = "sed -i '5c \"thread_num_per_machine\": " + std::string(argv[2]) + ",' " + config_file;
-    std::string s2 = "sed -i '6c \"coroutine_num\": " + std::string(argv[3]) + ",' " + config_file;
+  	//std::cout << std::string(argv[2]) << "  " << std::string(argv[3])  << std::endl;  	
+    //std::string s1 = "sed -i '5c \"thread_num_per_machine\": " + std::string(argv[2]) + ",' " + config_file;
+    std::string s1 = "sed -i '5c \"thread_num_per_machine\": " + "16" + ",' " + config_file;
+    //std::string s2 = "sed -i '6c \"coroutine_num\": " + std::string(argv[3]) + ",' " + config_file;
+    std::string s2 = "sed -i '6c \"coroutine_num\": " + "8" + ",' " + config_file;
     system(s1.c_str());
     system(s2.c_str());
   }

@@ -9,7 +9,9 @@
 
 void ModifyComputeNodeConfig(int argc, char* argv[]) {
   std::string config_file = "../../../config/compute_node_config.json";
+  std::cout << "num args -" +argc << std::endl;
   if (argc == 3) {
+  	std::cout << "inside if" << std::endl;
   	assert(argv[2] != NULL && argv[3] != NULL);
   	std::cout << std::string(argv[2]) << "  " << std::string(argv[3])  << std::endl;
     std::string s1 = "sed -i '5c \"thread_num_per_machine\": " + std::string(argv[2]) + ",' " + config_file;

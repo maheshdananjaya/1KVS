@@ -23,6 +23,8 @@ extern std::atomic<uint64_t> connected_t_num;
 // They use a global transaction id generator, i.e., std::atomic<uint64_t> tx_id_generator
 int main(int argc, char* argv[]) {
 
+  assert(argv[2] != NULL && argv[3] != NULL);
+  
   RDMA_LOG(INFO) << "Starting..";
   ModifyComputeNodeConfig(argc, argv);
   RDMA_LOG(INFO) << "String Assigned..";

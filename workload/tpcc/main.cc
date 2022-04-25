@@ -22,7 +22,11 @@ extern std::atomic<uint64_t> connected_t_num;
 // Model multi-machine based coordinators with single-machine based multi-threading coordinators:
 // They use a global transaction id generator, i.e., std::atomic<uint64_t> tx_id_generator
 int main(int argc, char* argv[]) {
+
+  RDMA_LOG(INFO) << "Starting..";
   ModifyComputeNodeConfig(argc, argv);
+  RDMA_LOG(INFO) << "String Assigned..";
+
   std::string config_filepath = "../../../config/compute_node_config.json";
   auto json_config = JsonConfig::load_file(config_filepath);
   auto client_conf = json_config.get("local_compute_node");

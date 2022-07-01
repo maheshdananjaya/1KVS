@@ -404,18 +404,36 @@ class UDQPImpl {
   }
 
   static ibv_ah* create_ah(RNicHandler* rnic, QPAttr& attr) {
-    struct ibv_ah_attr ah_attr;
-    ah_attr.is_global = 1;
-    ah_attr.dlid = attr.lid;
-    ah_attr.sl = 0;
-    ah_attr.src_path_bits = 0;
-    ah_attr.port_num = attr.port_id;
+    
 
-    ah_attr.grh.dgid.global.subnet_prefix = attr.addr.subnet_prefix;
-    ah_attr.grh.dgid.global.interface_id = attr.addr.interface_id;
-    ah_attr.grh.flow_label = 0;
-    ah_attr.grh.hop_limit = 255;
-    ah_attr.grh.sgid_index = rnic->gid;
+    struct ibv_ah_attr ah_attr;
+
+    #ifdef ROCE
+      ah_attr.is_global = 1;
+      ah_attr.dlid = 0; // ROCE
+      ah_attr.sl = 0;
+      ah_attr.src_path_bits = 0;
+      ah_attr.port_num = attr.port_id; ///check this as well
+  
+      ah_attr.grh.dgid.global.subnet_prefix = attr.addr.subnet_prefix;
+      ah_attr.grh.dgid.global.interface_id = attr.addr.interface_id;
+      ah_attr.grh.flow_label = 0;
+      ah_attr.grh.hop_limit = 1;
+      ah_attr.grh.sgid_index = 0; //ROCE
+
+    #else
+      ah_attr.is_global = 1;
+      ah_attr.dlid = attr.lid;
+      ah_attr.sl = 0;
+      ah_attr.src_path_bits = 0;
+      ah_attr.port_num = attr.port_id;
+  
+      ah_attr.grh.dgid.global.subnet_prefix = attr.addr.subnet_prefix;
+      ah_attr.grh.dgid.global.interface_id = attr.addr.interface_id;
+      ah_attr.grh.flow_label = 0;
+      ah_attr.grh.hop_limit = 255;
+      ah_attr.grh.sgid_index = rnic->gid;
+    #endif
 
     return ibv_create_ah(rnic->pd, &ah_attr);
   }

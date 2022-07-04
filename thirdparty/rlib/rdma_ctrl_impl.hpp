@@ -140,10 +140,10 @@ class RdmaCtrl::RdmaCtrlImpl {
     std::string link_layer = "";
     switch (port_attr.link_layer) {
         case IBV_LINK_LAYER_ETHERNET:link_layer = "RoCE";
-          RDMA_LOG(INFO) << "RoCE Found.";
+          RDMA_LOG(INFO) << "RoCE Found in device" << idx.dev_id;
           break;
         case IBV_LINK_LAYER_INFINIBAND:link_layer = "Infiniband";
-          RDMA_LOG(INFO) << "Infiniband Found.";
+          RDMA_LOG(INFO) << "Infiniband Found in device" << idx.dev_id;
           break;
         default:RDMA_LOG(WARNING) << "unknown link layer at this port: " << port_attr.link_layer;
           link_layer = "Unknown";

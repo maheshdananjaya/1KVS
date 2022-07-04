@@ -278,7 +278,7 @@ class RCQPImpl {
 
     int rc, flags;
     struct ibv_qp_attr qp_attr = {};
-
+    printf("ready2send \n");
     qp_attr.qp_state = IBV_QPS_RTS;
     qp_attr.sq_psn = config.sq_psn;
     qp_attr.timeout = config.timeout;
@@ -304,7 +304,7 @@ class RCQPImpl {
 
     int rc, flags;
     struct ibv_qp_attr qp_attr = {};
-
+    printf("readytosend \n");
     qp_attr.qp_state = IBV_QPS_RTS;
     qp_attr.sq_psn = config.sq_psn;
     qp_attr.timeout = config.timeout;

@@ -43,16 +43,17 @@ MetaManager::MetaManager() {
 
   // Using the first RNIC's first port
   RdmaCtrl::DevIdx idx;
-  idx.dev_id = 0;
+  //idx.dev_id = 0; 
+  idx.dev_id = 2; //DAM using the 2nd device port1
   idx.port_id = 1;
-
+  RDMA_LOG(INFO) << "Set Device Id to 2"; //DAM
   // Open device
   opened_rnic = global_rdma_ctrl->open_device(idx);
 
   for (auto& remote_node : remote_nodes) {
     GetMRMeta(remote_node);
   }
-  // RDMA_LOG(INFO) << "client: All remote mr meta received!";
+  RDMA_LOG(INFO) << "client: All remote mr meta received!"; //DAM
 }
 
 node_id_t MetaManager::GetMemStoreMeta(std::string& remote_ip, int remote_port) {

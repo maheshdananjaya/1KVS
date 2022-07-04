@@ -124,20 +124,6 @@ class RdmaCtrl::RdmaCtrlImpl {
       goto OPEN_END;
     }
 
-    //DAM check RoCE ports
-    std::string link_layer = "";
-    switch (port_attr.link_layer) {
-        case IBV_LINK_LAYER_ETHERNET:link_layer = "RoCE";
-          RDMA_LOG(INFO) << "query port_id " << port_id << " on device " << dev_id << " is RoCE Found.";
-          break;
-        case IBV_LINK_LAYER_INFINIBAND:link_layer = "Infiniband";
-          RDMA_LOG(INFO) << "query port_id " << port_id << " on device " << dev_id << " is Infiniband Found.";
-          break;
-        default:RDMA_LOG(WARNING) << "unknown link layer at this port: " << port_attr.link_layer;
-          link_layer = "Unknown";
-      }; //end RoCe ports
-
-
     // success open
     {
       rnic = new RNicHandler(idx.dev_id, idx.port_id, ib_ctx, pd, port_attr.lid);
@@ -148,6 +134,21 @@ class RdmaCtrl::RdmaCtrlImpl {
       ibv_free_device_list(dev_list);
 
     opened_rnic = rnic;
+
+
+     //DAM check RoCE ports
+    std::string link_layer = "";
+    switch (port_attr.link_layer) {
+        case IBV_LINK_LAYER_ETHERNET:link_layer = "RoCE";
+          RDMA_LOG(INFO) << "RoCE Found.";
+          break;
+        case IBV_LINK_LAYER_INFINIBAND:link_layer = "Infiniband";
+          RDMA_LOG(INFO) << "Infiniband Found.";
+          break;
+        default:RDMA_LOG(WARNING) << "unknown link layer at this port: " << port_attr.link_layer;
+          link_layer = "Unknown";
+      }; //end RoCe ports
+
 
     return rnic;
   }

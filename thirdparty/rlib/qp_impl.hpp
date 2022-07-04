@@ -4,7 +4,7 @@
 
 #include "pre_connector.hpp"
 
-
+#define ROCE
 namespace rdmaio {
 
 const int MAX_INLINE_SIZE = 64;
@@ -184,17 +184,35 @@ class RCQPImpl {
     qp_attr.max_dest_rd_atomic = config.max_dest_rd_atomic;
     qp_attr.min_rnr_timer = 20;
 
-    qp_attr.ah_attr.dlid = attr.lid;
-    qp_attr.ah_attr.sl = 0;
-    qp_attr.ah_attr.src_path_bits = 0;
-    qp_attr.ah_attr.port_num = rnic->port_id; /* Local port! */
+    #ifdef ROCE
+      RDMA_LOG(EMPH) << "ROCE- 2recv";
+      qp_attr.ah_attr.dlid = 0; //ROCE
+      qp_attr.ah_attr.sl = 0;
+      qp_attr.ah_attr.src_path_bits = 0;
+      qp_attr.ah_attr.port_num = rnic->port_id; /* Local port! */
+  
+      qp_attr.ah_attr.is_global = 1;
+      qp_attr.ah_attr.grh.dgid.global.subnet_prefix = attr.addr.subnet_prefix;
+      qp_attr.ah_attr.grh.dgid.global.interface_id = attr.addr.interface_id;
+      qp_attr.ah_attr.grh.sgid_index = 0; //ROCE
+      qp_attr.ah_attr.grh.flow_label = 0;
+      qp_attr.ah_attr.grh.hop_limit = 1; //ROCE
 
-    qp_attr.ah_attr.is_global = 1;
-    qp_attr.ah_attr.grh.dgid.global.subnet_prefix = attr.addr.subnet_prefix;
-    qp_attr.ah_attr.grh.dgid.global.interface_id = attr.addr.interface_id;
-    qp_attr.ah_attr.grh.sgid_index = 0;
-    qp_attr.ah_attr.grh.flow_label = 0;
-    qp_attr.ah_attr.grh.hop_limit = 255;
+    #else 
+      RDMA_LOG(EMPH) << "Infiniband- 2recv";
+      qp_attr.ah_attr.dlid = attr.lid;
+      qp_attr.ah_attr.sl = 0;
+      qp_attr.ah_attr.src_path_bits = 0;
+      qp_attr.ah_attr.port_num = rnic->port_id; /* Local port! */
+  
+      qp_attr.ah_attr.is_global = 1;
+      qp_attr.ah_attr.grh.dgid.global.subnet_prefix = attr.addr.subnet_prefix;
+      qp_attr.ah_attr.grh.dgid.global.interface_id = attr.addr.interface_id;
+      qp_attr.ah_attr.grh.sgid_index = 0;
+      qp_attr.ah_attr.grh.flow_label = 0;
+      qp_attr.ah_attr.grh.hop_limit = 255;
+
+    #endif
 
     int flags = IBV_QP_STATE | IBV_QP_AV | IBV_QP_PATH_MTU | IBV_QP_DEST_QPN | IBV_QP_RQ_PSN | IBV_QP_MAX_DEST_RD_ATOMIC | IBV_QP_MIN_RNR_TIMER;
     auto rc = ibv_modify_qp(qp, &qp_attr, flags);
@@ -219,17 +237,35 @@ class RCQPImpl {
     qp_attr.max_dest_rd_atomic = config.max_dest_rd_atomic;
     qp_attr.min_rnr_timer = 20;
 
-    qp_attr.ah_attr.dlid = attr.lid;
-    qp_attr.ah_attr.sl = 0;
-    qp_attr.ah_attr.src_path_bits = 0;
-    qp_attr.ah_attr.port_num = rnic->port_id; /* Local port! */
+    #ifdef ROCE
+      RDMA_LOG(EMPH) << "ROCE- torecv";
+      qp_attr.ah_attr.dlid = 0; //ROCE
+      qp_attr.ah_attr.sl = 0;
+      qp_attr.ah_attr.src_path_bits = 0;
+      qp_attr.ah_attr.port_num = rnic->port_id; /* Local port! */
+  
+      qp_attr.ah_attr.is_global = 1;
+      qp_attr.ah_attr.grh.dgid.global.subnet_prefix = attr.addr.subnet_prefix;
+      qp_attr.ah_attr.grh.dgid.global.interface_id = attr.addr.interface_id;
+      qp_attr.ah_attr.grh.sgid_index = 0;
+      qp_attr.ah_attr.grh.flow_label = 0;
+      qp_attr.ah_attr.grh.hop_limit = 1;
 
-    qp_attr.ah_attr.is_global = 1;
-    qp_attr.ah_attr.grh.dgid.global.subnet_prefix = attr.addr.subnet_prefix;
-    qp_attr.ah_attr.grh.dgid.global.interface_id = attr.addr.interface_id;
-    qp_attr.ah_attr.grh.sgid_index = 0;
-    qp_attr.ah_attr.grh.flow_label = 0;
-    qp_attr.ah_attr.grh.hop_limit = 255;
+    #else
+      RDMA_LOG(EMPH) << "Infiniband- torecv";
+      qp_attr.ah_attr.dlid = attr.lid;
+      qp_attr.ah_attr.sl = 0;
+      qp_attr.ah_attr.src_path_bits = 0;
+      qp_attr.ah_attr.port_num = rnic->port_id; /* Local port! */
+  
+      qp_attr.ah_attr.is_global = 1;
+      qp_attr.ah_attr.grh.dgid.global.subnet_prefix = attr.addr.subnet_prefix;
+      qp_attr.ah_attr.grh.dgid.global.interface_id = attr.addr.interface_id;
+      qp_attr.ah_attr.grh.sgid_index = 0;
+      qp_attr.ah_attr.grh.flow_label = 0;
+      qp_attr.ah_attr.grh.hop_limit = 255;
+
+    #endif
 
     int flags = IBV_QP_STATE | IBV_QP_AV | IBV_QP_PATH_MTU | IBV_QP_DEST_QPN | IBV_QP_RQ_PSN | IBV_QP_MAX_DEST_RD_ATOMIC | IBV_QP_MIN_RNR_TIMER;
     auto rc = ibv_modify_qp(qp, &qp_attr, flags);
@@ -404,18 +440,38 @@ class UDQPImpl {
   }
 
   static ibv_ah* create_ah(RNicHandler* rnic, QPAttr& attr) {
-    struct ibv_ah_attr ah_attr;
-    ah_attr.is_global = 1;
-    ah_attr.dlid = attr.lid;
-    ah_attr.sl = 0;
-    ah_attr.src_path_bits = 0;
-    ah_attr.port_num = attr.port_id;
+    
 
-    ah_attr.grh.dgid.global.subnet_prefix = attr.addr.subnet_prefix;
-    ah_attr.grh.dgid.global.interface_id = attr.addr.interface_id;
-    ah_attr.grh.flow_label = 0;
-    ah_attr.grh.hop_limit = 255;
-    ah_attr.grh.sgid_index = rnic->gid;
+    struct ibv_ah_attr ah_attr;
+
+    #ifdef ROCE
+      printf("ROCE");
+      ah_attr.is_global = 1;
+      ah_attr.dlid = 0; // ROCE
+      ah_attr.sl = 0;
+      ah_attr.src_path_bits = 0;
+      ah_attr.port_num = attr.port_id; ///check this as well
+  
+      ah_attr.grh.dgid.global.subnet_prefix = attr.addr.subnet_prefix;
+      ah_attr.grh.dgid.global.interface_id = attr.addr.interface_id;
+      ah_attr.grh.flow_label = 0;
+      ah_attr.grh.hop_limit = 1;
+      ah_attr.grh.sgid_index = 0; //ROCE
+
+    #else
+      printf("Infiniband");
+      ah_attr.is_global = 1;
+      ah_attr.dlid = attr.lid;
+      ah_attr.sl = 0;
+      ah_attr.src_path_bits = 0;
+      ah_attr.port_num = attr.port_id;
+  
+      ah_attr.grh.dgid.global.subnet_prefix = attr.addr.subnet_prefix;
+      ah_attr.grh.dgid.global.interface_id = attr.addr.interface_id;
+      ah_attr.grh.flow_label = 0;
+      ah_attr.grh.hop_limit = 255;
+      ah_attr.grh.sgid_index = rnic->gid;
+    #endif
 
     return ibv_create_ah(rnic->pd, &ah_attr);
   }

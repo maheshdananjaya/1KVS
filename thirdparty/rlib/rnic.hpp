@@ -61,6 +61,7 @@ struct RNicInfo {
       std::string link_layer = "";
       switch (port_attr.link_layer) {
         case IBV_LINK_LAYER_ETHERNET:link_layer = "RoCE";
+        RDMA_LOG(WARNING) << "query port_id " << port_id << " on device " << dev_id << "RoCE Found.";
           break;
         case IBV_LINK_LAYER_INFINIBAND:link_layer = "Infiniband";
           break;

@@ -43,7 +43,8 @@ void Server::InitRDMA() {
   /************************************* RDMA+PM Initialization ***************************************/
   RDMA_LOG(INFO) << "Start initializing RDMA...";
   rdma_ctrl = std::make_shared<RdmaCtrl>(server_node_id, local_port);
-  RdmaCtrl::DevIdx idx{.dev_id = 0, .port_id = 1};  // using the first RNIC's first port
+  //RdmaCtrl::DevIdx idx{.dev_id = 0, .port_id = 1};  // FORD- using the first RNIC's first port
+  RdmaCtrl::DevIdx idx{.dev_id = 2, .port_id = 1};  // DAM-using the Second RNIC's first port. so the device id=2
   rdma_ctrl->open_thread_local_device(idx);
   RDMA_ASSERT(
       rdma_ctrl->register_memory(SERVER_HASH_BUFF_ID, hash_buffer, hash_buf_size, rdma_ctrl->get_device()) == true);

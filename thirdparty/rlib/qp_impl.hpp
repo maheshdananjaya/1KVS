@@ -4,7 +4,7 @@
 
 #include "pre_connector.hpp"
 
-#define ROCE
+//#define ROCE
 namespace rdmaio {
 
 const int MAX_INLINE_SIZE = 64;
@@ -278,7 +278,9 @@ class RCQPImpl {
 
     int rc, flags;
     struct ibv_qp_attr qp_attr = {};
-    printf("ready2send \n");
+    #ifdef ROCE
+      printf("ready2send \n");
+    #endif
     qp_attr.qp_state = IBV_QPS_RTS;
     qp_attr.sq_psn = config.sq_psn;
     qp_attr.timeout = config.timeout;
@@ -304,7 +306,9 @@ class RCQPImpl {
 
     int rc, flags;
     struct ibv_qp_attr qp_attr = {};
-    printf("readytosend \n");
+    #ifdef ROCE
+      printf("readytosend \n");
+    #endif
     qp_attr.qp_state = IBV_QPS_RTS;
     qp_attr.sq_psn = config.sq_psn;
     qp_attr.timeout = config.timeout;

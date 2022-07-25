@@ -206,6 +206,7 @@ void Server::SendHashMeta(char* hash_meta_buffer, size_t& total_meta_size) {
     close(listen_socket);
     return;
   }
+  
   RDMA_LOG(INFO) << "Server binds socket success";
   int max_listen_num = 10;
   if (listen(listen_socket, max_listen_num) < 0) {

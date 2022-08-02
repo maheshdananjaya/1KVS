@@ -20,6 +20,12 @@ void QPManager::BuildQPConnection(MetaManager* meta_man) {
                                                             meta_man->opened_rnic,
                                                             &local_mr);
 
+    //DAM (1): create another QPs for RPC.
+    
+    //DAM compute send the commit message - expect and ack from the remote memory. ibv_send -> single ibv_ack. /
+
+
+
     // Queue pair connection, exchange queue pair info via TCP
     ConnStatus rc;
     do {
@@ -41,5 +47,9 @@ void QPManager::BuildQPConnection(MetaManager* meta_man) {
       }
       usleep(2000);
     } while (rc != SUCC);
+
+    //DAM (2). Wait for the RPC connection.  
+    
+
   }
 }

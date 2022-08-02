@@ -77,6 +77,7 @@ bool DTX::IssueReadOnly(std::vector<DirectRead>& pending_direct_ro,
       if (!coro_sched->RDMARead(coro_id, qp, data_buf, offset, DataItemSize)) {
         return false;
       }
+
     } else {
       // Local cache does not have
       // miss_local_cache_times++;
@@ -100,6 +101,15 @@ bool DTX::IssueReadOnly(std::vector<DirectRead>& pending_direct_ro,
   return true;
 }
 
+//DAM - lock seperately
+bool DTX::issueLock(std::vector<CasRead>& pending_cas_rw,
+                        std::vector<HashRead>& pending_hash_rw,
+                        std::vector<InsertOffRead>& pending_insert_off_rw){
+
+  //only lock the write set
+
+}
+
 bool DTX::IssueReadLock(std::vector<CasRead>& pending_cas_rw,
                         std::vector<HashRead>& pending_hash_rw,
                         std::vector<InsertOffRead>& pending_insert_off_rw) {
@@ -110,7 +120,7 @@ bool DTX::IssueReadLock(std::vector<CasRead>& pending_cas_rw,
     auto remote_node_id = global_meta_man->GetPrimaryNodeID(it->table_id);
     read_write_set[i].read_which_node = remote_node_id;
     RCQP* qp = thread_qp_man->GetRemoteDataQPWithNodeID(remote_node_id);
-    auto offset = addr_cache->Search(remote_node_id, it->table_id, it->key);
+    auto offset = addr_cache->Search(remote_node_id, it->table_id, it->key); // DAM -index cache to search
     // Addr cached in local
     if (offset != NOT_FOUND) {
       // hit_local_cache_times++;
@@ -121,7 +131,7 @@ bool DTX::IssueReadLock(std::vector<CasRead>& pending_cas_rw,
       char* data_buf = thread_rdma_buffer_alloc->Alloc(DataItemSize);
       pending_cas_rw.emplace_back(CasRead{.qp = qp, .item = &read_write_set[i], .cas_buf = cas_buf, .data_buf = data_buf, .primary_node_id = remote_node_id});
       std::shared_ptr<LockReadBatch> doorbell = std::make_shared<LockReadBatch>();
-      doorbell->SetLockReq(cas_buf, it->GetRemoteLockAddr(offset), STATE_CLEAN, STATE_LOCKED);
+      doorbell->SetLockReq(cas_buf, it->GetRemoteLockAddr(offset), STATE_CLEAN, STATE_LOCKED); 
       doorbell->SetReadReq(data_buf, offset, DataItemSize);  // Read a DataItem
       if (!doorbell->SendReqs(coro_sched, qp, coro_id)) {
         return false;
@@ -168,6 +178,7 @@ bool DTX::IssueValidate(std::vector<ValidateRead>& pending_validate) {
   }
   // For read-only items, we only need to read their versions
   for (auto& set_it : read_only_set) {
+
     auto it = set_it.item_ptr;
     // If reading from backup, using backup's qp to validate the version on backup.
     // Otherwise, the qp mismatches the remote version addr
@@ -230,6 +241,7 @@ bool DTX::IssueCommitAll(std::vector<CommitWrite>& pending_commit_write, char* c
     // backup_node_ids guarantees that the order of remote machine is the same in backup_hash_metas and backup_qps
 
     for (size_t i = 0; i < backup_node_ids->size(); i++) {
+
       auto remote_item_off = offset_in_backup_hash_store + (*backup_hash_metas)[i].base_off;
       auto remote_lock_off = it->GetRemoteLockAddr(remote_item_off);
       pending_commit_write.push_back(CommitWrite{.node_id = backup_node_ids->at(i), .lock_off = remote_lock_off});

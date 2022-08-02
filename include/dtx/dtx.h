@@ -361,6 +361,170 @@ void DTX::AddToReadWriteSet(DataItemPtr item) {
   read_write_set.emplace_back(data_set_item);
 }
 
+
+#ifdef FARM // to run full Farm protocol
+
+ALWAYS_INLINE
+bool DTX::TxExe(coro_yield_t& yield, bool fail_abort) {
+  // Start executing transaction
+  tx_status = TXStatus::TX_EXE;
+  if (read_write_set.empty() && read_only_set.empty()) {
+    return true;
+  }
+
+  if (read_write_set.empty()) {
+    if (CompareExeRO(yield))
+      return true;
+    else {
+      // TLOG(DBG, t_id) << "ExeRO false";
+      goto ABORT;
+    }
+  } else {
+    if (CompareExeRW(yield))
+      return true;
+    else {
+      // TLOG(DBG, t_id) << "ExeRW false";
+      goto ABORT;
+    }
+  }
+  return true;
+
+ABORT:
+  if (fail_abort) Abort(yield);
+  return false;
+}
+
+ALWAYS_INLINE
+bool DTX::TxCommit(coro_yield_t& yield) {
+  // Only read one item
+  if (is_ro_tx && read_only_set.size() == 1) {
+    return true;
+  }
+
+  //Locking all the places
+  if(!is_ro_tx){
+    if (!CompareLocking(yield)) {
+      // TLOG(DBG, t_id) << "Validate false";
+      goto ABORT;
+    }
+  }
+
+  //validate all reads
+  if (!CompareValidation(yield)) {
+    // TLOG(DBG, t_id) << "Validate false";
+    goto ABORT;
+  }
+
+  // Next step. If read-write txns, we need to commit the updates to remote replicas
+  if (!is_ro_tx) {
+    // Write back for read-write tx
+    bool commit_stat;
+    backup_commit_stat = CompareCommitBackup(yield);
+    if (backup_commit_stat) {
+      //return true;
+      bool primary_commit_stat;
+      primary_commit_stat = CompareCommitPrimary(yield);
+      if(primary_commit_stat){
+        //CompareTruncateAsync
+        bool sent_truncate= CompareTruncateAsync(yield); // not waiting for the response.
+        return true;
+      }
+      else{
+        goto ABORT; //FARM Recovery: if at least one successful -> true. otherwise abort (all backups can fail) or use f+2 replicas.
+      }
+
+    } else {
+      // RDMA_LOG(FATAL) << "Thread " << t_id << " , Coroutine " << coro_id << " abort txn in CoalescentCommit";
+      goto ABORT;
+    }
+
+  }
+
+  return true;
+
+ABORT:
+  Abort(yield);
+  return false;
+}
+
+//Another one for FORD fixed.
+#elif FORD_FIXED
+ALWAYS_INLINE
+bool DTX::TxExe(coro_yield_t& yield, bool fail_abort) {
+  // Start executing transaction
+  tx_status = TXStatus::TX_EXE;
+  if (read_write_set.empty() && read_only_set.empty()) {
+    return true;
+  }
+
+  if (read_write_set.empty()) {
+    if (ExeRO(yield))
+      return true;
+    else {
+      // TLOG(DBG, t_id) << "ExeRO false";
+      goto ABORT;
+    }
+  } else {
+    if (ExeRW(yield))
+      return true;
+    else {
+      // TLOG(DBG, t_id) << "ExeRW false";
+      goto ABORT;
+    }
+  }
+  return true;
+
+ABORT:
+  if (fail_abort) Abort(yield);
+  return false;
+}
+
+ALWAYS_INLINE
+bool DTX::TxCommit(coro_yield_t& yield) {
+  // Only read one item
+  if (is_ro_tx && read_only_set.size() == 1) {
+    return true;
+  }
+  if (!Validate(yield)) {
+    // TLOG(DBG, t_id) << "Validate false";
+    goto ABORT;
+  }
+
+  // Next step. If read-write txns, we need to commit the updates to remote replicas
+  if (!is_ro_tx) {
+    // Write back for read-write tx
+    bool commit_stat;
+    backup_commit_stat = CompareCommitBackup(yield);
+    if (backup_commit_stat) {
+      //return true;
+      bool primary_commit_stat;
+      primary_commit_stat = CompareCommitPrimary(yield);
+      if(primary_commit_stat){
+        //CompareTruncateAsync
+        bool sent_truncate= CompareTruncateAsync(yield); // not waiting for the response.
+        return true;
+      }
+      else{
+        goto ABORT; //FARM Recovery: if at least one successful -> true. otherwise abort (all backups can fail) or use f+2 replicas.
+      }
+
+    } else {
+      // RDMA_LOG(FATAL) << "Thread " << t_id << " , Coroutine " << coro_id << " abort txn in CoalescentCommit";
+      goto ABORT;
+    }
+
+  }
+
+  return true;
+
+ABORT:
+  Abort(yield);
+  return false;
+}
+
+//original FORD
+#else // FORD
+
 ALWAYS_INLINE
 bool DTX::TxExe(coro_yield_t& yield, bool fail_abort) {
   // Start executing transaction
@@ -421,6 +585,8 @@ ABORT:
   Abort(yield);
   return false;
 }
+
+#endif
 
 ALWAYS_INLINE
 void DTX::TxAbortReadOnly(coro_yield_t& yield) {

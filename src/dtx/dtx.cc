@@ -69,6 +69,8 @@ bool DTX::ExeRW(coro_yield_t& yield) {
 
   if (!IssueReadOnly(pending_direct_ro, pending_hash_ro)) return false;  // RW transactions may also have RO data
   // RDMA_LOG(DBG) << "coro: " << coro_id << " tx_id: " << tx_id << " issue read rorw";
+
+  //DAM: changed  this to avoid read+locks?
   if (!IssueReadLock(pending_cas_rw, pending_hash_rw, pending_insert_off_rw)) return false;
 
   // Yield to other coroutines when waiting for network replies
@@ -77,14 +79,27 @@ bool DTX::ExeRW(coro_yield_t& yield) {
   // RDMA_LOG(DBG) << "coro: " << coro_id << " tx_id: " << tx_id << " check read rorw";
   auto res = CheckReadRORW(pending_direct_ro, pending_hash_ro, pending_hash_rw, pending_insert_off_rw, pending_cas_rw,
                            pending_invisible_ro, pending_next_hash_ro, pending_next_hash_rw, pending_next_off_rw, yield);
+  
   ParallelUndoLog();
 
+  //DAM. redo
+
   return res;
+
 }
+
+
+//DAM - lock RM from not-eager writes. here the places are read and locked.
+bool DTX:: LockRW(std::vector<Lock>& pending_lock){
+ // same as CompareIssueLocking
+  
+}
+
 
 bool DTX::Validate(coro_yield_t& yield) {
   // The transaction is write-only, and the data are locked before
   if (not_eager_locked_rw_set.empty() && read_only_set.empty()) return true;
+
 
   std::vector<ValidateRead> pending_validate;
 
@@ -134,7 +149,8 @@ void DTX::ParallelUndoLog() {
   char* written_log_buf = thread_rdma_buffer_alloc->Alloc(log_size);
 
   offset_t cur = 0;
-  std::memcpy(written_log_buf + cur, &tx_id, sizeof(tx_id));
+  std::memcpy(written_log_buf + cur, &tx_id, sizeof(
+    tx_id));
   cur += sizeof(tx_id);
   std::memcpy(written_log_buf + cur, &t_id, sizeof(t_id));
   cur += sizeof(t_id);

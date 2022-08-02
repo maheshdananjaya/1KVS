@@ -118,7 +118,8 @@ bool TxNewOrder(coro_yield_t& yield, tx_id_t tx_id, DTX* dtx) {
       // local stock case
       uint32_t supplier_warehouse_id = warehouse_id;
       int64_t s_key = tpcc_client->MakeStockKey(supplier_warehouse_id, item_id);
-      if (stock_set.find(s_key) != stock_set.end()) {
+      if (stock_set
+        .find(s_key) != stock_set.end()) {
         i--;
         continue;
       } else {
@@ -157,6 +158,7 @@ bool TxNewOrder(coro_yield_t& yield, tx_id_t tx_id, DTX* dtx) {
   ware_key.w_id = warehouse_id;
   auto ware_obj = std::make_shared<DataItem>((table_id_t)TPCCTableType::kWarehouseTable, ware_key.item_key);
   dtx->AddToReadOnlySet(ware_obj);
+
 
   tpcc_customer_key_t cust_key;
   cust_key.c_id = c_key;
@@ -1012,7 +1014,10 @@ void run_thread(struct thread_params* params) {
   coro_sched->LoopLinkCoroutine(coro_num);
 
   // Build qp connection in thread granularity
-  qp_man = new QPManager(thread_gid);
+
+
+  //DAM QP Manager--
+  qp_man = new QPManager(thread_gid); 
   qp_man->BuildQPConnection(meta_man);
 
   // Sync qp connections in one compute node before running transactions

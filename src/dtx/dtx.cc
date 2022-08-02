@@ -89,13 +89,6 @@ bool DTX::ExeRW(coro_yield_t& yield) {
 }
 
 
-//DAM - lock RM from not-eager writes. here the places are read and locked.
-bool DTX:: LockRW(std::vector<Lock>& pending_lock){
- // same as CompareIssueLocking
-  
-}
-
-
 bool DTX::Validate(coro_yield_t& yield) {
   // The transaction is write-only, and the data are locked before
   if (not_eager_locked_rw_set.empty() && read_only_set.empty()) return true;

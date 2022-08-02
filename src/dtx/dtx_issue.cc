@@ -101,15 +101,6 @@ bool DTX::IssueReadOnly(std::vector<DirectRead>& pending_direct_ro,
   return true;
 }
 
-//DAM - lock seperately
-bool DTX::issueLock(std::vector<CasRead>& pending_cas_rw,
-                        std::vector<HashRead>& pending_hash_rw,
-                        std::vector<InsertOffRead>& pending_insert_off_rw){
-
-  //only lock the write set
-
-}
-
 bool DTX::IssueReadLock(std::vector<CasRead>& pending_cas_rw,
                         std::vector<HashRead>& pending_hash_rw,
                         std::vector<InsertOffRead>& pending_insert_off_rw) {
@@ -140,6 +131,7 @@ bool DTX::IssueReadLock(std::vector<CasRead>& pending_cas_rw,
       // Only read
       // miss_local_cache_times++;
       not_eager_locked_rw_set.emplace_back(i);
+
       const HashMeta& meta = global_meta_man->GetPrimaryHashMetaWithTableID(it->table_id);
       uint64_t idx = MurmurHash64A(it->key, 0xdeadbeef) % meta.bucket_num;
       offset_t node_off = idx * meta.node_size + meta.base_off;

@@ -11,7 +11,7 @@
     "workload": "TPCC"
   },
   "remote_compute_nodes": {
-    "compute_node_ips": ["10.0.3.2"],
+    "compute_node_ips": ["10.10.1.1"],
     "compute_node_ports": [12345]
   }
 }

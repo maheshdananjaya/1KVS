@@ -44,7 +44,7 @@ MetaManager::MetaManager() {
   // Using the first RNIC's first port
   RdmaCtrl::DevIdx idx;
   //idx.dev_id = 0; 
-  idx.dev_id = 0; //DAM using the 2nd device port1
+  idx.dev_id = 2; //DAM using the 2nd device port1
   idx.port_id = 1;
   RDMA_LOG(INFO) << "Set Device Id to 2"; //DAM
   // Open device

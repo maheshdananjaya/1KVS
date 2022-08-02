@@ -23,7 +23,7 @@ void QPManager::BuildQPConnection(MetaManager* meta_man) {
     //DAM (1): create another QPs for RPC.
     
     //DAM compute send the commit message - expect and ack from the remote memory. ibv_send -> single ibv_ack. /
-
+    //DAM - 
 
 
     // Queue pair connection, exchange queue pair info via TCP

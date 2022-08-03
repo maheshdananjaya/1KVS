@@ -418,7 +418,7 @@ bool DTX::TxCommit(coro_yield_t& yield) {
   // Next step. If read-write txns, we need to commit the updates to remote replicas
   if (!is_ro_tx) {
     // Write back for read-write tx
-    bool commit_stat;
+    bool backup_commit_stat;
     backup_commit_stat = CompareCommitBackup(yield);
     if (backup_commit_stat) {
       //return true;
@@ -493,7 +493,7 @@ bool DTX::TxCommit(coro_yield_t& yield) {
   // Next step. If read-write txns, we need to commit the updates to remote replicas
   if (!is_ro_tx) {
     // Write back for read-write tx
-    bool commit_stat;
+    bool backup_commit_stat;
     backup_commit_stat = CompareCommitBackup(yield);
     if (backup_commit_stat) {
       //return true;

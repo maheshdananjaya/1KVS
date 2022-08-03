@@ -188,9 +188,17 @@ bool DTX::IssueValidate(std::vector<ValidateRead>& pending_validate) {
 //DAM unlock all
 bool DTX::IssueUnlocking() {
   // Release: set visible and unlock remote data
-  for (auto& re : read_write_set) {
-    auto* qp = thread_qp_man->GetRemoteDataQPWithNodeID(re.node_id);
-    qp->post_send(IBV_WR_RDMA_WRITE, cas_buf, sizeof(lock_t), re.lock_off, 0);  // Release
+  for (auto& index : locked_rw_set) {
+
+    char* unlock_buf = thread_rdma_buffer_alloc->Alloc(sizeof(lock_t));
+    *(lock_t*)unlock_buf = 0xdeadbeaf;
+
+    auto& it = read_write_set[index].item_ptr;
+
+    node_id_t primary_node_id = global_meta_man->GetPrimaryNodeID(it->table_id);
+    RCQP* qp = thread_qp_man->GetRemoteDataQPWithNodeID(primary_node_id);
+
+    qp->post_send(IBV_WR_RDMA_WRITE, unlock_buf, sizeof(lock_t), it->GetRemoteLockAddr(), 0);  // Release
   }
   return true;
 }

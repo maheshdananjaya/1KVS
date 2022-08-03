@@ -447,10 +447,9 @@ ABORT:
   return false;
 }
 
-#endif
-
+#elif defined(FORD_FIXED)
 //Another one for FORD fixed.
-#ifdef FORD_FIXED
+
 ALWAYS_INLINE
 bool DTX::TxExe(coro_yield_t& yield, bool fail_abort) {
   // Start executing transaction

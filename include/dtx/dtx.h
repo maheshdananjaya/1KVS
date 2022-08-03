@@ -131,6 +131,8 @@ class DTX {
 
   bool IssueValidate(std::vector<ValidateRead>& pending_validate);
 
+  bool IssueUnlocking(); //FORD unlock all 
+
   bool IssueCommitAll(std::vector<CommitWrite>& pending_commit_write, char* cas_buf);
 
   bool IssueCommitAllFullFlush(std::vector<CommitWrite>& pending_commit_write, char* cas_buf);
@@ -225,6 +227,9 @@ class DTX {
   bool CompareIssueLocking(std::vector<Lock>& pending_lock);
 
   bool CompareIssueValidation(std::vector<Version>& pending_version_read);
+
+
+  bool CompareIssueUnlocking();
 
   bool CompareIssueLockValidation(std::vector<ValidateRead>& pending_validate);
 
@@ -409,6 +414,13 @@ bool DTX::TxCommit(coro_yield_t& yield) {
     }
   }
 
+  //DAM to check the locking time 
+  #ifdef HALF_TX 
+    CompareIssueUnlocking();
+    return true;
+  #endif
+
+
   //validate all reads
   if (!CompareValidation(yield)) {
     // TLOG(DBG, t_id) << "Validate false";
@@ -486,6 +498,15 @@ bool DTX::TxCommit(coro_yield_t& yield) {
   if (is_ro_tx && read_only_set.size() == 1) {
     return true;
   }
+
+
+   //DAM to check the locking time 
+  #ifdef HALF_TX 
+    IssueUnlocking();
+    return true;
+  #endif
+
+
   if (!Validate(yield)) {
     // TLOG(DBG, t_id) << "Validate false";
     goto ABORT;
@@ -562,6 +583,13 @@ bool DTX::TxCommit(coro_yield_t& yield) {
   if (is_ro_tx && read_only_set.size() == 1) {
     return true;
   }
+
+  //DAM to check the locking time 
+  #ifdef HALF_TX 
+    IssueUnlocking();
+    return true;
+  #endif
+    
   if (!Validate(yield)) {
     // TLOG(DBG, t_id) << "Validate false";
     goto ABORT;

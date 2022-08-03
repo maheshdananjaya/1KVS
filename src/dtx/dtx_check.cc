@@ -158,3 +158,5 @@ bool DTX::CheckCommitAll(std::vector<CommitWrite>& pending_commit_write, char* c
   }
   return true;
 }
+
+

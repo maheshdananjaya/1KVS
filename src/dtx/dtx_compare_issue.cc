@@ -113,6 +113,17 @@ bool DTX::CompareIssueValidation(std::vector<Version>& pending_version_read) {
   return true;
 }
 
+
+//DAM unlock all
+bool DTX::CompareIssueUnlocking() {
+  // Release: set visible and unlock remote data
+  for (auto& re : not_eager_locked_rw_set) {
+    auto* qp = thread_qp_man->GetRemoteDataQPWithNodeID(re.node_id);
+    qp->post_send(IBV_WR_RDMA_WRITE, cas_buf, sizeof(lock_t), re.lock_off, 0);  // Release
+  }
+  return true;
+}
+
 bool DTX::CompareIssueLockValidation(std::vector<ValidateRead>& pending_validate) {
   // For those are not locked during exe phase, we lock and read their versions in a batch
   for (auto& index : not_eager_locked_rw_set) {

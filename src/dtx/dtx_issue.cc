@@ -130,7 +130,7 @@ bool DTX::IssueReadLock(std::vector<CasRead>& pending_cas_rw,
     } else {
       // Only read
       // miss_local_cache_times++;
-      not_eager_locked_rw_set.emplace_back(i);
+      not_eager_locked_rw_set.emplace_back(i); // Does FORD assume that only inserts will miss. 
 
       const HashMeta& meta = global_meta_man->GetPrimaryHashMetaWithTableID(it->table_id);
       uint64_t idx = MurmurHash64A(it->key, 0xdeadbeef) % meta.bucket_num;

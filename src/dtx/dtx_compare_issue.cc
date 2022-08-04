@@ -3,6 +3,7 @@
 
 #include "dtx/dtx.h"
 
+//FAR default does not have an address cache
 bool DTX::CompareIssueReadRO(std::vector<DirectRead>& pending_direct_read,
                              std::vector<HashRead>& pending_hash_read) {
   // Read read-only data
@@ -12,7 +13,7 @@ bool DTX::CompareIssueReadRO(std::vector<DirectRead>& pending_direct_read,
     auto remote_node_id = global_meta_man->GetPrimaryNodeID(it->table_id);
     RCQP* qp = thread_qp_man->GetRemoteDataQPWithNodeID(remote_node_id);
 
-#if 0
+#if 1 //original 0
       // DrTM+H leverages local address cache
       auto offset = addr_cache->Search(remote_node_id, it->table_id, it->key);
       if (offset != NOT_FOUND) {
@@ -38,6 +39,8 @@ bool DTX::CompareIssueReadRO(std::vector<DirectRead>& pending_direct_read,
   return true;
 }
 
+
+//FORD does not have caching enable for FARM.
 bool DTX::CompareIssueReadRW(std::vector<DirectRead>& pending_direct_read,
                              std::vector<HashRead>& pending_hash_read,
                              std::vector<InsertOffRead>& pending_insert_off_read) {
@@ -49,7 +52,7 @@ bool DTX::CompareIssueReadRW(std::vector<DirectRead>& pending_direct_read,
     auto remote_node_id = global_meta_man->GetPrimaryNodeID(it->table_id);
     RCQP* qp = thread_qp_man->GetRemoteDataQPWithNodeID(remote_node_id);
 
-#if 0
+#if 1 //original 0
       // DrTM+H leverages local address cache
       auto offset = addr_cache->Search(remote_node_id, it->table_id, it->key);
       if (offset != NOT_FOUND) {

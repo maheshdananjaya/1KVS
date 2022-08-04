@@ -24,3 +24,30 @@ FORD 1849.06 1848.95 59.8432 110.863
 FORD (FARM       0 writes) 793.758 793.71 135.91 165.273
 FORD (FARM      50 writes) 758.515 701.751 77.7682 321.984
 FORD (FARM      90 writes) 684.67 586.645 183.765 276.036
+
+
+Enabling addr cache 
+FORD (FORD FIXED 0 writes) 1850.15 1850.04 59.7999 111.208
+FORD (FARM 0 writes) 1850.5 1850.39 59.7562 110.829
+FORD (FARM 25% writes) 1206.16 1166.08 55.6561 306.334
+FORD (FARM 50% writes) 933.137 863.669 72.6194 305.437
+FORD(FARM 75% writes) 813.518 719.292 127.149 299.598
+FORD(FARM 100% writes) 861.84 726.732 97.5574 282.62
+
+FORD_FIXED
+FORD (FORD_FIXED 0%) 1847.09 1846.98 59.9226 110.872
+FORD (FORD_FIXED 25%) 1135.03 1108.46 70.4183 298.077
+FORD (FORD_FIXED 50%) 883.591 836.352 87.3086 313.738
+FORD (FORD_FIXED 75%)  784.203 717.739 162.326 321.423
+FORD (FORD_FIXED 85%) 796.545 718.661 160.513 315.1
+FORD (FORD_FIXED 100%) 921.64 812.878 94.0936 307.865
+
+in this protocol all writes transactions shows better becuase farm read all writes in the execution phase becuase they are marked as read-writes. but no need to do so only need the locking phase. (read-write set known priori). also inserts and deletes. writes that are reads need to check the version anyway.
+
+Original FORD without redos.
+FORD (0%) 1850.7 1850.59 59.7338 111.12
+FORD (25%) 1742.5 1694.29 51.887 187.452
+FORD (50%) 1659.32 1551.32 61.2987 176.667
+FORD (75%) 1614.47 1447.84 72.401 168.236
+FORD (85%) 1583.37 1395.2 75.3616 158.256
+FORD (100%) 1516.34 1301.32 77.225 158.016

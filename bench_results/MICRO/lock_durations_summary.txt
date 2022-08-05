@@ -1,0 +1,6 @@
+16 workers
+FORD (25% writes) avg_lock_dur: 4.79235
+FORD (50% writes) avg_lock_dur: 6.5061
+
+FORD (FORD FIXED 50%) avg_lock_dur: 5.2736
+

@@ -558,6 +558,7 @@ bool DTX::TxExe(coro_yield_t& yield, bool fail_abort) {
 
   if (read_write_set.empty()) {
     if (ExeRO(yield))
+
       return true;
     else {
       // TLOG(DBG, t_id) << "ExeRO false";
@@ -600,7 +601,7 @@ bool DTX::TxCommit(coro_yield_t& yield) {
   #endif
 
     
-  if (!Validate(yield)) {
+  if (!CompareIssueValidation(yield)) {
     // TLOG(DBG, t_id) << "Validate false";
     goto ABORT;
   }

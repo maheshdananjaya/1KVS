@@ -544,6 +544,89 @@ ABORT:
   return false;
 }
 
+
+//DAM FORD with seperate read and locking phases. finite
+#elif defined(FORD_DISCRETE_LOCKING)
+
+ALWAYS_INLINE
+bool DTX::TxExe(coro_yield_t& yield, bool fail_abort) {
+  // Start executing transaction
+  tx_status = TXStatus::TX_EXE;
+  if (read_write_set.empty() && read_only_set.empty()) {
+    return true;
+  }
+
+  if (read_write_set.empty()) {
+    if (ExeRO(yield))
+      return true;
+    else {
+      // TLOG(DBG, t_id) << "ExeRO false";
+      goto ABORT;
+    }
+  } else {
+    if (CompareExeRW(yield)) // NO doorbell batching. 
+      return true;
+    else {
+      // TLOG(DBG, t_id) << "ExeRW false";
+      goto ABORT;
+    }
+  }
+  return true;
+
+ABORT:
+  if (fail_abort) Abort(yield);
+  return false;
+}
+
+ALWAYS_INLINE
+bool DTX::TxCommit(coro_yield_t& yield) {
+  // Only read one item
+  if (is_ro_tx && read_only_set.size() == 1) {
+    return true;
+  }
+
+   //Locking all the places after execution
+  if(!is_ro_tx){
+    if (!CompareLocking(yield)) {
+      // TLOG(DBG, t_id) << "Validate false";
+      goto ABORT;
+    }
+  }
+
+  //DAM to check the locking time 
+  #ifdef HALF_TX 
+    IssueUnlocking();
+    return true;
+  #endif
+
+    
+  if (!Validate(yield)) {
+    // TLOG(DBG, t_id) << "Validate false";
+    goto ABORT;
+  }
+
+  // Next step. If read-write txns, we need to commit the updates to remote replicas
+  if (!is_ro_tx) {
+    // Write back for read-write tx
+    bool commit_stat;
+    commit_stat = CoalescentCommit(yield);
+    if (commit_stat) {
+      return true;
+    } else {
+      // RDMA_LOG(FATAL) << "Thread " << t_id << " , Coroutine " << coro_id << " abort txn in CoalescentCommit";
+      goto ABORT;
+    }
+  }
+
+  return true;
+
+ABORT:
+  Abort(yield);
+  return false;
+}
+
+
+
 //original FORD
 #else // FORD
 

@@ -38,6 +38,11 @@ bool DTX::CompareExeRW(coro_yield_t& yield) {
   auto res = CompareCheckReadRORW(pending_direct_read, pending_hash_read, pending_insert_off_read, pending_next_hash_read, pending_next_off_read,
                                   yield);
 
+  // take undo logs after read, but lock later. FORD does not wait for acknowledgements.
+  #ifdef FORD_DISCRETE_LOCKING
+     ParallelUndoLog();
+  #endif
+
   return res;
 }
 

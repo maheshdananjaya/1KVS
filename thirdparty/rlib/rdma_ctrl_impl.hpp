@@ -424,8 +424,7 @@ class RdmaCtrl::RdmaCtrlImpl {
                 qp = get_qp<RCQP, get_rc_key>(idx); // For multi round tests
                 if (qp == nullptr) {
                   qp = create_rc_qp(idx, opened_rnic, NULL);
-                  RDMA_LOG(INFO) << "Create new RCQP for connect
-                  ion";
+                  RDMA_LOG(INFO) << "Create new RCQP for connection";
                   if (!RCQPImpl::readytorcv(qp->qp_, arg.payload.qp.qp_attr, opened_rnic)) {
                     RDMA_LOG(FATAL) << "change qp_attr status to ready to receive error: " << strerror(errno);
                   }

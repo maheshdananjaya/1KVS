@@ -442,9 +442,8 @@ class RdmaCtrl::RdmaCtrlImpl {
 
 
               //DAM thread mapping?
-              //DAM thread mapping?
               RDMA_LOG(INFO) << "new QP registered";
-              RDMA_LOG(INFO) << "new QP -> node="<< qp->idx_.node_id << " qp=" << qp->idx_.worker_id << " index=" << qp->idx_.index;
+              RDMA_LOG(INFO) << "new QP -> node="<< qp->idx_.node_id << " qp=" << qp->idx_.node_id.worker_id << " index=" << qp->idx_.node_id.index;
             }
             reply.payload.qp.node_id = node_id_;
             break;

@@ -38,7 +38,7 @@ class SCS {
 
 // inline uint32_t get_ud_key(const QPIdx idx) {
 //   return ::rdmaio::encode_qp_id(idx.worker_id, UD_ID_BASE + idx.index);
-// }
+// }s
 
 // MZ: We use 32-bit node id and 32-bit worker id
 inline uint64_t get_rc_key(const QPIdx idx) {
@@ -183,6 +183,8 @@ class RdmaCtrl::RdmaCtrlImpl {
       return dynamic_cast<T*>(qps_[key]);
   }
 
+
+  //DAM insert qps into the qp queue. no thread mapping
   RCQP* create_rc_qp(QPIdx idx, RNicHandler* dev, MemoryAttr* attr) {
     RCQP* res = nullptr;
     {
@@ -359,7 +361,10 @@ class RdmaCtrl::RdmaCtrlImpl {
     RDMA_VERIFY(ERROR, setsockopt(listenfd, SOL_SOCKET, SO_REUSEADDR | SO_REUSEPORT, &opt, sizeof(int)) == 0)
       << "unable to configure socket status.";
     RDMA_VERIFY(ERROR, listen(listenfd, 24) == 0) << "TCP listen error: " << strerror(errno);
+    
+    //DAM main loop for the QP connections. 
     while (running_) {
+
       asm volatile(""::
       : "memory");
 
@@ -402,6 +407,7 @@ class RdmaCtrl::RdmaCtrlImpl {
           case ConnArg::QP: {
             qp_callback_(arg.payload.qp);  // call the user callback
             QP* qp = NULL;
+
             switch (arg.payload.qp.qp_type) {
               case IBV_QPT_UD: {
                 UDQP* ud_qp = get_qp<UDQP, get_ud_key>(
@@ -418,7 +424,8 @@ class RdmaCtrl::RdmaCtrlImpl {
                 qp = get_qp<RCQP, get_rc_key>(idx); // For multi round tests
                 if (qp == nullptr) {
                   qp = create_rc_qp(idx, opened_rnic, NULL);
-                  RDMA_LOG(INFO) << "Create new RCQP for connection";
+                  RDMA_LOG(INFO) << "Create new RCQP for connect
+                  ion";
                   if (!RCQPImpl::readytorcv(qp->qp_, arg.payload.qp.qp_attr, opened_rnic)) {
                     RDMA_LOG(FATAL) << "change qp_attr status to ready to receive error: " << strerror(errno);
                   }
@@ -433,6 +440,11 @@ class RdmaCtrl::RdmaCtrlImpl {
             if (qp != nullptr) {
               reply.payload.qp = qp->get_attr();
               reply.ack = SUCC;
+
+
+              //DAM thread mapping?
+              DMA_LOG(INFO) << "new QP registered";
+              DMA_LOG(INFO) << "new QP -> node=" qp->idx.node_id<< " qp=" <<qp->idx.node_id.worker_id << " index="<< qp->idx.node_id.index;
             }
             reply.payload.qp.node_id = node_id_;
             break;

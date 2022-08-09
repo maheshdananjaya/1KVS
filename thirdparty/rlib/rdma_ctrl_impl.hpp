@@ -424,8 +424,7 @@ class RdmaCtrl::RdmaCtrlImpl {
                 qp = get_qp<RCQP, get_rc_key>(idx); // For multi round tests
                 if (qp == nullptr) {
                   qp = create_rc_qp(idx, opened_rnic, NULL);
-                  RDMA_LOG(INFO) << "Create new RCQP for connect
-                  ion";
+                  RDMA_LOG(INFO) << "Create new RCQP for connection";
                   if (!RCQPImpl::readytorcv(qp->qp_, arg.payload.qp.qp_attr, opened_rnic)) {
                     RDMA_LOG(FATAL) << "change qp_attr status to ready to receive error: " << strerror(errno);
                   }
@@ -443,8 +442,9 @@ class RdmaCtrl::RdmaCtrlImpl {
 
 
               //DAM thread mapping?
-              DMA_LOG(INFO) << "new QP registered";
-              DMA_LOG(INFO) << "new QP -> node=" qp->idx.node_id<< " qp=" <<qp->idx.node_id.worker_id << " index="<< qp->idx.node_id.index;
+              //DAM thread mapping?
+              RDMA_LOG(INFO) << "new QP registered";
+              RDMA_LOG(INFO) << "new QP -> node="<< qp->idx_.node_id << " qp=" << qp->idx_.worker_id << " index=" << qp->idx_.index;
             }
             reply.payload.qp.node_id = node_id_;
             break;

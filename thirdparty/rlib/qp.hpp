@@ -132,10 +132,10 @@ class QP {
 
     static void* rpc_poll_complete(){
       
-      //while(!running);
+      //pthread_detach(pthread_self());
       while(true){
         // starting a poll completiong. 
-        RDMA_LOG(INFO) << "polling.. for worker " << idx_.worker_id << " on  " << idx_.node_id;
+        RDMA_LOG(INFO) << "polling..";
         sleep(1000);
       }
     }
@@ -144,7 +144,7 @@ class QP {
       if(qp_running){
         qp_running = false;  // wait for the handler to join
         pthread_join(qp_handler_tid, NULL); // stop the thread
-        RDMA_LOG(INFO) << "Destroying rpc thread for worker " << idx_.worker_id << " on  " << idx_.node_id;
+        RDMA_LOG(INFO) << "Destroying rpc thread ";
       }
     }
   #endif

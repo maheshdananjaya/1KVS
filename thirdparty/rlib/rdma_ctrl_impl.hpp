@@ -199,7 +199,7 @@ class RdmaCtrl::RdmaCtrlImpl {
           res = new RCQP(dev, idx, *attr);
         qps_.insert(std::make_pair(qid, res));
       }
-    };
+    }
     return res;
   }
 
@@ -372,6 +372,7 @@ class RdmaCtrl::RdmaCtrlImpl {
       socklen_t clilen = sizeof(cli_addr);
       auto csfd = accept(listenfd, (struct sockaddr*) &cli_addr, &clilen);
 
+
       if (csfd < 0) {
         RDMA_LOG(ERROR) << "accept a wrong connection error: " << strerror(errno);
         continue;
@@ -439,11 +440,14 @@ class RdmaCtrl::RdmaCtrlImpl {
             if (qp != nullptr) {
               reply.payload.qp = qp->get_attr();
               reply.ack = SUCC;
-
-
               //DAM thread mapping?
-              RDMA_LOG(INFO) << "new QP registered";
+              RDMA_LOG(INFO) << "new QP registered.starting a new thread";
               RDMA_LOG(INFO) << "new QP -> node="<< qp->idx_.node_id << " qp=" << qp->idx_.worker_id << " index=" << qp->idx_.index;
+              
+              #ifdef META
+                qp->qp_running=true;
+                qp->start_rpc_thread();
+              #endif
             }
             reply.payload.qp.node_id = node_id_;
             break;
@@ -472,8 +476,13 @@ class RdmaCtrl::RdmaCtrlImpl {
   // registered MRs at this control manager
   std::map<int, Memory*> mrs_;
 
-  // created QPs on this control manager
+  // created QPs on this control manager // DAM all the qps registered under this rdma ctrl.
   std::map<uint64_t, QP*> qps_;
+
+  #ifdef META
+  //DAM - dummy hashmap for keys . <key, lock> 
+    std::map<std::string, int> lock_map; //// This is not thread safe. lets change it later. may be <key, obj->lock> is better instead of int.
+  #endif
 
   // local node information
   const int node_id_;

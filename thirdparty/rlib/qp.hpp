@@ -47,6 +47,10 @@ class QP {
       ibv_destroy_qp(qp_);
     if (cq_ != nullptr)
       ibv_destroy_cq(cq_);
+
+    #ifdef META
+      destroy_all_rpc_threads();
+    #endif
   }
   /**
      * GetMachineMeta to remote QP
@@ -105,12 +109,48 @@ class QP {
   MemoryAttr local_mr_;
   RNicHandler* rnic_;
 
+  //DAM thread for send/receive on the  server side.
+  #ifdef META
+     
+    pthread_t qp_handler_tid; //rpc thread
+    bool qp_running = true;
+
+    bool start_rpc_thread(){
+      if(qp_running){
+          RDMA_LOG(INFO) << "starting the thread.. ";
+          pthread_attr_t attr;
+          pthread_attr_init(&attr);
+          pthread_create(&qp_handler_tid, &attr, rpc_poll_complete, this); 
+          return true;
+      }   
+      return false;
+    }      
+
+    void rpc_poll_complete(){
+      
+      //while(!running);
+      while(true){
+        // starting a poll completiong. 
+        RDMA_LOG(INFO) << "polling.. for worker " << idx_.worker_id <, " on  " << idx_.node_id;
+      }
+    }
+
+    bool destroy_all_rpc_threads(){
+      if(qp_running){
+        qp_running_ = false;  // wait for the handler to join
+        pthread_join(qp_handler_tid, NULL); // stop the thread
+        RDMA_LOG(INFO) << "Destroying rpc thread for worker " << idx_.worker_id <, " on  " << idx_.node_id;
+      }
+    }
+  #endif
+
  protected:
   ConnStatus get_remote_helper(ConnArg* arg, ConnReply* reply, std::string ip, int port) {
     return QPImpl::get_remote_helper(arg, reply, ip, port);
   }
 };
 
+//DAM: flags might need to be changed for the rpc layer.
 inline constexpr RCConfig default_rc_config() {
   return RCConfig{
     .access_flags = (IBV_ACCESS_REMOTE_WRITE | IBV_ACCESS_REMOTE_READ | IBV_ACCESS_REMOTE_ATOMIC),
@@ -226,7 +266,7 @@ class RRCQP : public QP {
   /**
      * Post request(s) to the sending QP.
      * This is just a wrapper of ibv_post_send
-     */
+     */ 
   ConnStatus post_send(ibv_wr_opcode op, char* local_buf, uint32_t len, uint64_t off, int flags,
                        uint64_t wr_id = 0, uint32_t imm = 0) {
     return post_send_to_mr(local_mr_, remote_mr_, op, local_buf, len, off, flags, wr_id, imm);

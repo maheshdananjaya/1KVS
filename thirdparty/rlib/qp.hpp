@@ -120,26 +120,27 @@ class QP {
           RDMA_LOG(INFO) << "starting the thread.. ";
           pthread_attr_t attr;
           pthread_attr_init(&attr);
-          pthread_create(&qp_handler_tid, &attr, rpc_poll_complete, this); 
+          pthread_create(&qp_handler_tid, &attr, &rpc_poll_complete, this); 
           return true;
       }   
       return false;
     }      
 
-    void rpc_poll_complete(){
+    void* rpc_poll_complete(){
       
       //while(!running);
       while(true){
         // starting a poll completiong. 
-        RDMA_LOG(INFO) << "polling.. for worker " << idx_.worker_id <, " on  " << idx_.node_id;
+        RDMA_LOG(INFO) << "polling.. for worker " << idx_.worker_id << " on  " << idx_.node_id;
+        sleep(1000);
       }
     }
 
     bool destroy_all_rpc_threads(){
       if(qp_running){
-        qp_running_ = false;  // wait for the handler to join
+        qp_running = false;  // wait for the handler to join
         pthread_join(qp_handler_tid, NULL); // stop the thread
-        RDMA_LOG(INFO) << "Destroying rpc thread for worker " << idx_.worker_id <, " on  " << idx_.node_id;
+        RDMA_LOG(INFO) << "Destroying rpc thread for worker " << idx_.worker_id << " on  " << idx_.node_id;
       }
     }
   #endif

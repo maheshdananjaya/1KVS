@@ -130,12 +130,12 @@ class QP {
       return ((QP*) context)->rpc_poll_complete();
     }
 
-    static void* rpc_poll_complete(){
-      
+    static void* rpc_poll_complete(void){
+       
       //pthread_detach(pthread_self());
       while(true){
         // starting a poll completiong. 
-        RDMA_LOG(INFO) << "polling..";
+        RDMA_LOG(INFO) << "polling.. " << idx_.node_id;
         sleep(1000);
       }
     }

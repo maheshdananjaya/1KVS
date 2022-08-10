@@ -130,7 +130,7 @@ class QP {
       return ((QP*) context)->rpc_poll_complete();
     }
 
-    static void* rpc_poll_complete(void){
+    void* rpc_poll_complete(void){
        
       //pthread_detach(pthread_self());
       while(true){

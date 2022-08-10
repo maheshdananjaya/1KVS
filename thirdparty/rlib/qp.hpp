@@ -120,13 +120,17 @@ class QP {
           RDMA_LOG(INFO) << "starting the thread.. ";
           pthread_attr_t attr;
           pthread_attr_init(&attr);
-          pthread_create(&qp_handler_tid, &attr, &rpc_poll_complete, this); 
+          pthread_create(&qp_handler_tid, &attr, &QP::rpc_handler_wrapper, this); 
           return true;
       }   
       return false;
     }      
 
-    void* rpc_poll_complete(){
+    static void* rpc_handler_wrapper(void* context) {
+      return ((QP*) context)->rpc_poll_complete();
+    }
+
+    static void* rpc_poll_complete(){
       
       //while(!running);
       while(true){

@@ -366,9 +366,14 @@ void DTX::AddToReadWriteSet(DataItemPtr item) {
   read_write_set.emplace_back(data_set_item);
 }
 
+#ifdef RECOVERY 
+  bool DTX::TxLockRecovery(coro_yield_t& yield, bool tx_id){
+      
+  }
+#endif
+
 
 #ifdef FARM // to run full Farm protocol
-
 ALWAYS_INLINE
 bool DTX::TxExe(coro_yield_t& yield, bool fail_abort) {
   // Start executing transaction

@@ -29,6 +29,40 @@ DTX::DTX(MetaManager* meta_man,
   miss_local_cache_times = 0;
 }
 
+
+#ifdef RECOVERY 
+bool DTX::TxRecovery(coro_yield_t& yield){
+    std::vector<DirectRead> pending_direct_ro; 
+
+    //for all keys/hashnodes of all tables, check the lock value.
+    //for all tablese
+
+    const TPCCTableType all_table_types[]= {kWarehouseTable, kDistrictTable, kCustomerTable, kHistoryTable, 
+                                            kNewOrderTable, kOrderTable, kOrderLineTable, kItemTable,
+                                            kStockTable, kCustomerIndexTable, kOrderIndexTable}
+
+    for (const auto table_id_ : all_table_types){
+        table_id_t  table_id = (table_id_t)table_id_;
+        HashMeta meta = global_meta_man->GetPrimaryHashMetaWithTableID(table_id);
+
+        //this is without batching or parallelism
+        for (int bucket_id=0; i< meta.bucket_num; i++){
+            // key=lock_id/tx_id(key to search). this could be multiple id
+            auto obj = std::make_shared<DataItem>(table_id_, 0xffffffff); 
+            DataSetItem data_set_item{.item_ptr = std::move(obj), .is_fetched = false, .is_logged = false, .read_which_node = -1};
+
+            std::vector<HashRead> pending_hash_reads;
+            if(!IssueLockRecoveryRead(table_id, bucket_id, data_set_item, pending_hash_reads)) return false;
+            //one-by-one
+            coro_sched->Yield(yield, coro_id);
+            // if the tx_id found or multiple tc ids found. then stop the search.
+            if(!CheckLockRecoveryRead(pending_hash_reads)) continue ; 
+        }
+    //
+    }
+}
+#endif
+
 bool DTX::ExeRO(coro_yield_t& yield) {
   // You can read from primary or backup
   std::vector<DirectRead> pending_direct_ro;

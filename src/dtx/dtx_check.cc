@@ -4,6 +4,23 @@
 #include "dtx/dtx.h"
 #include "util/timer.h"
 
+#ifdef RECOVERY
+bool DTX::CheckLockRecoveryRead(std::vector<HashRead>& pending_hash_reads){
+    for (auto& res : pending_direct_reads) {
+      auto* local_hash_node = (HashNode*)res.buf;
+      auto* it = res.item->item_ptr.get(); //original item. key=tx_id
+      bool find = false;
+      for (auto& item : local_hash_node->data_items) {
+        if(item.lock == it->key){ // to find the correct tx id. worse case. 
+          find=true;
+          return true;
+        }
+
+      }
+    }
+}
+#endif
+
 bool DTX::CheckReadRO(std::vector<DirectRead>& pending_direct_ro,
                       std::vector<HashRead>& pending_hash_ro,
                       std::list<InvisibleRead>& pending_invisible_ro,

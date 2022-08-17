@@ -6,7 +6,7 @@
 
 #ifdef RECOVERY
 bool DTX::CheckLockRecoveryRead(std::vector<HashRead>& pending_hash_reads){
-    for (auto& res : pending_direct_reads) {
+    for (auto& res : pending_hash_reads) {
       auto* local_hash_node = (HashNode*)res.buf;
       auto* it = res.item->item_ptr.get(); //original item. key=tx_id
       bool find = false;

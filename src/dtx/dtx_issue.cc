@@ -22,7 +22,7 @@ bool DTX::IssueLockRecoveryRead(table_id_t table_id, uint64_t bucket_id, DataSet
     char* local_hash_node = thread_rdma_buffer_alloc->Alloc(sizeof(HashNode));   
    
     //has to change
-    pending_hash_reads.emplace_back(HashRead{.qp = qp, .item = &item, .buf = local_hash_node, .remote_node = remote_node_id, .meta = meta});
+    pending_hash_reads.emplace_back(HashRead{.qp = qp, .item = item, .buf = local_hash_node, .remote_node = remote_node_id, .meta = meta});
     
 
     if (!coro_sched->RDMARead(coro_id, qp, local_hash_node, node_off, sizeof(HashNode))) {

@@ -119,12 +119,13 @@ class DTX {
     HashNode* bucket = (HashNode*)tmp_hash_node;
     for (int i = 0; i < ITEM_NUM_PER_NODE; i++) bucket->data_items[i].Debug();
   }
-
-  private:
-    bool TxRecovery(coro_yield_t& yield);
-    bool IssueLockRecoveryRead(table_id_t table_id, uint64_t bucket_id, DataSetItem* item, std::vector<HashRead>& pending_hash_reads);
-    bool CheckLockRecoveryRead(std::vector<HashRead>& pending_hash_reads);
-
+  #ifdef RECOVERY 
+    private:
+      bool TxRecovery(coro_yield_t& yield);
+      bool IssueLockRecoveryRead(table_id_t table_id, uint64_t bucket_id, DataSetItem* item, std::vector<HashRead>& pending_hash_reads);
+      bool CheckLockRecoveryRead(std::vector<HashRead>& pending_hash_reads);
+  #endif
+      
  private:
   // For coroutine issues RDMA requests before yield
   bool IssueReadOnly(std::vector<DirectRead>& pending_direct_ro,
@@ -370,13 +371,6 @@ void DTX::AddToReadWriteSet(DataItemPtr item) {
   DataSetItem data_set_item{.item_ptr = std::move(item), .is_fetched = false, .is_logged = false, .read_which_node = -1};
   read_write_set.emplace_back(data_set_item);
 }
-
-#ifdef RECOVERY 
-  bool DTX::TxLockRecovery(coro_yield_t& yield, bool tx_id){
-
-  }
-#endif
-
 
 #ifdef FARM // to run full Farm protocol
 ALWAYS_INLINE

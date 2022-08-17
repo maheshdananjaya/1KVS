@@ -41,6 +41,7 @@ bool DTX::TxRecovery(coro_yield_t& yield){
                                             kNewOrderTable, kOrderTable, kOrderLineTable, kItemTable,
                                             kStockTable, kCustomerIndexTable, kOrderIndexTable}
 
+
     for (const auto table_id_ : all_table_types){
         table_id_t  table_id = (table_id_t)table_id_;
         HashMeta meta = global_meta_man->GetPrimaryHashMetaWithTableID(table_id);

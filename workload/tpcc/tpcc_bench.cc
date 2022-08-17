@@ -177,7 +177,8 @@ bool TxNewOrder(coro_yield_t& yield, tx_id_t tx_id, DTX* dtx) {
   auto* ware_val = (tpcc_warehouse_val_t*)ware_obj->value;
   std::string check(ware_val->w_zip);
   if (check != tpcc_zip_magic) {
-    RDMA_LOG(FATAL) << "[FATAL] Read warehouse unmatch, tid-cid-txid: " << thread_gid << "-" << dtx->coro_id << "-" << tx_id;
+    RDMA_LOG(FATAL) << "[FATAL] Read warehouse unmatch, tid-cid-txid: " << thread_gid << 
+    "-" << dtx->coro_id << "-" << tx_id;
   }
 
   auto* cust_val = (tpcc_customer_val_t*)cust_obj->value;
@@ -197,6 +198,7 @@ bool TxNewOrder(coro_yield_t& yield, tx_id_t tx_id, DTX* dtx) {
   dist_val->d_next_o_id++;
 
   // insert neworder record
+
   uint64_t no_key = tpcc_client->MakeNewOrderKey(warehouse_id, district_id, my_next_o_id);
   tpcc_new_order_key_t norder_key;
   norder_key.no_id = no_key;
@@ -967,6 +969,13 @@ void RunTx(coro_yield_t& yield, coro_id_t coro_id) {
     /********************************** Stat end *****************************************/
   }
 #endif
+
+  #ifdef RECOVERY
+    if(thread_gid==0){
+      printf("Starting Coordinator-Side Recovery at gid=0.. \n");
+      TxRecovery(yield);
+    }
+  #endif
 
   delete dtx;
 }

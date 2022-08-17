@@ -44,6 +44,9 @@ bool DTX::TxRecovery(coro_yield_t& yield){
 
     const uint64_t all_table_types[]= {48076, 48077, 48078, 48079, 48080, 48081, 48082, 48083, 48084, 48085, 48086};
 
+    struct timespec scan_start_time, scan_end_time;
+    clock_gettime(CLOCK_REALTIME, &scan_start_time);
+
     for (const auto table_id_ : all_table_types){
       int tot_keys=0;
         table_id_t  table_id = (table_id_t)table_id_;
@@ -70,7 +73,9 @@ bool DTX::TxRecovery(coro_yield_t& yield){
         total_keys_searched+=tot_keys;
     //
     }
-    RDMA_LOG(INFO) << "total keys scanned : " << total_keys_searched;
+    clock_gettime(CLOCK_REALTIME, &scan_end_time);
+    double scan_time = (scan_end_time.tv_sec - scan_start_time.tv_sec) * 1000000 + (double)(scan_end_time.tv_nsec - scan_start_time.tv_nsec) / 1000;
+    RDMA_LOG(INFO) << "total keys scanned : " << total_keys_searched << "with total time spent us=" << scan_time ;
 }
 #endif
 

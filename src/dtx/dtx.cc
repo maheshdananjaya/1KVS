@@ -40,10 +40,12 @@ bool DTX::TxRecovery(coro_yield_t& yield){
     //const TPCCTableType all_table_types[]= {kWarehouseTable, kDistrictTable, kCustomerTable, kHistoryTable, 
     //                                        kNewOrderTable, kOrderTable, kOrderLineTable, kItemTable, kStockTable, kCustomerIndexTable, kOrderIndexTable}
    //for tpcc
-    
+    int total_keys_searched=0;
+
     const uint64_t all_table_types[]= {48076, 48077, 48078, 48079, 48080, 48081, 48082, 48083, 48084, 48085, 48086};
 
     for (const auto table_id_ : all_table_types){
+      int tot_keys=0;
         table_id_t  table_id = (table_id_t)table_id_;
         HashMeta meta = global_meta_man->GetPrimaryHashMetaWithTableID(table_id);
 
@@ -58,8 +60,14 @@ bool DTX::TxRecovery(coro_yield_t& yield){
             //one-by-one 
             coro_sched->Yield(yield, coro_id);
             // if the tx_id found or multiple tc ids found. then stop the search.
+            tot_keys+=2;
             if(!CheckLockRecoveryRead(pending_hash_reads)) continue ; 
+            else RDMA_LOG(INFO) << "failed transaction found";
+            //if(!CheckLockRecoveryRead(pending_hash_reads)) continue ; 
         }
+
+        RDMA_LOG(INFO) << "table - keys scanned : " << tot_keys;
+        total_keys_searched+=tot_keys;
     //
     }
 }

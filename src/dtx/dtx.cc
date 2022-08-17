@@ -62,14 +62,15 @@ bool DTX::TxRecovery(coro_yield_t& yield){
             // if the tx_id found or multiple tc ids found. then stop the search.
             tot_keys+=2;
             if(!CheckLockRecoveryRead(pending_hash_reads)) continue ; 
-            else RDMA_LOG(INFO) << "failed transaction found";
+            //else RDMA_LOG(INFO) << "failed transaction found";
             //if(!CheckLockRecoveryRead(pending_hash_reads)) continue ; 
         }
 
-        RDMA_LOG(INFO) << "table - keys scanned : " << tot_keys;
+        //RDMA_LOG(INFO) << "table - keys scanned : " << tot_keys;
         total_keys_searched+=tot_keys;
     //
     }
+    RDMA_LOG(INFO) << "total keys scanned : " << total_keys_searched;
 }
 #endif
 

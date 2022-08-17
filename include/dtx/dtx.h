@@ -120,12 +120,15 @@ class DTX {
     for (int i = 0; i < ITEM_NUM_PER_NODE; i++) bucket->data_items[i].Debug();
   }
   #ifdef RECOVERY 
-    private:
+
+    public: 
       bool TxRecovery(coro_yield_t& yield);
+    private:
+      
       bool IssueLockRecoveryRead(table_id_t table_id, uint64_t bucket_id, DataSetItem* item, std::vector<HashRead>& pending_hash_reads);
       bool CheckLockRecoveryRead(std::vector<HashRead>& pending_hash_reads);
   #endif
-      
+
  private:
   // For coroutine issues RDMA requests before yield
   bool IssueReadOnly(std::vector<DirectRead>& pending_direct_ro,

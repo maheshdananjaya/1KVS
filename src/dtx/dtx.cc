@@ -67,7 +67,7 @@ bool DTX::TxRecovery(coro_yield_t& yield){
             
             //if(!CheckLockRecoveryRead(pending_hash_reads)) continue; 
             int depth=0;
-            while(!CheckLockRecoveryRead(pending_hash_reads)) {
+            while(!CheckLockRecoveryRead2(pending_hash_reads)) {
               if(pending_hash_reads.empty()){  
                 depth++;              
                 break;

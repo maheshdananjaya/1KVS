@@ -127,6 +127,7 @@ class DTX {
       
       bool IssueLockRecoveryRead(table_id_t table_id, uint64_t bucket_id, DataSetItem* item, std::vector<HashRead>& pending_hash_reads);
       bool CheckLockRecoveryRead(std::vector<HashRead>& pending_hash_reads);
+      bool CheckLockRecoveryRead2(std::vector<HashRead>& pending_hash_reads);
   #endif
 
  private:

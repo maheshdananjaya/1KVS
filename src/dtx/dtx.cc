@@ -64,16 +64,23 @@ bool DTX::TxRecovery(coro_yield_t& yield){
             //one-by-one 
             coro_sched->Yield(yield, coro_id);
             // if the tx_id found or multiple tc ids found. then stop the search.
-            
             //if(!CheckLockRecoveryRead(pending_hash_reads)) continue; 
             int depth=0;
-            while(!CheckLockRecoveryRead2(pending_hash_reads)) {
-              if(pending_hash_reads.empty()){  
-                depth++;              
-                break;
-              }
-                coro_sched->Yield(yield, coro_id);
-            } 
+
+            while(!pending_hash_reads.empty()){
+              coro_sched->Yield(yield, coro_id);
+              depth++;  
+              CheckLockRecoveryRead2(pending_hash_reads);
+            }
+            
+            //while(!CheckLockRecoveryRead2(pending_hash_reads)) {
+            //  if(pending_hash_reads.empty()){  
+            //    depth++;          
+
+            //    break;
+            //  }
+            //    coro_sched->Yield(yield, coro_id);
+            //} 
 
             tot_keys+=depth*2;
             //else RDMA_LOG(INFO) << "failed transaction found";

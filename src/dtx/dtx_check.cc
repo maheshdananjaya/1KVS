@@ -38,7 +38,6 @@ bool DTX::CheckLockRecoveryRead2(std::vector<HashRead>& pending_hash_reads){
 
       }
       //check for the next pointer. //trim the pending_hash_read vector. add new. 
-
       if(local_hash_node->next == nullptr){
           //more nodes.
           //pending_hash_reads.emplace_back(HashRead{.qp = qp, .item = item, .buf = local_hash_node, .remote_node = remote_node_id, .meta = meta});

@@ -59,12 +59,23 @@ bool DTX::TxRecovery(coro_yield_t& yield){
             DataSetItem data_set_item{.item_ptr = std::move(obj), .is_fetched = false, .is_logged = false, .read_which_node = -1};
 
             std::vector<HashRead> pending_hash_reads;
+            
             if(!IssueLockRecoveryRead(table_id, bucket_id, &data_set_item, pending_hash_reads)) return false;
             //one-by-one 
             coro_sched->Yield(yield, coro_id);
             // if the tx_id found or multiple tc ids found. then stop the search.
-            tot_keys+=2;
-            if(!CheckLockRecoveryRead(pending_hash_reads)) continue ; 
+            
+            //if(!CheckLockRecoveryRead(pending_hash_reads)) continue; 
+            int depth=0;
+            while(!CheckLockRecoveryRead(pending_hash_reads)) {
+              if(pending_hash_reads.empty()){  
+                depth++;              
+                break;
+              }
+                coro_sched->Yield(yield, coro_id);
+            } 
+
+            tot_keys+=depth*2;
             //else RDMA_LOG(INFO) << "failed transaction found";
             //if(!CheckLockRecoveryRead(pending_hash_reads)) continue ; 
         }

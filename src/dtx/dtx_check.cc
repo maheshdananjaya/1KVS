@@ -18,6 +18,45 @@ bool DTX::CheckLockRecoveryRead(std::vector<HashRead>& pending_hash_reads){
 
       }
     }
+
+    return false;
+}
+
+
+bool DTX::CheckLockRecoveryRead2(std::vector<HashRead>& pending_hash_reads){
+    
+    for (auto iter = pending_hash_reads.begin(); iter != pending_hash_reads.end();) {
+      auto res = *iter;
+      auto* local_hash_node = (HashNode*)res.buf;
+      auto* it = res.item->item_ptr.get(); //original item. key=tx_id
+      bool find = false;
+      for (auto& item : local_hash_node->data_items) {
+        if(item.lock == it->key){ // to find the correct tx id. worse case. 
+          find=true;
+          return true;
+        }
+
+      }
+      //check for the next pointer. //trim the pending_hash_read vector. add new. 
+
+      if(local_hash_node->next == nullptr){
+          //more nodes.
+          //pending_hash_reads.emplace_back(HashRead{.qp = qp, .item = item, .buf = local_hash_node, .remote_node = remote_node_id, .meta = meta});
+          iter = pending_hash_reads.erase(iter);
+          return false;
+      }
+
+        //i can use the saem buffer spcae. only need to calculate the offset.
+      //auto pp = std::addressof(local_hash_node->next);
+      offset_t node_off = (offset_t)local_hash_node->next;
+
+      if (!coro_sched->RDMARead(coro_id, res.qp, res.buf, node_off, sizeof(HashNode))) {
+        return false;
+      }
+
+    }
+
+    return false;
 }
 #endif
 

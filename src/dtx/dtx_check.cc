@@ -47,12 +47,12 @@ bool DTX::CheckLockRecoveryRead2(std::vector<HashRead>& pending_hash_reads){
       }else{
         //i can use the saem buffer spcae. only need to calculate the offset.
         //auto pp = std::addressof(local_hash_node->next);
-        offset_t node_off = (offset_t)local_hash_node->next;  
+        auto node_off = (uint64_t)local_hash_node->next - res.meta.data_ptr + res.meta.base_off; 
         if (!coro_sched->RDMARead(coro_id, res.qp, res.buf, node_off, sizeof(HashNode))) {
           return false; //error
         }       
       }
-
+      iter++;
     }
 
     return false;

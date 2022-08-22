@@ -30,6 +30,28 @@ bool DTX::IssueLockRecoveryRead(table_id_t table_id, uint64_t bucket_id, DataSet
     }
 
 }
+
+bool DTX::IssueLockRecoveryReadMultiple(table_id_t table_id, uint64_t bucket_id, DataSetItem* item, std::vector<HashRead>& pending_hash_reads){
+
+    // this could be for loop with recovery set or batching.   
+    const int num_buckets_ = 4;
+    node_id_t remote_node_id = global_meta_man->GetPrimaryNodeID(table_id);
+    RCQP* qp = thread_qp_man->GetRemoteDataQPWithNodeID(remote_node_id);
+    //auto offset = addr_cache->Search(remote_node_id, it->table_id, it->key);
+    HashMeta meta = global_meta_man->GetPrimaryHashMetaWithTableID(table_id);
+    //uint64_t idx = MurmurHash64A(it->key, 0xdeadbeef) % meta.bucket_num;
+    offset_t node_off = bucket_id * meta.node_size + meta.base_off;
+    char* local_hash_node = thread_rdma_buffer_alloc->Alloc(sizeof(HashNode)*num_buckets_);   
+   
+    //has to change
+    pending_hash_reads.emplace_back(HashRead{.qp = qp, .item = item, .buf = local_hash_node, .remote_node = remote_node_id, .meta = meta});
+    
+
+    if (!coro_sched->RDMARead(coro_id, qp, local_hash_node, node_off, sizeof(HashNode)*num_buckets_)) {
+      return false;
+    }
+}
+
 #endif
 
 bool DTX::IssueReadOnly(std::vector<DirectRead>& pending_direct_ro,

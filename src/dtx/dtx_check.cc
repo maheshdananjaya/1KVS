@@ -38,6 +38,7 @@ bool DTX::CheckLockRecoveryRead2(std::vector<HashRead>& pending_hash_reads){
 
       }
       //check for the next pointer. //trim the pending_hash_read vector. add new. 
+
       if(local_hash_node->next == nullptr){
           //more nodes.
           //pending_hash_reads.emplace_back(HashRead{.qp = qp, .item = item, .buf = local_hash_node, .remote_node = remote_node_id, .meta = meta});
@@ -52,6 +53,46 @@ bool DTX::CheckLockRecoveryRead2(std::vector<HashRead>& pending_hash_reads){
         }       
       }
       iter++;
+    }
+
+    return false;
+}
+
+bool DTX::CheckLockRecoveryReadMultiple(std::vector<HashRead>& pending_hash_reads){
+    
+    for (auto iter = pending_hash_reads.begin(); iter != pending_hash_reads.end();) {
+      auto res = *iter;
+      auto* local_hash_node = (HashNode*)res.buf;
+
+      for(int i =0; i<1;i++){ // for all hashbuckets we ask in the first level.
+
+        auto* it = res.item->item_ptr.get(); //original item. key=tx_id
+        bool find = false;
+        for (auto& item : local_hash_node->data_items) {
+          if(item.lock == it->key){ // to find the correct tx id. worse case. 
+            find=true;
+            return true;
+          }
+  
+        }
+        //check for the next pointer. //trim the pending_hash_read vector. add new.   
+        if(local_hash_node->next == nullptr){
+            //more nodes.
+            //pending_hash_reads.emplace_back(HashRead{.qp = qp, .item = item, .buf = local_hash_node, .remote_node = remote_node_id, .meta = meta});
+            iter = pending_hash_reads.erase(iter);
+            
+        }else{
+          //i can use the saem buffer spcae. only need to calculate the offset.
+          //auto pp = std::addressof(local_hash_node->next);
+          auto node_off = (uint64_t)local_hash_node->next - res.meta.data_ptr + res.meta.base_off; 
+          if (!coro_sched->RDMARead(coro_id, res.qp, res.buf, node_off, sizeof(HashNode))) {
+            return false; //error
+          }
+          iter++;       
+        }
+
+      }//hashbucket end
+      //iter++;
     }
 
     return false;

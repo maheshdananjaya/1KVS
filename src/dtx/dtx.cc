@@ -60,7 +60,9 @@ bool DTX::TxRecovery(coro_yield_t& yield){
 
             std::vector<HashRead> pending_hash_reads;
             
-            if(!IssueLockRecoveryRead(table_id, bucket_id, &data_set_item, pending_hash_reads)) return false;
+            //Instead of single buckets, we read multiple buckets.
+            if(!IssueLockRecoveryReadMultiple(table_id, bucket_id, &data_set_item, pending_hash_reads)) return false;
+            
             //one-by-one 
             coro_sched->Yield(yield, coro_id);
             // if the tx_id found or multiple tc ids found. then stop the search.

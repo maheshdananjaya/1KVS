@@ -43,6 +43,13 @@
 
 using HashNode = HashStore::HashNode;
 
+//Dam log record
+struct LogRecord{
+  tx_id_t tx_id;
+  t_id_t t_id; //can be used for flags and other metadata, like the sequence number
+  DataItem log_entry; //undo or redo rentry;
+} Aligned8;
+
 /* One-sided RDMA-enabled distributed transaction processing */
 class DTX {
  public:
@@ -103,6 +110,9 @@ class DTX {
   node_id_t ReadWhichNode(table_id_t table_id, node_id_t& backup_idx);
 
   void ParallelUndoLog();
+  void ParallelUndoLogIncludingInserts();
+  void UndoLog();
+  void LatchLog();
 
   void Clean();  // Clean data sets after commit/abort
 

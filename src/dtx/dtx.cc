@@ -67,6 +67,12 @@ bool DTX::ExeRW(coro_yield_t& yield) {
   std::list<HashRead> pending_next_hash_rw;
   std::list<InsertOffRead> pending_next_off_rw;
 
+  //DAM- if latch lock is enabled
+  #ifdef LATCH_LOG
+    LatchLog();
+    coro_sched->Yield(yield, coro_id);
+  #endif
+
   if (!IssueReadOnly(pending_direct_ro, pending_hash_ro)) return false;  // RW transactions may also have RO data
   // RDMA_LOG(DBG) << "coro: " << coro_id << " tx_id: " << tx_id << " issue read rorw";
 
@@ -80,11 +86,13 @@ bool DTX::ExeRW(coro_yield_t& yield) {
   auto res = CheckReadRORW(pending_direct_ro, pending_hash_ro, pending_hash_rw, pending_insert_off_rw, pending_cas_rw,
                            pending_invisible_ro, pending_next_hash_ro, pending_next_hash_rw, pending_next_off_rw, yield);
   
+  
   ParallelUndoLog();
 
   //DAM. redo
 
   return res;
+
 
 }
 
@@ -102,6 +110,7 @@ bool DTX::Validate(coro_yield_t& yield) {
   coro_sched->Yield(yield, coro_id);
 
   auto res = CheckValidate(pending_validate);
+
   return res;
 }
 
@@ -130,6 +139,7 @@ bool DTX::CoalescentCommit(coro_yield_t& yield) {
 }
 
 void DTX::ParallelUndoLog() {
+
   // Write the old data from read write set
   size_t log_size = sizeof(tx_id) + sizeof(t_id);
   for (auto& set_it : read_write_set) {
@@ -138,6 +148,7 @@ void DTX::ParallelUndoLog() {
       log_size += DataItemSize;
       set_it.is_logged = true;
     }
+
   }
   char* written_log_buf = thread_rdma_buffer_alloc->Alloc(log_size);
 
@@ -152,6 +163,8 @@ void DTX::ParallelUndoLog() {
     if (!set_it.is_logged && !set_it.item_ptr->user_insert) {
       std::memcpy(written_log_buf + cur, set_it.item_ptr.get(), DataItemSize);
       cur += DataItemSize;
+
+
       set_it.is_logged = true;
     }
   }
@@ -162,6 +175,149 @@ void DTX::ParallelUndoLog() {
     RCQP* qp = thread_qp_man->GetRemoteLogQPWithNodeID(i);
     coro_sched->RDMALog(coro_id, tx_id, qp, (char*)written_log_buf, log_offset, log_size);
   }
+}
+
+
+void DTX::ParallelUndoLogIncludingInserts() {
+
+  // Write the old data from read write set
+  size_t log_size = sizeof(tx_id) + sizeof(t_id);
+  for (auto& set_it : read_write_set) {
+    if (!set_it.is_logged) {
+      // For the newly inserted data, the old data are not needed to be recorded
+      log_size += DataItemSize;
+      //set_it.is_logged = true;
+    }
+
+  }
+  char* written_log_buf = thread_rdma_buffer_alloc->Alloc(log_size);
+
+  offset_t cur = 0;
+  std::memcpy(written_log_buf + cur, &tx_id, sizeof(
+    tx_id));
+  cur += sizeof(tx_id);
+  std::memcpy(written_log_buf + cur, &t_id, sizeof(t_id));
+  cur += sizeof(t_id);
+
+  for (auto& set_it : read_write_set) {
+    if (!set_it.is_logged && !set_it.item_ptr->user_insert) {
+      std::memcpy(written_log_buf + cur, set_it.item_ptr.get(), DataItemSize);
+      cur += DataItemSize;
+
+
+      set_it.is_logged = true;
+    }
+  }
+
+  // Write undo logs to all memory nodes
+  for (int i = 0; i < global_meta_man->remote_nodes.size(); i++) {
+    offset_t log_offset = thread_remote_log_offset_alloc->GetNextLogOffset(i, log_size);
+    RCQP* qp = thread_qp_man->GetRemoteLogQPWithNodeID(i);
+    coro_sched->RDMALog(coro_id, tx_id, qp, (char*)written_log_buf, log_offset, log_size);
+  }
+}
+
+
+//DAM Log API- undo log before locking. log-> log. we can use data qp to write logs. 
+//TODO: input pending logs. isolating failures.
+//logging inserts included
+void DTX::UndoLog() {
+
+  // Write the old data from read write set
+  //DAM- t_id is unnecssary. it is used to flag the last log entry. and /or first log entry.
+  // if we can give the number of potential log entries at the beggining, size can be written to the first tid
+  
+  size_t log_record_size = sizeof(tx_id)+sizeof(t_id)+DataItemSize;
+  // this does not include inserts as they get locked suring the validation phase. 
+  // This works with seperate locking as well.
+
+  size_t num_log_entries = 0;
+  for (auto& set_it : read_write_set) { 
+
+    if (!set_it.is_logged) num_log_entries++;
+  }
+
+  size_t log_size = log_record_size*num_log_entries;
+  char* written_log_buf = thread_rdma_buffer_alloc->Alloc(log_size);
+  offset_t cur = 0;
+
+  for (auto& set_it : read_write_set) { 
+
+    if (!set_it.is_logged) {           
+      std::memcpy(written_log_buf + cur, &tx_id, sizeof(tx_id));
+      cur += sizeof(tx_id);
+      std::memcpy(written_log_buf + cur, &t_id, sizeof(t_id));
+      cur += sizeof(t_id);
+      std::memcpy(written_log_buf + cur, set_it.item_ptr.get(), DataItemSize);
+      cur += DataItemSize;
+
+      set_it.is_logged = true;   
+
+    }
+  }
+
+  // Write undo logs to all memory nodes. ibv send send the offset relative to the memory region.
+  for (int i = 0; i < global_meta_man->remote_nodes.size(); i++) {
+    offset_t log_offset = thread_remote_log_offset_alloc->GetNextLogOffset(i, log_size, coro_id);
+    RCQP* qp = thread_qp_man->GetRemoteLogQPWithNodeID(i);
+
+    //TODO- log records are without Acks.
+    coro_sched->RDMALog(coro_id, tx_id, qp, (char*)written_log_buf, log_offset, log_size);
+  }
+
+}
+
+
+void DTX::LatchLog() {
+
+  size_t log_record_size = sizeof(tx_id)+sizeof(t_id)+sizeof(itemkey_t);
+  // this does not include inserts as they get locked suring the validation phase. 
+  // This works with seperate locking as well.
+
+  size_t num_log_entries = 0;
+  for (auto& set_it : read_write_set) { 
+
+    if (!set_it.is_logged) num_log_entries++;
+  }
+
+  size_t log_size = log_record_size*num_log_entries;
+  char* written_log_buf = thread_rdma_buffer_alloc->Alloc(log_size);
+  offset_t cur = 0;
+
+  for (auto& set_it : read_write_set) { 
+
+    if (!set_it.is_logged) {           
+      std::memcpy(written_log_buf + cur, &tx_id, sizeof(tx_id));
+      cur += sizeof(tx_id);
+      std::memcpy(written_log_buf + cur, &t_id, sizeof(t_id));
+      cur += sizeof(t_id);
+      //logging the key
+      std::memcpy(written_log_buf + cur, set_it.item_ptr.key, sizeof(itemkey_t));
+      cur += DataItemSize;
+
+      set_it.is_logged = true;   
+
+    }
+  }
+
+  // Write undo logs to all memory nodes. ibv send send the offset relative to the memory region.
+  for (int i = 0; i < global_meta_man->remote_nodes.size(); i++) {
+    offset_t log_offset = thread_remote_log_offset_alloc->GetNextLogOffset(i, log_size, coro_id);
+    RCQP* qp = thread_qp_man->GetRemoteLogQPWithNodeID(i);
+
+    //TODO- log records are without Acks.
+    coro_sched->RDMALog(coro_id, tx_id, qp, (char*)written_log_buf, log_offset, log_size);
+  }
+
+}
+
+//writing and clearning the old log entry.
+void DTX::PruneLog() {
+
+  thread_remote_log_offset_alloc->ResetAllLogOffsetCoro(i, coro_id);  
+  //should we wait for the next transaction to overide it or should we proactively truncate logs.
+  //later log can be partially logged. so cant only check the first entry.
+
 }
 
 void DTX::Abort(coro_yield_t& yield) {

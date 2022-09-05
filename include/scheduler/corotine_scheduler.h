@@ -19,9 +19,13 @@ class CoroutineScheduler {
     t_id = thread_id;
     pending_counts = new int[coro_num];
     pending_log_counts = new int[coro_num];
+
+    waiting_latch_log =  new bool[coro_num]; // flag the coro cheduler to reschedule the thread.
+
     for (coro_id_t c = 0; c < coro_num; c++) {
       pending_counts[c] = 0;
       pending_log_counts[c] = 0;
+      waiting_latch_log[c] = false;
     }
     coro_array = new Coroutine[coro_num];
   }
@@ -95,6 +99,10 @@ class CoroutineScheduler {
 
   // number of pending log qps (i.e., the ack has not received) per coroutine
   int* pending_log_counts;
+
+  //DAM - pending log QPS
+  bool* waiting_latch_log;
+
 };
 
 ALWAYS_INLINE
@@ -107,6 +115,16 @@ ALWAYS_INLINE
 void CoroutineScheduler::AddPendingLogQP(coro_id_t coro_id, RCQP* qp) {
   pending_log_qps.push_back(qp);
   pending_log_counts[coro_id] += 1;
+}
+
+//DAM- flagging log schedule
+ALWAYS_INLINE
+void CoroutineScheduler::AddPendingLogQPFlag(coro_id_t coro_id, RCQP* qp, bool enable_waiting) {
+  pending_log_qps.push_back(qp);
+  pending_log_counts[coro_id] += 1;
+
+  assert(!waiting_latch_log[coro_id]); // to avoid 
+  waiting_latch_log[coro_id]=true;
 }
 
 ALWAYS_INLINE

@@ -60,6 +60,13 @@ void CoroutineScheduler::PollLogCompletion() {
     if (coro_id == 0) continue;
     assert(pending_log_counts[coro_id] > 0);
     pending_log_counts[coro_id] -= 1;
+
+    // DAM- rechedule the thread after receiving all acks.
+    if (pending_log_counts[coro_id] == 0 && waiting_latch_log[coro_id]) {
+      waiting_latch_log[coro_id]=false;
+      AppendCoroutine(&coro_array[coro_id]);
+    }
+
     it = pending_log_qps.erase(it);
   }
 }

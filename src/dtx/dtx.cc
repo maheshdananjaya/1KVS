@@ -336,7 +336,9 @@ bool DTX::LatchLog() {
 void DTX::PruneLog() {
 
   //wait for the acks of last trsnaction unlocks. then truncate.
-  thread_remote_log_offset_alloc->ResetAllLogOffsetCoro(i, coro_id);  
+  for (int i = 0; i < global_meta_man->remote_nodes.size(); i++) {
+    thread_remote_log_offset_alloc->ResetAllLogOffsetCoro(i, coro_id);  
+  }
 
   //TODO: should we wait for the next transaction to overide it or should we proactively truncate logs.
   //later log can be partially logged. so cant only check the first entry.

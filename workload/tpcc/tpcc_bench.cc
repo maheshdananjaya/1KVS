@@ -987,7 +987,9 @@ void run_thread(struct thread_params* params) {
   auto alloc_rdma_region_range = params->global_rdma_region->GetThreadLocalRegion(params->thread_local_id);
   addr_cache = new AddrCache();
   rdma_buffer_allocator = new RDMABufferAllocator(alloc_rdma_region_range.first, alloc_rdma_region_range.second);
-  log_offset_allocator = new LogOffsetAllocator(thread_gid, params->total_thread_num);
+
+  //DAM - new log allaocator per coroutine
+  log_offset_allocator = new LogOffsetAllocator(thread_gid, params->total_thread_num, coro_num);
   // latency = new Latency();
   timer = new double[ATTEMPTED_NUM]();
 

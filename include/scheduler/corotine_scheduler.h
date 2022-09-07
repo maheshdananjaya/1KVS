@@ -39,6 +39,7 @@ class CoroutineScheduler {
   void AddPendingQP(coro_id_t coro_id, RCQP* qp);
 
   void AddPendingLogQP(coro_id_t coro_id, RCQP* qp);
+  void AddPendingLogQP(coro_id_t coro_id, RCQP* qp, bool enable_waiting);
 
   bool RDMABatch(coro_id_t coro_id, RCQP* qp, ibv_send_wr* send_sr, ibv_send_wr** bad_sr_addr, int doorbell_num);
 
@@ -49,6 +50,7 @@ class CoroutineScheduler {
   bool RDMAWrite(coro_id_t coro_id, RCQP* qp, char* wt_data, uint64_t remote_offset, size_t size, MemoryAttr& local_mr, MemoryAttr& remote_mr);
 
   bool RDMALog(coro_id_t coro_id, tx_id_t tx_id, RCQP* qp, char* wt_data, uint64_t remote_offset, size_t size);
+  bool RDMALog(coro_id_t coro_id, tx_id_t tx_id, RCQP* qp, char* wt_data, uint64_t remote_offset, size_t size, bool enable_waiting);
 
   bool RDMARead(coro_id_t coro_id, RCQP* qp, char* rd_data, uint64_t remote_offset, size_t size);
 

@@ -44,6 +44,20 @@
 using HashNode = HashStore::HashNode;
 
 //Dam log record
+struct LatchLogRecord{
+  tx_id tx_id_;
+  t_id t_id_;
+  itemkey_t key_;
+
+}Aligned8;
+
+struct UndoLogRecord{
+  tx_id tx_id_;
+  t_id t_id_;
+  DataItem data_;
+}Aligned8;
+
+
 struct LogRecord{
   tx_id_t tx_id;
   t_id_t t_id; //can be used for flags and other metadata, like the sequence number
@@ -111,8 +125,11 @@ class DTX {
 
   void ParallelUndoLog();
   void ParallelUndoLogIncludingInserts();
-  void UndoLog();
-  void LatchLog();
+  bool UndoLog();
+  bool LatchLog();
+  void PruneLog();
+  void Recovery();
+
 
   void Clean();  // Clean data sets after commit/abort
 
@@ -794,4 +811,8 @@ void DTX::Clean() {
   locked_rw_set.clear();
   old_version_for_insert.clear();
   inserted_pos.clear();
+
+
+  // DAM log prune temporary
+  PruneLog();
 }

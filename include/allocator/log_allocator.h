@@ -53,7 +53,13 @@ class LogOffsetAllocator {
     return offset;
   }
 
-  offset_t GetNextLogOffsetCoro(node_id_t node_id, coro_id_t coro_id, size_t log_entry_size) {
+  //DAM - For recovery
+  offset_t GetStartLogOffset(node_id_t node_id, coro_id_t coro_id) {
+      return coro_start_log_offsets[node_id][coro_id];
+  }
+
+  //SAM- For coroutines
+  offset_t GetNextLogOffset(node_id_t node_id, coro_id_t coro_id, size_t log_entry_size) {
 
     //current coro log pointer. fixed sized logs always
     assert(coro_id < MAX_NUM_COROS);
@@ -65,7 +71,7 @@ class LogOffsetAllocator {
     return offset;
   }
 
-  void SetAllLogOffsetCoro(node_id_t node_id, coro_id_t coro_id) {
+  void ResetAllLogOffsetCoro(node_id_t node_id, coro_id_t coro_id) {
       //cleaning all previous logs in this coro
       coro_current_log_offsets[node_id][coro_id] = 0;
   }

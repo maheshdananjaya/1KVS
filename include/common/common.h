@@ -18,12 +18,6 @@ using offset_t = int64_t;     // Offset type. Usually used in remote offset for 
 using version_t = uint64_t;   // Version type, used in version checking
 using lock_t = uint64_t;      // Lock type, used in remote locking
 
-struct LogRecord{
-	tx_id_t tx_id;
-	t_id_t t_id; //can be used for flags and other metadata
-	DataItem log_entry; //undo or redo rentry;
-} Aligned8;
-
 // Memory region ids for server's hash store buffer and undo log buffer
 const mr_id_t SERVER_HASH_BUFF_ID = 97;
 const mr_id_t SERVER_LOG_BUFF_ID = 98;

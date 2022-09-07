@@ -69,8 +69,14 @@ bool DTX::ExeRW(coro_yield_t& yield) {
 
   //DAM- if latch lock is enabled
   #ifdef LATCH_LOG
-    LatchLog();
-    coro_sched->Yield(yield, coro_id);
+    if(!LatchLog()) {
+      coro_sched->Yield(yield, coro_id);      
+    }     
+
+    while (!coro_sched->CheckLogAck(coro_id)) {
+        ;
+    }
+
   #endif
 
   if (!IssueReadOnly(pending_direct_ro, pending_hash_ro)) return false;  // RW transactions may also have RO data
@@ -87,7 +93,9 @@ bool DTX::ExeRW(coro_yield_t& yield) {
                            pending_invisible_ro, pending_next_hash_ro, pending_next_hash_rw, pending_next_off_rw, yield);
   
   
-  ParallelUndoLog();
+  //ParallelUndoLog();
+  //DAM - per coroutine log buffer.
+  UndoLog();  
 
   //DAM. redo
 
@@ -104,8 +112,13 @@ bool DTX::Validate(coro_yield_t& yield) {
 
   std::vector<ValidateRead> pending_validate;
 
+  //taking undo logs: table, key, version for inserts as well. 
+  UndoLog();
+
   if (!IssueValidate(pending_validate)) return false;
 
+  //DAM-missing inserts logging after locking non-eager write set (i.e. inserts).
+  
   // Yield to other coroutines when waiting for network replies
   coro_sched->Yield(yield, coro_id);
 
@@ -221,7 +234,7 @@ void DTX::ParallelUndoLogIncludingInserts() {
 //DAM Log API- undo log before locking. log-> log. we can use data qp to write logs. 
 //TODO: input pending logs. isolating failures.
 //logging inserts included
-void DTX::UndoLog() {
+bool DTX::UndoLog() {
 
   // Write the old data from read write set
   //DAM- t_id is unnecssary. it is used to flag the last log entry. and /or first log entry.
@@ -236,6 +249,8 @@ void DTX::UndoLog() {
 
     if (!set_it.is_logged) num_log_entries++;
   }
+
+  if(num_log_entries == 0) return false;
 
   size_t log_size = log_record_size*num_log_entries;
   char* written_log_buf = thread_rdma_buffer_alloc->Alloc(log_size);
@@ -258,17 +273,19 @@ void DTX::UndoLog() {
 
   // Write undo logs to all memory nodes. ibv send send the offset relative to the memory region.
   for (int i = 0; i < global_meta_man->remote_nodes.size(); i++) {
-    offset_t log_offset = thread_remote_log_offset_alloc->GetNextLogOffset(i, log_size, coro_id);
+    offset_t log_offset = thread_remote_log_offset_alloc->GetNextLogOffset(i, coro_id, log_size);
     RCQP* qp = thread_qp_man->GetRemoteLogQPWithNodeID(i);
 
     //TODO- log records are without Acks.
     coro_sched->RDMALog(coro_id, tx_id, qp, (char*)written_log_buf, log_offset, log_size);
   }
 
+  return true;
+
 }
 
 
-void DTX::LatchLog() {
+bool DTX::LatchLog() {
 
   size_t log_record_size = sizeof(tx_id)+sizeof(t_id)+sizeof(itemkey_t);
   // this does not include inserts as they get locked suring the validation phase. 
@@ -279,6 +296,8 @@ void DTX::LatchLog() {
 
     if (!set_it.is_logged) num_log_entries++;
   }
+
+  if(num_log_entries == 0) return false;
 
   size_t log_size = log_record_size*num_log_entries;
   char* written_log_buf = thread_rdma_buffer_alloc->Alloc(log_size);
@@ -302,23 +321,39 @@ void DTX::LatchLog() {
 
   // Write undo logs to all memory nodes. ibv send send the offset relative to the memory region.
   for (int i = 0; i < global_meta_man->remote_nodes.size(); i++) {
-    offset_t log_offset = thread_remote_log_offset_alloc->GetNextLogOffset(i, log_size, coro_id);
+    offset_t log_offset = thread_remote_log_offset_alloc->GetNextLogOffset(i, coro_id, log_size);
     RCQP* qp = thread_qp_man->GetRemoteLogQPWithNodeID(i);
 
     //TODO- log records are without Acks.
-    coro_sched->RDMALog(coro_id, tx_id, qp, (char*)written_log_buf, log_offset, log_size);
+    coro_sched->RDMALog(coro_id, tx_id, qp, (char*)written_log_buf, log_offset, log_size, true);
   }
+
+   return true;
 
 }
 
 //writing and clearning the old log entry.
 void DTX::PruneLog() {
 
+  //wait for the acks of last trsnaction unlocks. then truncate.
   thread_remote_log_offset_alloc->ResetAllLogOffsetCoro(i, coro_id);  
-  //should we wait for the next transaction to overide it or should we proactively truncate logs.
+
+  //TODO: should we wait for the next transaction to overide it or should we proactively truncate logs.
   //later log can be partially logged. so cant only check the first entry.
 
 }
+
+void DTX:: Recovery(){
+  //Assuming that coompute fails/
+  //two conditions: if the tx id is non -1. or if the tx_id is non incremental. 
+  //new data strutcures to read the log buffer. and search it and recover.
+
+  //lets recover one coroutine firts.then we can loop.
+  
+
+
+}
+
 
 void DTX::Abort(coro_yield_t& yield) {
   // When failures occur, transactions need to be aborted.

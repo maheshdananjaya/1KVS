@@ -119,11 +119,11 @@ void CoroutineScheduler::AddPendingLogQP(coro_id_t coro_id, RCQP* qp) {
 
 //DAM- flagging log schedule
 ALWAYS_INLINE
-void CoroutineScheduler::AddPendingLogQPFlag(coro_id_t coro_id, RCQP* qp, bool enable_waiting) {
+void CoroutineScheduler::AddPendingLogQP(coro_id_t coro_id, RCQP* qp, bool enable_waiting) {
   pending_log_qps.push_back(qp);
   pending_log_counts[coro_id] += 1;
 
-  assert(!waiting_latch_log[coro_id]); // to avoid 
+  //assert(!waiting_latch_log[coro_id]); // to avoid. can;t do this. multiple locks can be logged at the same time.
   waiting_latch_log[coro_id]=true;
 }
 
@@ -186,6 +186,18 @@ bool CoroutineScheduler::RDMALog(coro_id_t coro_id, tx_id_t tx_id, RCQP* qp, cha
     return false;
   }
   AddPendingLogQP(coro_id, qp);
+  return true;
+}
+
+//DAM waiting for log acks. so extra enable waiting flat.
+ALWAYS_INLINE
+bool CoroutineScheduler::RDMALog(coro_id_t coro_id, tx_id_t tx_id, RCQP* qp, char* wt_data, uint64_t remote_offset, size_t size, bool enable_waiting) {
+  auto rc = qp->post_send(IBV_WR_RDMA_WRITE, wt_data, size, remote_offset, IBV_SEND_SIGNALED, coro_id);
+  if (rc != SUCC) {
+    RDMA_LOG(FATAL) << "client: post log fail. rc=" << rc << ", tid = " << t_id << ", coroid = " << coro_id << ", txid = " << tx_id;
+    return false;
+  }
+  AddPendingLogQP(coro_id, qp, enable_waiting);
   return true;
 }
 

@@ -69,13 +69,11 @@ bool DTX::ExeRW(coro_yield_t& yield) {
 
   //DAM- if latch lock is enabled
   #ifdef LATCH_LOG
-    if(!LatchLog()) {
+    if(LatchLog()) {
       coro_sched->Yield(yield, coro_id);      
     }     
 
-    while (!coro_sched->CheckLogAck(coro_id)) {
-        ;
-    }
+    while (!coro_sched->CheckLogAck(coro_id));
 
   #endif
 

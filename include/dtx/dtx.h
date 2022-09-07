@@ -45,14 +45,14 @@ using HashNode = HashStore::HashNode;
 
 //Dam log record
 struct LatchLogRecord{
-  tx_id tx_id_;
+  tx_id_t tx_id_;
   t_id_t t_id_;
   itemkey_t key_;
 
 }Aligned8;
 
 struct UndoLogRecord{
-  tx_id tx_id_;
+  tx_id_t tx_id_;
   t_id_t t_id_;
   DataItem data_;
 }Aligned8;

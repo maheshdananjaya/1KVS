@@ -311,7 +311,7 @@ bool DTX::LatchLog() {
       std::memcpy(written_log_buf + cur, &t_id, sizeof(t_id));
       cur += sizeof(t_id);
       //logging the key
-      std::memcpy(written_log_buf + cur, (set_it.item_ptr.get())->key, sizeof(itemkey_t));
+      std::memcpy(written_log_buf + cur, &((set_it.item_ptr.get())->key), sizeof(itemkey_t));
       cur += DataItemSize;
 
       set_it.is_logged = true;   

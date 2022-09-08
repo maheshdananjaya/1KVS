@@ -110,9 +110,6 @@ bool DTX::Validate(coro_yield_t& yield) {
 
   std::vector<ValidateRead> pending_validate;
 
-  //taking undo logs: table, key, version for inserts as well. 
-  UndoLog();
-
   if (!IssueValidate(pending_validate)) return false;
 
   //DAM-missing inserts logging after locking non-eager write set (i.e. inserts).
@@ -121,6 +118,9 @@ bool DTX::Validate(coro_yield_t& yield) {
   coro_sched->Yield(yield, coro_id);
 
   auto res = CheckValidate(pending_validate);
+
+  //taking undo logs: table, key, version for inserts as well. 
+  UndoLog();
 
   return res;
 }
@@ -243,6 +243,7 @@ bool DTX::UndoLog() {
   // This works with seperate locking as well.
 
   size_t num_log_entries = 0;
+   //DAM- TODO craefull all the inserts are logged without locking. wait for the validation.
   for (auto& set_it : read_write_set) { 
 
     if (!set_it.is_logged) num_log_entries++;
@@ -310,7 +311,7 @@ bool DTX::LatchLog() {
       cur += sizeof(t_id);
       //logging the key
       std::memcpy(written_log_buf + cur, &((set_it.item_ptr.get())->key), sizeof(itemkey_t));
-      cur += DataItemSize;
+      cur +=  sizeof(itemkey_t);
 
       //DAM- fix this prevents taking undo later
       //set_it.is_logged = true;   

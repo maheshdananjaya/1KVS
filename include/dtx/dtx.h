@@ -126,6 +126,8 @@ class DTX {
   void ParallelUndoLog();
   void ParallelUndoLogIncludingInserts();
   bool UndoLog();
+  bool UndoLogInsertsOnly() ;
+  bool UndoLogWithoutInserts() ;
   bool LatchLog();
   void PruneLog();
   void Recovery();

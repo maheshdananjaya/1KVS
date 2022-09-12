@@ -47,9 +47,9 @@ void CoroutineScheduler::PollLogCompletion() {
       continue;
     }
     if (unlikely(wc.status != IBV_WC_SUCCESS)) {
-      RDMA_LOG(EMPH) << "Bad completion status: " << wc.status << " with error " << ibv_wc_status_str(wc.status) << ";@ node " << qp->idx_.node_id;
+      RDMA_LOG(EMPH) << "Bad Log completion status: " << wc.status << " with error " << ibv_wc_status_str(wc.status) << ";@ node " << qp->idx_.node_id;
       if (wc.status != IBV_WC_RETRY_EXC_ERR) {
-        RDMA_LOG(EMPH) << "completion status != IBV_WC_RETRY_EXC_ERR. abort()";
+        RDMA_LOG(EMPH) << "Log completion status != IBV_WC_RETRY_EXC_ERR. abort()";
         abort();
       } else {
         it++;
@@ -63,6 +63,7 @@ void CoroutineScheduler::PollLogCompletion() {
 
     // DAM- rechedule the thread after receiving all acks.
     if (pending_log_counts[coro_id] == 0 && waiting_latch_log[coro_id]) {
+      RDMA_LOG(DBG) << "coro: " << coro_id << " waiting_latch_log set to 0";
       waiting_latch_log[coro_id]=false;
       AppendCoroutine(&coro_array[coro_id]);
     }

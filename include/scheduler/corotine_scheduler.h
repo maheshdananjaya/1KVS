@@ -282,7 +282,7 @@ void CoroutineScheduler::Yield(coro_yield_t& yield, coro_id_t cid) {
   if (coro_tail == coro) coro_tail = coro->prev_coro;
   coro->is_wait_poll = true;
   // 2. Yield to the next coroutine
-  // RDMA_LOG(DBG) << "coro: " << cid << " yields to coro " << next->coro_id;
+  RDMA_LOG(DBG) << "coro: " << cid << " yields to coro " << next->coro_id;
   RunCoroutine(yield, next);
 }
 
@@ -301,7 +301,7 @@ void CoroutineScheduler::Yield(coro_yield_t& yield, coro_id_t cid, bool enable_w
   if (coro_tail == coro) coro_tail = coro->prev_coro;
   coro->is_wait_poll = true;
   // 2. Yield to the next coroutine
-  // RDMA_LOG(DBG) << "coro: " << cid << " yields to coro " << next->coro_id;
+  RDMA_LOG(DBG) << "coro: " << cid << " yields to coro " << next->coro_id;
   RunCoroutine(yield, next);
 }
 

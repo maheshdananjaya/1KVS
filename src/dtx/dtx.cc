@@ -2,7 +2,7 @@
 // Copyright (c) 2021
 
 #include "dtx/dtx.h"
-
+#define LATCH_LOG
 DTX::DTX(MetaManager* meta_man,
          QPManager* qp_man,
          t_id_t tid,

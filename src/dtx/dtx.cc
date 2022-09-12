@@ -70,10 +70,9 @@ bool DTX::ExeRW(coro_yield_t& yield) {
   //DAM- if latch lock is enabled
   #ifdef LATCH_LOG
     if(LatchLog()) {
-      coro_sched->Yield(yield, coro_id);      
-    }     
-
-    while (!coro_sched->CheckLogAck(coro_id));
+      coro_sched->Yield(yield, coro_id, true);  
+      while (!coro_sched->CheckLogAck(coro_id));     
+    }         
 
   #endif
 
@@ -119,7 +118,8 @@ bool DTX::Validate(coro_yield_t& yield) {
 
   auto res = CheckValidate(pending_validate);
 
-  //taking undo logs: table, key, version for inserts as well. 
+  //taking undo logs: table, key, version for inserts as well. TODO- avoid logging inserts.
+  //TODO: this has to be done only if the validations is sucessful.
   UndoLog();
 
   return res;
@@ -258,6 +258,110 @@ bool DTX::UndoLog() {
   for (auto& set_it : read_write_set) { 
 
     if (!set_it.is_logged) {           
+      std::memcpy(written_log_buf + cur, &tx_id, sizeof(tx_id));
+      cur += sizeof(tx_id);
+      std::memcpy(written_log_buf + cur, &t_id, sizeof(t_id));
+      cur += sizeof(t_id);
+      std::memcpy(written_log_buf + cur, set_it.item_ptr.get(), DataItemSize);
+      cur += DataItemSize;
+
+      set_it.is_logged = true;   
+
+    }
+  }
+
+  // Write undo logs to all memory nodes. ibv send send the offset relative to the memory region.
+  for (int i = 0; i < global_meta_man->remote_nodes.size(); i++) {
+    offset_t log_offset = thread_remote_log_offset_alloc->GetNextLogOffset(i, coro_id, log_size);
+    RCQP* qp = thread_qp_man->GetRemoteLogQPWithNodeID(i);
+
+    //TODO- log records are without Acks.
+    coro_sched->RDMALog(coro_id, tx_id, qp, (char*)written_log_buf, log_offset, log_size);
+  }
+
+  return true;
+
+}
+
+//DAM - without inserts
+bool DTX::UndoLogWithoutInserts() {
+
+  // Write the old data from read write set
+  //DAM- t_id is unnecssary. it is used to flag the last log entry. and /or first log entry.
+  // if we can give the number of potential log entries at the beggining, size can be written to the first tid
+  
+  size_t log_record_size = sizeof(tx_id)+sizeof(t_id)+DataItemSize;
+  // this does not include inserts as they get locked suring the validation phase. 
+  // This works with seperate locking as well.
+
+  size_t num_log_entries = 0;
+   //DAM- TODO craefull all the inserts are logged without locking. wait for the validation.
+  for (auto& set_it : read_write_set) { 
+
+    if (!set_it.is_logged  && !set_it.item_ptr->user_insert ) num_log_entries++;
+  }
+
+  if(num_log_entries == 0) return false;
+
+  size_t log_size = log_record_size*num_log_entries;
+  char* written_log_buf = thread_rdma_buffer_alloc->Alloc(log_size);
+  offset_t cur = 0;
+
+  for (auto& set_it : read_write_set) { 
+
+    if (!set_it.is_logged && !set_it.item_ptr->user_insert) {           
+      std::memcpy(written_log_buf + cur, &tx_id, sizeof(tx_id));
+      cur += sizeof(tx_id);
+      std::memcpy(written_log_buf + cur, &t_id, sizeof(t_id));
+      cur += sizeof(t_id);
+      std::memcpy(written_log_buf + cur, set_it.item_ptr.get(), DataItemSize);
+      cur += DataItemSize;
+
+      set_it.is_logged = true;   
+
+    }
+  }
+
+  // Write undo logs to all memory nodes. ibv send send the offset relative to the memory region.
+  for (int i = 0; i < global_meta_man->remote_nodes.size(); i++) {
+    offset_t log_offset = thread_remote_log_offset_alloc->GetNextLogOffset(i, coro_id, log_size);
+    RCQP* qp = thread_qp_man->GetRemoteLogQPWithNodeID(i);
+
+    //TODO- log records are without Acks.
+    coro_sched->RDMALog(coro_id, tx_id, qp, (char*)written_log_buf, log_offset, log_size);
+  }
+
+  return true;
+
+}
+
+//DDAM Inserts only
+bool DTX::UndoLogInsertsOnly() {
+
+  // Write the old data from read write set
+  //DAM- t_id is unnecssary. it is used to flag the last log entry. and /or first log entry.
+  // if we can give the number of potential log entries at the beggining, size can be written to the first tid
+  
+  size_t log_record_size = sizeof(tx_id)+sizeof(t_id)+DataItemSize;
+  // this does not include inserts as they get locked suring the validation phase. 
+  // This works with seperate locking as well.
+
+  size_t num_log_entries = 0;
+   //DAM- TODO craefull all the inserts are logged without locking. wait for the validation.
+  for (auto& set_it : read_write_set) { 
+
+    if (!set_it.is_logged  && set_it.item_ptr->user_insert ) num_log_entries++;
+  }
+
+  if(num_log_entries == 0) return false;
+
+  size_t log_size = log_record_size*num_log_entries;
+  char* written_log_buf = thread_rdma_buffer_alloc->Alloc(log_size);
+  offset_t cur = 0;
+
+  for (auto& set_it : read_write_set) { 
+
+    if (!set_it.is_logged && set_it.item_ptr->user_insert) {           
       std::memcpy(written_log_buf + cur, &tx_id, sizeof(tx_id));
       cur += sizeof(tx_id);
       std::memcpy(written_log_buf + cur, &t_id, sizeof(t_id));

@@ -285,6 +285,25 @@ void CoroutineScheduler::Yield(coro_yield_t& yield, coro_id_t cid) {
   RunCoroutine(yield, next);
 }
 
+// DAM - removig pending count check ofr latch logging
+ALWAYS_INLINE
+void CoroutineScheduler::Yield(coro_yield_t& yield, coro_id_t cid, bool enable_waiting) {
+  //if (unlikely(pending_counts[cid] == 0)) {
+  //  return;
+  //}
+  // 1. Remove this coroutine from the yield-able coroutine list
+  Coroutine* coro = &coro_array[cid];
+  assert(coro->is_wait_poll == false);
+  Coroutine* next = coro->next_coro;
+  coro->prev_coro->next_coro = next;
+  next->prev_coro = coro->prev_coro;
+  if (coro_tail == coro) coro_tail = coro->prev_coro;
+  coro->is_wait_poll = true;
+  // 2. Yield to the next coroutine
+  // RDMA_LOG(DBG) << "coro: " << cid << " yields to coro " << next->coro_id;
+  RunCoroutine(yield, next);
+}
+
 // Start this coroutine. Used by coroutine 0 and Yield()
 ALWAYS_INLINE
 void CoroutineScheduler::RunCoroutine(coro_yield_t& yield, Coroutine* coro) {

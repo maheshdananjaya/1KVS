@@ -74,6 +74,7 @@ class CoroutineScheduler {
 
   // For coroutine yield, used by transactions
   void Yield(coro_yield_t& yield, coro_id_t cid);
+  void Yield(coro_yield_t& yield, coro_id_t cid, bool enable_waiting);
 
   // Append this coroutine to the tail of the yield-able coroutine list
   // Used by coroutine 0

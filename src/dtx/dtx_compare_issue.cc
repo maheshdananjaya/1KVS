@@ -201,6 +201,7 @@ bool DTX::CompareIssueCommitBackup() {
       // But we need to write logs, so we have to use log qp to get the remote log region's attr.
       if (!coro_sched->RDMAWrite(coro_id, data_qp, log_buffer, log_offset, total_size, local_data_mr, remote_log_mr)) return false;
     }
+    
   }
 
   return true;

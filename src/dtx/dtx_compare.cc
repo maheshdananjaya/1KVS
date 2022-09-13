@@ -40,7 +40,8 @@ bool DTX::CompareExeRW(coro_yield_t& yield) {
 
   // take undo logs after read, but lock later. FORD does not wait for acknowledgements.
   #ifdef FORD_DISCRETE_LOCKING
-     ParallelUndoLog();
+     //ParallelUndoLog();
+     //UndoLog();
   #endif
 
   return res;

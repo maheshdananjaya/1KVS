@@ -82,6 +82,10 @@ bool DTX::ExeRW(coro_yield_t& yield) {
 
   #endif
 
+
+  if(LatchLogDataQP()){
+    coro_sched->Yield(yield, coro_id);
+  }
   //new latch logging using data qps
 
   if (!IssueReadOnly(pending_direct_ro, pending_hash_ro)) return false;  // RW transactions may also have RO data
@@ -395,7 +399,7 @@ bool DTX::UndoLogInsertsOnly() {
 
 }
 
-
+//DAM  - latch logging with logQPs
 bool DTX::LatchLog() {
 
   size_t log_record_size = sizeof(tx_id)+sizeof(t_id)+sizeof(itemkey_t);
@@ -438,6 +442,57 @@ bool DTX::LatchLog() {
 
     //TODO- log records are without Acks.
     coro_sched->RDMALog(coro_id, tx_id, qp, (char*)written_log_buf, log_offset, log_size, true);
+  }
+
+   return true;
+
+}
+
+
+//DAM -latch logs with Data QPs
+bool DTX::LatchLogDataQP() {
+
+  size_t log_record_size = sizeof(tx_id)+sizeof(t_id)+sizeof(itemkey_t);
+  // this does not include inserts as they get locked suring the validation phase. 
+  // This works with seperate locking as well.
+
+  size_t num_log_entries = 0;
+  for (auto& set_it : read_write_set) { 
+
+    if (!set_it.is_logged) num_log_entries++;
+  }
+
+  if(num_log_entries == 0) return false;
+
+  size_t log_size = log_record_size*num_log_entries;
+  char* written_log_buf = thread_rdma_buffer_alloc->Alloc(log_size);
+  offset_t cur = 0;
+
+  for (auto& set_it : read_write_set) { 
+
+    if (!set_it.is_logged) {           
+      std::memcpy(written_log_buf + cur, &tx_id, sizeof(tx_id));
+      cur += sizeof(tx_id);
+      std::memcpy(written_log_buf + cur, &t_id, sizeof(t_id));
+      cur += sizeof(t_id);
+      //logging the key
+      std::memcpy(written_log_buf + cur, &((set_it.item_ptr.get())->key), sizeof(itemkey_t));
+      cur +=  sizeof(itemkey_t);
+
+      //DAM- fix this prevents taking undo later
+      //set_it.is_logged = true;   
+    }
+  }
+
+  // Write undo logs to all memory nodes. ibv send send the offset relative to the memory region.
+  for (int i = 0; i < global_meta_man->remote_nodes.size(); i++) {
+    offset_t log_offset = thread_remote_log_offset_alloc->GetNextLogOffset(i, coro_id, log_size);
+    //DAM -using data qps to write latch logs.
+    RCQP* qp = thread_qp_man->GetRemoteDataQPWithNodeID(i);
+
+    //TODO- log records are without Acks.
+    //coro_sched->RDMALog(coro_id, tx_id, qp, (char*)written_log_buf, log_offset, log_size, true);
+    coro_sched->RDMAWrite(coro_id, qp, (char*)written_log_buf, log_offset, log_size);
   }
 
    return true;

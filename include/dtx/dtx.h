@@ -129,6 +129,7 @@ class DTX {
   bool UndoLogInsertsOnly() ;
   bool UndoLogWithoutInserts() ;
   bool LatchLog();
+  bool LatchLogDataQP();
   void PruneLog();
   void Recovery();
 
@@ -720,7 +721,7 @@ bool DTX::TxCommit(coro_yield_t& yield) {
       goto ABORT;
     }
   }
-  
+
   return true;
 
 ABORT:

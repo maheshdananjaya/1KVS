@@ -5,6 +5,10 @@
 
 #include "common/common.h"
 
+
+//DAM chanage both when ever memory configuration change.
+const offset_t HASH_BUFFER_SIZE = 1024 * 1024 * 1024*8;
+
 const offset_t LOG_BUFFER_SIZE = 1024 * 1024 * 1024;
 const node_id_t NUM_MEMORY_NODES = BACKUP_DEGREE + 1;
 const coro_id_t MAX_NUM_COROS = 16; //DAM max variables
@@ -35,8 +39,8 @@ class LogOffsetAllocator {
 
       //init coro offset start, end and current. offset is set to start once the truncate message is sent. cyclic buffer.
       for (coro_id_t j=0; j< num_coro ; j++){
-        coro_start_log_offsets[i][j] = (tid * per_thread_remote_log_buffer_size) + (j*per_coro_remote_log_buffer_size);
-        coro_end_log_offsets[i][j] = (tid * per_thread_remote_log_buffer_size) + ((j+1)*per_coro_remote_log_buffer_size);
+        coro_start_log_offsets[i][j] =  HASH_BUFFER_SIZE + (tid * per_thread_remote_log_buffer_size) + (j*per_coro_remote_log_buffer_size);
+        coro_end_log_offsets[i][j] = HASH_BUFFER_SIZE + (tid * per_thread_remote_log_buffer_size) + ((j+1)*per_coro_remote_log_buffer_size);
         //coro_current_log_offsets[i][j] = (tid * per_thread_remote_log_buffer_size) + (j*per_coro_remote_log_buffer_size);;
         coro_current_log_offsets[i][j] = 0; // this is the offset
       }
@@ -73,6 +77,7 @@ class LogOffsetAllocator {
 
   void ResetAllLogOffsetCoro(node_id_t node_id, coro_id_t coro_id) {
       //cleaning all previous logs in this coro
+
       coro_current_log_offsets[node_id][coro_id] = 0;
   }
 

@@ -33,7 +33,9 @@ class Server {
         pm_file(pm_file),
         pm_size(pm_size),
         hash_buffer(nullptr),
-        log_buffer(nullptr) {}
+        log_buffer(nullptr) {
+          hash_buf_size_with_extra_logging = hash_buf_size + log_buf_size;
+        }
 
   ~Server() {
     RDMA_LOG(INFO) << "Do server cleaning...";
@@ -102,6 +104,8 @@ class Server {
   const int local_meta_port;
 
   const size_t hash_buf_size;
+
+  const size_t hash_buf_size_with_extra_logging;
 
   const size_t log_buf_size;
 

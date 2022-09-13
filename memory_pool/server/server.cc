@@ -22,7 +22,7 @@ void Server::AllocMem() {
     assert(hash_buffer);
     RDMA_LOG(INFO) << "Alloc PM data region success!";
   } else {
-    hash_buffer = (char*)malloc(hash_buf_size);
+    hash_buffer = (char*)malloc(hash_buf_size_with_extra_logging);
     assert(hash_buffer);
     RDMA_LOG(INFO) << "Alloc DRAM data region success!";
   }
@@ -34,7 +34,7 @@ void Server::AllocMem() {
 
 void Server::InitMem() {
   RDMA_LOG(INFO) << "Start initializing memory...";
-  memset(hash_buffer, 0, hash_buf_size); //DAM allocating extra memory for logs.
+  memset(hash_buffer, 0, hash_buf_size_with_extra_logging); //DAM allocating extra memory for logs.
   memset(log_buffer, 0, log_buf_size);
   RDMA_LOG(INFO) << "Initialize memory success!";
 }
@@ -47,7 +47,7 @@ void Server::InitRDMA() {
   RdmaCtrl::DevIdx idx{.dev_id = 2, .port_id = 1};  // DAM-using the Second RNIC's first port. so the device id=2
   rdma_ctrl->open_thread_local_device(idx);
   RDMA_ASSERT(
-      rdma_ctrl->register_memory(SERVER_HASH_BUFF_ID, hash_buffer, hash_buf_size, rdma_ctrl->get_device()) == true);
+      rdma_ctrl->register_memory(SERVER_HASH_BUFF_ID, hash_buffer, hash_buf_size_with_extra_logging, rdma_ctrl->get_device()) == true);
   RDMA_ASSERT(
       rdma_ctrl->register_memory(SERVER_LOG_BUFF_ID, log_buffer, log_buf_size, rdma_ctrl->get_device()) == true);
   RDMA_LOG(INFO) << "Register memory success!";

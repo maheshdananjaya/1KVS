@@ -83,9 +83,10 @@ bool DTX::ExeRW(coro_yield_t& yield) {
   #endif
 
 
-  if(LatchLogDataQP()){
-    coro_sched->Yield(yield, coro_id);
-  }
+  //if(LatchLogDataQP()){
+  //  coro_sched->Yield(yield, coro_id);
+  //}
+
   //new latch logging using data qps
 
   if (!IssueReadOnly(pending_direct_ro, pending_hash_ro)) return false;  // RW transactions may also have RO data
@@ -104,7 +105,8 @@ bool DTX::ExeRW(coro_yield_t& yield) {
   
   //ParallelUndoLog();
   //DAM - per coroutine log buffer.
-  UndoLog();  
+
+  //UndoLog();  
 
   //DAM. redo
 
@@ -132,7 +134,8 @@ bool DTX::Validate(coro_yield_t& yield) {
 
   //taking undo logs: table, key, version for inserts as well. TODO- avoid logging inserts.
   //TODO: this has to be done only if the validations is sucessful.
-  UndoLog();
+  
+  //UndoLog();
 
   return res;
 }

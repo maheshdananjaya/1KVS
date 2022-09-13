@@ -7,7 +7,7 @@
 
 
 //DAM chanage both when ever memory configuration change.
-const offset_t HASH_BUFFER_SIZE = 1024 * 1024 * 1024*8;
+const offset_t HASH_BUFFER_SIZE = 8ULL * 1024 * 1024 * 1024;
 
 const offset_t LOG_BUFFER_SIZE = 1024 * 1024 * 1024;
 const node_id_t NUM_MEMORY_NODES = BACKUP_DEGREE + 1;

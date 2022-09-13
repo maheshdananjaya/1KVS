@@ -62,11 +62,11 @@ void CoroutineScheduler::PollLogCompletion() {
     pending_log_counts[coro_id] -= 1;
 
     // DAM- rechedule the thread after receiving all acks.
-    if (pending_log_counts[coro_id] == 0 && waiting_latch_log[coro_id]) {
-      RDMA_LOG(DBG) << "coro: " << coro_id << " waiting_latch_log set to 0";
-      waiting_latch_log[coro_id]=false;
-      AppendCoroutine(&coro_array[coro_id]);
-    }
+    //if (pending_log_counts[coro_id] == 0 && waiting_latch_log[coro_id]) {
+    //  RDMA_LOG(DBG) << "coro: " << coro_id << " waiting_latch_log set to 0";
+    //  waiting_latch_log[coro_id]=false;
+    //  AppendCoroutine(&coro_array[coro_id]);
+    //}
 
     it = pending_log_qps.erase(it);
   }

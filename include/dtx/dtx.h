@@ -720,7 +720,7 @@ bool DTX::TxCommit(coro_yield_t& yield) {
       goto ABORT;
     }
   }
-
+  
   return true;
 
 ABORT:

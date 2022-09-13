@@ -67,19 +67,22 @@ bool DTX::ExeRW(coro_yield_t& yield) {
   std::list<HashRead> pending_next_hash_rw;
   std::list<InsertOffRead> pending_next_off_rw;
 
-  //DAM- if latch lock is enabled
+  //DAM- if latch lock is enabled. using log qps
   #ifdef LATCH_LOG
     if(LatchLog()) {
 
       RDMA_LOG(DBG) << "coro: " << coro_id << " waiting for latch logs";
 
-      coro_sched->Yield(yield, coro_id, true);  
+      coro_sched->Yield(yield, coro_id, true); 
+      //Critical error when scheduling at scheduler with append coroutines.+ can overlaps with undo logs. deprecated. 
       while (!coro_sched->CheckLogAck(coro_id));     
 
       RDMA_LOG(DBG) << "coro: " << coro_id << " latch log -- SUCCESSFUL";
     }         
 
   #endif
+
+  //new latch logging using data qps
 
   if (!IssueReadOnly(pending_direct_ro, pending_hash_ro)) return false;  // RW transactions may also have RO data
   // RDMA_LOG(DBG) << "coro: " << coro_id << " tx_id: " << tx_id << " issue read rorw";
@@ -461,8 +464,6 @@ void DTX:: Recovery(){
 
   //lets recover one coroutine firts.then we can loop.
   
-
-
 }
 
 

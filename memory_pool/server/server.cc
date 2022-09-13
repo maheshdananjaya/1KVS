@@ -34,7 +34,7 @@ void Server::AllocMem() {
 
 void Server::InitMem() {
   RDMA_LOG(INFO) << "Start initializing memory...";
-  memset(hash_buffer, 0, hash_buf_size);
+  memset(hash_buffer, 0, hash_buf_size); //DAM allocating extra memory for logs.
   memset(log_buffer, 0, log_buf_size);
   RDMA_LOG(INFO) << "Initialize memory success!";
 }
@@ -291,6 +291,9 @@ int main(int argc, char* argv[]) {
 
   // std::string pm_file = pm_root + "pm_node" + std::to_string(machine_id); // Use fsdax
   std::string pm_file = pm_root;  // Use devdax
+
+  //adding reserves for latch logs.
+  size_t latch_log_reserves = 2; //2GB for latch
   size_t mem_size = (size_t)1024 * 1024 * 1024 * mem_size_GB;
   size_t hash_buf_size = mem_size;  // Currently, we support the hash structure
   size_t log_buf_size = (size_t)1024 * 1024 * 1024 * log_buf_size_GB;

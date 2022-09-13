@@ -631,7 +631,7 @@ bool DTX::TxCommit(coro_yield_t& yield) {
   #endif
 
     
-  if (!CompareIssueValidation(yield)) {
+  if (!CompareValidation(yield)) {
     // TLOG(DBG, t_id) << "Validate false";
     goto ABORT;
   }

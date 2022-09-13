@@ -34,7 +34,7 @@ class Server {
         pm_size(pm_size),
         hash_buffer(nullptr),
         log_buffer(nullptr) {
-          hash_buf_size_with_extra_logging = hash_buf_size + log_buf_size;
+          //hash_buf_size_with_extra_logging = hash_buf_size + log_buf_size;
         }
 
   ~Server() {
@@ -105,7 +105,7 @@ class Server {
 
   const size_t hash_buf_size;
 
-  const size_t hash_buf_size_with_extra_logging;
+  //const size_t hash_buf_size_with_extra_logging;
 
   const size_t log_buf_size;
 

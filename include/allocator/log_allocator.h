@@ -39,14 +39,29 @@ class LogOffsetAllocator {
 
       //init coro offset start, end and current. offset is set to start once the truncate message is sent. cyclic buffer.
       for (coro_id_t j=0; j< num_coro ; j++){
-        coro_start_log_offsets[i][j] =  HASH_BUFFER_SIZE + (tid * per_thread_remote_log_buffer_size) + (j*per_coro_remote_log_buffer_size);
-        coro_end_log_offsets[i][j] = HASH_BUFFER_SIZE + (tid * per_thread_remote_log_buffer_size) + ((j+1)*per_coro_remote_log_buffer_size);
+        coro_start_log_offsets[i][j] =   (tid * per_thread_remote_log_buffer_size) + (j*per_coro_remote_log_buffer_size);
+        coro_end_log_offsets[i][j] =  (tid * per_thread_remote_log_buffer_size) + ((j+1)*per_coro_remote_log_buffer_size);
         //coro_current_log_offsets[i][j] = (tid * per_thread_remote_log_buffer_size) + (j*per_coro_remote_log_buffer_size);;
         coro_current_log_offsets[i][j] = 0; // this is the offset
+
+
+        coro_latch_start_log_offsets[i][j] =  HASH_BUFFER_SIZE + (tid * per_thread_remote_log_buffer_size) + (j*per_coro_remote_log_buffer_size);
+        coro_latch_end_log_offsets[i][j] = HASH_BUFFER_SIZE + (tid * per_thread_remote_log_buffer_size) + ((j+1)*per_coro_remote_log_buffer_size);
+        //coro_current_log_offsets[i][j] = (tid * per_thread_remote_log_buffer_size) + (j*per_coro_remote_log_buffer_size);;
+        coro_latch_current_log_offsets[i][j] = 0; // this is the offset
       }
     }
   }
 
+  //DAM - For recovery
+  offset_t GetStartLogOffset(node_id_t node_id, coro_id_t coro_id) {
+      return coro_start_log_offsets[node_id][coro_id];
+  }
+
+  //DAM - For recovery
+  offset_t GetStartLatchLogOffset(node_id_t node_id, coro_id_t coro_id) {
+      return coro_latch_start_log_offsets[node_id][coro_id];
+  }
 
   offset_t GetNextLogOffset(node_id_t node_id, size_t log_entry_size) {
     if (unlikely(start_log_offsets[node_id] + current_log_offsets[node_id] + log_entry_size > end_log_offsets[node_id])) {
@@ -55,11 +70,6 @@ class LogOffsetAllocator {
     offset_t offset = start_log_offsets[node_id] + current_log_offsets[node_id];
     current_log_offsets[node_id] += log_entry_size;
     return offset;
-  }
-
-  //DAM - For recovery
-  offset_t GetStartLogOffset(node_id_t node_id, coro_id_t coro_id) {
-      return coro_start_log_offsets[node_id][coro_id];
   }
 
   //SAM- For coroutines
@@ -75,10 +85,25 @@ class LogOffsetAllocator {
     return offset;
   }
 
+  //SAM- For coroutines
+  offset_t GetNextLatchLogOffset(node_id_t node_id, coro_id_t coro_id, size_t log_entry_size) {
+
+    //current coro log pointer. fixed sized logs always
+    assert(coro_id < MAX_NUM_COROS);
+    if (unlikely(coro_latch_start_log_offsets[node_id][coro_id] + coro_latch_current_log_offsets[node_id][coro_id] + log_entry_size > coro_latch_end_log_offsets[node_id][coro_id])) {
+      coro_latch_current_log_offsets[node_id][coro_id] = 0;
+    }
+    offset_t offset = coro_latch_start_log_offsets[node_id][coro_id] + coro_latch_current_log_offsets[node_id][coro_id];
+    coro_latch_current_log_offsets[node_id][coro_id] += log_entry_size;
+    return offset;
+  }
+
+
   void ResetAllLogOffsetCoro(node_id_t node_id, coro_id_t coro_id) {
       //cleaning all previous logs in this coro
 
       coro_current_log_offsets[node_id][coro_id] = 0;
+      coro_latch_current_log_offsets[node_id][coro_id] = 0;
   }
 
 
@@ -91,6 +116,11 @@ class LogOffsetAllocator {
   offset_t coro_end_log_offsets[NUM_MEMORY_NODES][MAX_NUM_COROS];
   offset_t coro_current_log_offsets[NUM_MEMORY_NODES][MAX_NUM_COROS];
 
+
+  offset_t coro_latch_start_log_offsets[NUM_MEMORY_NODES][MAX_NUM_COROS];
+  offset_t coro_latch_end_log_offsets[NUM_MEMORY_NODES][MAX_NUM_COROS];
+  offset_t coro_latch_current_log_offsets[NUM_MEMORY_NODES][MAX_NUM_COROS];
+  
   coro_id_t num_coros_per_thread;
 
 };

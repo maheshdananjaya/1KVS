@@ -29,3 +29,22 @@ FORD 70.0094 18.489 172.503 2088.17
 (ignore mistake) FORD 84.3437 27.4668 191.042 2452.81
 FORD(FORD_FIXED) 70.727 19.4731 235.48 2113.03
 FORD(FARM) 45.7623 13.0431 398.657 10399.4
+
+FORD with new undo logs including inserts
+FORD 89.8186 27.756 178.065 2416.31
+
+without new undo logging
+FORD 89.996 28.5838 148.964 2255.08
+
+with original parallel undo logs.
+FORD 86.9632 27.4307 156.949 2372.18
+
+###############with latch logging###########################################
+FORD with original parallel undo logs
+FORD 80.4745 25.7363 156.671 3763.81
+
+FORD with no undo logging
+FORD 82.909 26.8369 149.305 4587.77
+
+FORD with new undo logs including inserts
+FORD 85.5079 26.9874 162.017 3886.72

@@ -8,3 +8,24 @@ FORD (FARM) 1362.74 1155.19 84.5997 404.528 (but smallbank have a lot of write o
 FORD 1372.66 1131.58 81.5712 247.768
 FORD(Fixed) 1603.18 1345.7 71.0656 291.204
 FORD(FARM) 1339.8 1122.04 87.4396 410.819
+
+
+without latch logging
+without undo logging
+FORD 1462.48 1235.98 75.8792 243.079
+
+with parallelundo logging
+FORD 1324.01 1118.11 85.905 226.562
+
+with new undo logging
+FORD 1285.43 1085.23 86.8192 258.596
+
+with latch logging
+no undo logging
+FORD 1266.99 1076.97 90.7676 243.255
+
+with parallel undo logs
+FORD 1080.63 917.775 104.822 272.712
+
+with new undo logging
+FORD 1105.19 938.374 100.739 273.624

@@ -114,6 +114,9 @@ bool TxLockContention(coro_yield_t& yield, tx_id_t tx_id, DTX* dtx) {
   bool is_write[data_set_size];
   DataItemPtr micro_objs[data_set_size];
 
+//DAM- do the same thing multiple times
+for (uint64_t i = 0; i < data_set_size; i++) { 
+
   for (uint64_t i = 0; i < data_set_size; i++) {
     micro_key_t micro_key;
     if (is_skewed) {
@@ -151,6 +154,8 @@ bool TxLockContention(coro_yield_t& yield, tx_id_t tx_id, DTX* dtx) {
       micro_val->magic[1] = micro_magic * 2;
     }
   }
+
+}//numer of sequential writes before commits.
 
   bool commit_status = dtx->TxCommit(yield);
   // TLOG(DBG, thread_gid) << "tx " << tx_id << " commit? " << commit_status;

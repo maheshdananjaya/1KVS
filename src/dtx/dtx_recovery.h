@@ -1,6 +1,10 @@
 #include "dtx/dtx.h"
 //Recovery program
 #ifdef RECOVERY 
+bool DTX::TxLatchRecovery(coro_yield_t& yield){
+    IssueLatchLogRecoveryRead(yield);
+}
+
 bool DTX::TxRecovery(coro_yield_t& yield){
     std::vector<DirectRead> pending_direct_ro; 
 
@@ -116,7 +120,7 @@ bool DTX::IssueLockRecoveryReadMultiple(table_id_t table_id, uint64_t bucket_id,
 
 
 //DAM - For Latch recovery for all pending transactions.
-bool DTX::IssueLatchLogRecoveryRead(){
+bool DTX::IssueLatchLogRecoveryRead(coro_yield_t& yield){
 
     const int MAX_LATCH_LOG_RECORDS = 16;
 
@@ -171,7 +175,7 @@ bool DTX::IssueLatchLogRecoveryRead(){
         bool is_log_records_non_decreasing=false;
 
         //For each log record
-         for(int r=0; r < MAX_LATCH_LOG_RECORDS; r++ ){    
+        for(int r=0; r < MAX_LATCH_LOG_RECORDS; r++ ){    
 
             bool log_received=true;             
             bool tx_id_agreed=true; //same as log_received
@@ -198,8 +202,7 @@ bool DTX::IssueLatchLogRecoveryRead(){
                     }                    
                 }
                           
-                    //Dam log record
-                }
+                    //Dam log record                
                 
                 if(i==0){
                     curr_agreed_tx_id = record->tx_id_;                    
@@ -222,7 +225,8 @@ bool DTX::IssueLatchLogRecoveryRead(){
                 }
                 //if tx matched. if the last flag is set. tx has staretd commiting. 
                 last_flagged &= (bool)record->tx_id_;  
-           }
+            }
+
 
             if(!tx_id_agreed){
                 // simply unlock places and continue. 
@@ -261,7 +265,7 @@ bool DTX::IssueLatchLogRecoveryRead(){
         //TODO- check negative records.
 
         if(!has_started_commit); //TODO- unlock al the places and reconfigure.
-        
+
         //everything is ok;
 
     }

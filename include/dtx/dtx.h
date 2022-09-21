@@ -311,6 +311,32 @@ class DTX {
 
   bool CompareTruncateAsync(coro_yield_t& yield);
 
+
+#ifdef RECOVERY 
+
+    public: 
+      bool TxRecovery(coro_yield_t& yield);
+      bool TxLatchRecovery(coro_yield_t& yield);
+    private:
+      
+      bool IssueLockRecoveryRead(table_id_t table_id, uint64_t bucket_id, DataSetItem* item, std::vector<HashRead>& pending_hash_reads);
+
+      //read multiple hash buckets.
+      bool IssueLockRecoveryReadMultiple(table_id_t table_id, uint64_t bucket_id, DataSetItem* item, std::vector<HashRead>& pending_hash_reads);
+
+      bool CheckLockRecoveryRead(std::vector<HashRead>& pending_hash_reads);
+      bool CheckLockRecoveryRead2(std::vector<HashRead>& pending_hash_reads);
+      bool CheckLockRecoveryReadMultiple(std::vector<HashRead>& pending_hash_reads);
+
+      bool IssueLatchLogRecoveryRead(coro_yield_t& yield);
+
+
+  #endif
+
+
+
+
+
  public:
   tx_id_t tx_id;  // Transaction ID
 

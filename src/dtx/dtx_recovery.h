@@ -115,26 +115,157 @@ bool DTX::IssueLockRecoveryReadMultiple(table_id_t table_id, uint64_t bucket_id,
 
 
 
-//For Latch recovery
-bool DTX::IssueLatchLogRecoveryRead(std::vector<HashRead>& pending_hash_reads){
+//DAM - For Latch recovery for all pending transactions.
+bool DTX::IssueLatchLogRecoveryRead(){
 
-    size_t latch_log_size = sizeof(LatchLogRecord)*100;
+    const int MAX_LATCH_LOG_RECORDS = 16;
 
+    size_t latch_log_size = sizeof(LatchLogRecord * MAX_LATCH_LOG_RECORDS);
+
+    //need to store: all nodes: all coroutines.
+    //Log coro [coror] -> node [i]
+    char* latch_logs[num_coro][remote_nodes.size()]; // log buffer
+    int num_valid_logs[num_coro][remote_nodes.size()]; //filter out last
+    int last_valid_log[num_coro][remote_nodes.size()]; //filter out last
+    bool tx_done [num_coro][remote_nodes.size()]; // finished transactions
+
+    //DAM
+    //1 record for coro refetch.
+    //2. all the keys need to be unlocked. 
+
+    //if not done (i.e. not pruned) we can go through logs actually
     //we need a array here
-    char** latch_log;
-    for (int i = 0; i < global_meta_man->remote_nodes.size(); i++){
-        char* latch_log = thread_rdma_buffer_alloc->Alloc(latch_log_size); // or 512 bytes
-    }    
 
-    for (int i = 0; i < global_meta_man->remote_nodes.size(); i++) {
-      offset_t log_offset = thread_remote_log_offset_alloc->GetStartLogOffset(i, coro_id);
-      RCQP* qp = thread_qp_man->GetRemoteLogQPWithNodeID(i);
+    char* latch_log;
+
+    for (int c=0 ; c < num_coro ; c++){   
+        for (int i = 0; i < global_meta_man->remote_nodes.size(); i++){
+            char* latch_log = thread_rdma_buffer_alloc->Alloc(latch_log_size); // or 512 bytes
+
+            latch_logs [c][i] = latch_log; //allocating space;
+            offset_t log_offset = thread_remote_log_offset_alloc->GetStartLatchLogOffset(i, coro_id);
+            RCQP* qp = thread_qp_man->GetRemoteDataQPWithNodeID(i);
     
-        //RDMA Read
-        if (!coro_sched->RDMARead(coro_id, qp, latch_log, log_offset, latch_log_size)) return false;
+            //RDMA Read
+            if (!coro_sched->RDMARead(coro_id, qp, latch_log, log_offset, latch_log_size)) return false;
+
+            //+ we can read the undo logs at the same time. or do that later 
+            //RDMAREAD - logs.
+        }    
     }
 
-    //compare
+    coro_sched->Yield(yield, coro_id); //wait for logs to arrive.
+
+    //we have all latch log records of all nodes //for each coroutine
+    for (int c = 0 ; c < num_coro ; c++){   
+
+        //every node //see first two logs and check if they are not negative. //check all logs.
+        bool has_started_commit = false; //not useful here.
+        uint64_t coro_agreed_tx_id = 0; 
+
+        bool tx_mismatched=false;
+        uint64_t index_at_curr_tx_mismatch=0; 
+        uint64_t last_commited_tx_id=0; 
+
+        bool last_flag_reached=false;
+        bool is_log_records_non_decreasing=false;
+
+        //For each log record
+         for(int r=0; r < MAX_LATCH_LOG_RECORDS; r++ ){    
+
+            bool log_received=true;             
+            bool tx_id_agreed=true; //same as log_received
+            uint64_t curr_agreed_tx_id = 0; // largest of all agreed id. 
+            bool last_flagged=true; //in this log record. 
+            bool curr_log_matched=true;
+
+            //Each machine
+            for (int i = 0; i < global_meta_man->remote_nodes.size(); i++){      
+
+                LatchLogRecord* record =  (LatchLogRecord *)latch_logs [c][i];                  
+                //to check if the transaction has been commited or partioal log locks are held. still need to unlock. 
+                //Latch log will never be written out of order, assuing truncation
+                if(record->tx_id_ < 0){
+                    if(r==0){
+                        //not even started
+                        log_received &= false;  
+                        tx_id_agreed &= false;
+                        break;            
+                    }
+                    else{
+                        tx_id_agreed &= false;
+                        break;
+                    }                    
+                }
+                          
+                    //Dam log record
+                }
+                
+                if(i==0){
+                    curr_agreed_tx_id = record->tx_id_;                    
+                    continue;
+                }
+
+                //TODO - handle (-1) in uncompleted last transactions.unflagged logs. 
+
+                if(curr_agreed_tx_id != record->tx_id_){
+
+                        //TODO- check if the tx if is -1;
+                        tx_mismatched = true;
+                        curr_log_matched &= false;
+                        tx_id_agreed &= false;
+                        index_at_curr_tx_mismatch = r; // index mismatch without reaching the last flag can be considered as failed. 
+                        curr_agreed_tx_id = (curr_agreed_tx_id > record->tx_id_)? curr_agreed_tx_id : record->tx_id_;
+                        
+                        //last_commited_tx_id = curr_agreed_tx_id;  
+                        break;
+                }
+                //if tx matched. if the last flag is set. tx has staretd commiting. 
+                last_flagged &= (bool)record->tx_id_;  
+           }
+
+            if(!tx_id_agreed){
+                // simply unlock places and continue. 
+                //coro_agreed_tx_id = curr_tx_id;
+
+                //TODO- check if no transactions have started.
+                has_started_commit = false;
+                break;
+            }
+            //all last tx_ids agreed. 
+            else{
+
+                coro_agreed_tx_id = curr_agreed_tx_id;                
+
+                if(!last_flagged){
+                    //continue with the next log record if if
+                    assert((r+1) <= MAX_LATCH_LOG_RECORDS);
+                    continue;
+                }else{
+
+                    //then only we need to read undo
+                    //if last flagged, tx ids agrred and last tx_id is not complete. then only undo logs are needed. 
+
+                    //I know all the keys here. i can check directly whether all logs have been recoved.  
+                    //I can do this seperately after reading all the latch logs while logs being loaded/prefetched in the background.
+                    //then later I will check if all the logs havebeen recoved.
+                    has_started_commit = true;
+                }
+
+            }          
+           //asserts if the log is larges than MAX LOG Size and if so fetch again. 
+
+
+        } //For each log record 
+
+        //TODO- check negative records.
+
+        if(!has_started_commit); //TODO- unlock al the places and reconfigure.
+        
+        //everything is ok;
+
+    }
+   
 
 }
 

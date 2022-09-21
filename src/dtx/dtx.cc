@@ -520,6 +520,10 @@ void DTX:: Recovery(){
   //new data strutcures to read the log buffer. and search it and recover.
 
   //lets recover one coroutine firts.then we can loop.
+
+  //1. call for latch log
+  //2. sequentially search for keys. 
+  
   
 }
 

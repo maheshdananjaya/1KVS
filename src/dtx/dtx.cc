@@ -3,9 +3,6 @@
 
 #include "dtx/dtx.h"
 
-#ifdef RECOVERY 
-  #include "recovery.h"
-#endif
 //#define LATCH_LOG
 DTX::DTX(MetaManager* meta_man,
          QPManager* qp_man,

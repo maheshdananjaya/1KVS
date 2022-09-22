@@ -1,10 +1,10 @@
 #include "dtx/dtx.h"
 //Recovery program
 #ifdef RECOVERY 
-bool DTX::TxLatchRecovery(coro_yield_t& yield){
+
+bool DTX::TxRecovery(coro_yield_t& yield){
     IssueLatchLogRecoveryRead(yield);
 }
-
 bool DTX::TxRecovery(coro_yield_t& yield){
     std::vector<DirectRead> pending_direct_ro; 
 

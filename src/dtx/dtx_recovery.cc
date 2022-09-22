@@ -29,7 +29,7 @@ bool DTX::TxRecovery(coro_yield_t& yield){
         const HashMeta& meta = global_meta_man->GetPrimaryHashMetaWithTableID(table_id);
 
         //this is without batching or parallelism
-        for (int bucket_id=0; bucket_id< meta.bucket_num; bucket_id++){
+        for (int bucket_id=0; bucket_id < meta.bucket_num; bucket_id++){
             // key=lock_id/tx_id(key to search). this could be multiple id
             auto obj = std::make_shared<DataItem>(table_id_, 0xffffffff); 
             DataSetItem data_set_item{.item_ptr = std::move(obj), .is_fetched = false, .is_logged = false, .read_which_node = -1};

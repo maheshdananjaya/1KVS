@@ -969,7 +969,7 @@ void RunTx(coro_yield_t& yield, coro_id_t coro_id) {
 #endif
 
 
-  #ifdef RECOVERY
+  #ifdef LATCH_RECOVERY
     if(thread_gid==0){
       printf("Starting Coordinator-Side Recovery at gid=0.. \n");
       dtx->TxLatchRecovery(yield);

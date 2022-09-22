@@ -2,7 +2,7 @@
 //Recovery program
 #ifdef RECOVERY 
 
-bool DTX::TxRecovery(coro_yield_t& yield){
+bool DTX::TxLatchRecovery(coro_yield_t& yield){
     IssueLatchLogRecoveryRead(yield);
 }
 bool DTX::TxRecovery(coro_yield_t& yield){

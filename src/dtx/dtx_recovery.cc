@@ -26,7 +26,7 @@ bool DTX::TxRecovery(coro_yield_t& yield){
     for (const auto table_id_ : all_table_types){
       int tot_keys=0;
         table_id_t  table_id = (table_id_t)table_id_;
-        HashMeta meta = global_meta_man->GetPrimaryHashMetaWithTableID(table_id);
+        const HashMeta& meta = global_meta_man->GetPrimaryHashMetaWithTableID(table_id);
 
         //this is without batching or parallelism
         for (int bucket_id=0; bucket_id< meta.bucket_num; bucket_id++){

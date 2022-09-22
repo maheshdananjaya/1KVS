@@ -316,7 +316,7 @@ class DTX {
 
     public: 
       bool TxRecovery(coro_yield_t& yield);
-      bool TxLatchRecovery(coro_yield_t& yield);
+     
     private:
       
       bool IssueLockRecoveryRead(table_id_t table_id, uint64_t bucket_id, DataSetItem* item, std::vector<HashRead>& pending_hash_reads);
@@ -326,14 +326,18 @@ class DTX {
 
       bool CheckLockRecoveryRead(std::vector<HashRead>& pending_hash_reads);
       bool CheckLockRecoveryRead2(std::vector<HashRead>& pending_hash_reads);
-      bool CheckLockRecoveryReadMultiple(std::vector<HashRead>& pending_hash_reads);
+      bool CheckLockRecoveryReadMultiple(std::vector<HashRead>& pending_hash_reads);     
 
+
+#endif
+
+#ifdef LATCH_RECOVERY 
+
+    public: 
+     
+      bool TxLatchRecovery(coro_yield_t& yield);
       bool IssueLatchLogRecoveryRead(coro_yield_t& yield);
-
-
-  #endif
-
-
+#endif
 
 
 

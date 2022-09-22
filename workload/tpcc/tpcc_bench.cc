@@ -971,12 +971,14 @@ void RunTx(coro_yield_t& yield, coro_id_t coro_id) {
 
   #ifdef LATCH_RECOVERY
     if(thread_gid==0){
-      printf("Starting Coordinator-Side Recovery at gid=0.. \n");
+      printf("Starting Coordinator-Side Latch Recovery at gid=0.. \n");
+      clock_gettime(CLOCK_REALTIME, &msr_start);
       dtx->TxLatchRecovery(yield);
+      clock_gettime(CLOCK_REALTIME, &msr_end);
+      double rec_msr_sec = (msr_end.tv_sec - msr_start.tv_sec) + (double)(msr_end.tv_nsec - msr_start.tv_nsec) / 1000000000;
+      printf("Recovery time - %f \n", rec_msr_sec);
     }
   #endif
-
-
 
   delete dtx;
 }

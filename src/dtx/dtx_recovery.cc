@@ -122,9 +122,10 @@ bool DTX::IssueLockRecoveryReadMultiple(table_id_t table_id, uint64_t bucket_id,
 //DAM - For Latch recovery for all pending transactions.
 bool DTX::IssueLatchLogRecoveryRead(coro_yield_t& yield){
 
+    coro_id_t num_coro = thread_remote_log_offset_alloc->GetNumCoro();
     const int MAX_LATCH_LOG_RECORDS = 16;
 
-    size_t latch_log_size = sizeof(LatchLogRecord * MAX_LATCH_LOG_RECORDS);
+    size_t latch_log_size = sizeof(LatchLogRecord) * MAX_LATCH_LOG_RECORDS;
 
     //need to store: all nodes: all coroutines.
     //Log coro [coror] -> node [i]

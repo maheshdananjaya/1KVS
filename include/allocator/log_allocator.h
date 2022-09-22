@@ -51,6 +51,8 @@ class LogOffsetAllocator {
         coro_latch_current_log_offsets[i][j] = 0; // this is the offset
       }
     }
+
+    num_coros_per_thread = num_coro;
   }
 
   //DAM - For recovery
@@ -106,6 +108,10 @@ class LogOffsetAllocator {
       coro_latch_current_log_offsets[node_id][coro_id] = 0;
   }
 
+  coro_id_t GetNumCoro(){
+    return num_coros_per_thread;
+  }
+
 
  private:
   offset_t start_log_offsets[NUM_MEMORY_NODES];
@@ -122,5 +128,6 @@ class LogOffsetAllocator {
   offset_t coro_latch_current_log_offsets[NUM_MEMORY_NODES][MAX_NUM_COROS];
   
   coro_id_t num_coros_per_thread;
+
 
 };

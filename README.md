@@ -1,3 +1,8 @@
+
+#RECOVERY 
+enable any recovery with latch logging. 
+
+
 # FORD
 This is an open source repository for our [paper](https://www.usenix.org/conference/fast22/presentation/zhang-ming) in [FAST 2022](https://www.usenix.org/conference/fast22)
 

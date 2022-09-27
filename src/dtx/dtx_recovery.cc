@@ -396,7 +396,7 @@ bool DTX::IssueUndoLogRecovery(coro_yield_t& yield){
 
     char* inplace_updates[num_coro][global_meta_man->remote_nodes.size()]; // log buffer
 
-    int num_valid_logs[num_coro]; //filter out last
+    int coro_num_valid_logs[num_coro]; //filter out last
     bool coro_has_started_commit [num_coro]; // finished transactions
 
     int last_valid_log[num_coro]; //filter out last
@@ -545,7 +545,7 @@ bool DTX::IssueUndoLogRecovery(coro_yield_t& yield){
         else{
 
             //TODO - check in-place updates
-            num_valid_logs[c] = num_valid_logs;
+            coro_num_valid_logs[c] = (int)num_valid_logs;
             coro_has_started_commit[c] = has_started_commit;
 
             //Iterate through logs (table, key) and read in-place values.
@@ -570,7 +570,7 @@ bool DTX::IssueUndoLogRecovery(coro_yield_t& yield){
 
                         //assume all logs keys are a cache hit.
                         if (offset != NOT_FOUND) {
-                            if (!coro_sched->RDMARead(coro_id, qp, inplace_update[rc], offset, DataItemSize)) {
+                            if (!coro_sched->RDMARead(coro_id, qp, &inplace_update[rc], offset, DataItemSize)) {
                                 return false;
                             }
 
@@ -593,10 +593,10 @@ bool DTX::IssueUndoLogRecovery(coro_yield_t& yield){
 
 
 //DAM - For Latch recovery for all pending transactions.
-bool DTX::IssueDataLogRecoveryRead(coro_yield_t& yield){
-    //recoering undo logs.
+//bool DTX::IssueDataLogRecoveryRead(coro_yield_t& yield){
+//    //recoering undo logs.
 
 
-}
+//}
 
 #endif

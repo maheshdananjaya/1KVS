@@ -593,7 +593,7 @@ bool DTX::IssueUndoLogRecovery(coro_yield_t& yield){
                 if(coro_has_started_commit[c]){
                    
                    for(int j=0; j < coro_num_valid_logs[c]; j++){
-                        //
+                        RDMA_LOG(INFO) << "recovery coro  - " << c;  
                     }
 
                 }

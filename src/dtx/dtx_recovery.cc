@@ -585,6 +585,22 @@ bool DTX::IssueUndoLogRecovery(coro_yield_t& yield){
 
             }
 
+            //check in-place values.
+            coro_sched->Yield(yield, coro_id); //wait for all in-place to arrive.
+
+            for (int c = 0 ; c < num_coro ; c++){ 
+                
+                if(coro_has_started_commit[c]){
+                   
+                   for(int j=0; j < coro_num_valid_logs[c]; j++){
+                        //
+                    }
+
+                }
+                
+            }
+
+
         }
 
     } //everything is ok;

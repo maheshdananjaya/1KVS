@@ -235,9 +235,9 @@ bool DTX::IssueLatchLogRecoveryRead(coro_yield_t& yield){
     //need to store: all nodes: all coroutines.
     //Log coro [coror] -> node [i]
     char* latch_logs[num_coro][global_meta_man->remote_nodes.size()]; // log buffer
-    int num_valid_logs[num_coro][global_meta_man->remote_nodes.size()]; //filter out last
-    int last_valid_log[num_coro][global_meta_man->remote_nodes.size()]; //filter out last
-    bool tx_done [num_coro][global_meta_man->remote_nodes.size()]; // finished transactions
+    int num_valid_logs[num_coro]; //filter out last
+    int last_valid_log[num_coro]; //filter out last
+    bool tx_done [num_coro]; // finished transactions
 
     //DAM
     //1 record for coro refetch.
@@ -576,6 +576,7 @@ bool DTX::IssueUndoLogRecoveryRead(coro_yield_t& yield){
                         } 
                         else{
                             //TODO- report back to me
+                            assert(false);
                         }           
                         //+ we can read the undo logs at the same time. or do that later 
                         //RDMAREAD - logs.

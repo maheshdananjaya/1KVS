@@ -26,7 +26,7 @@ int main(int argc, char* argv[]) {
   assert(argv[2] != NULL && argv[3] != NULL);
 
   RDMA_LOG(INFO) << "Starting..";
-  ModifyComputeNodeConfig(argc, argv);
+  //ModifyComputeNodeConfig(argc, argv);
   RDMA_LOG(INFO) << "String Assigned..";
 
   std::string config_filepath = "../../../config/compute_node_config.json";

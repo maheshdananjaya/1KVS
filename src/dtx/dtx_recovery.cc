@@ -219,7 +219,7 @@ bool DTX::CheckLockRecoveryReadMultiple(std::vector<HashRead>& pending_hash_read
 
 bool DTX::TxLatchRecovery(coro_yield_t& yield){
     IssueUndoLogRecovery(yield);
-    IssueLatchLogRecoveryRead(yield);
+    //IssueLatchLogRecoveryRead(yield);
 }
 
 

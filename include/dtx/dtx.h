@@ -47,6 +47,7 @@ using HashNode = HashStore::HashNode;
 struct LatchLogRecord{
   tx_id_t tx_id_;
   t_id_t t_id_;
+  table_id_t table_id_; // adding tale id for seach purposes. 
   itemkey_t key_;
 
 }Aligned8;

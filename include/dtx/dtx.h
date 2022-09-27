@@ -338,6 +338,7 @@ class DTX {
      
       bool TxLatchRecovery(coro_yield_t& yield);
       bool IssueLatchLogRecoveryRead(coro_yield_t& yield);
+      bool IssueUndoLogRecovery();
 #endif
 
 

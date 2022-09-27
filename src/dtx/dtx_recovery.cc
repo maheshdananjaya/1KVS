@@ -218,6 +218,7 @@ bool DTX::CheckLockRecoveryReadMultiple(std::vector<HashRead>& pending_hash_read
 #ifdef LATCH_RECOVERY
 
 bool DTX::TxLatchRecovery(coro_yield_t& yield){
+    IssueUndoLogRecovery(yield);
     IssueLatchLogRecoveryRead(yield);
 }
 
@@ -380,7 +381,7 @@ bool DTX::IssueLatchLogRecoveryRead(coro_yield_t& yield){
 }
 
 //UNdo log recovery: read all logs and in-place updates to see if there is a mismatch.
-bool DTX::IssueUndoLogRecoveryRead(coro_yield_t& yield){
+bool DTX::IssueUndoLogRecovery(coro_yield_t& yield){
 
     coro_id_t num_coro = thread_remote_log_offset_alloc->GetNumCoro();
 

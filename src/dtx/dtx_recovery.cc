@@ -387,7 +387,7 @@ bool DTX::IssueUndoLogRecovery(coro_yield_t& yield){
 
     const int MAX_DATA_LOG_RECORDS = 16;
 
-    size_t latch_log_size = sizeof(UndoLogRecord) * MAX_DATA_LOG_RECORDS;
+    size_t undo_log_size = sizeof(UndoLogRecord) * MAX_DATA_LOG_RECORDS;
     size_t inplace_update_size = sizeof(DataItem) * MAX_DATA_LOG_RECORDS;
 
     //need to store: all nodes: all coroutines.
@@ -397,7 +397,7 @@ bool DTX::IssueUndoLogRecovery(coro_yield_t& yield){
     char* inplace_updates[num_coro][global_meta_man->remote_nodes.size()]; // log buffer
 
     int num_valid_logs[num_coro]; //filter out last
-    bool has_started_commit [num_coro]; // finished transactions
+    bool coro_has_started_commit [num_coro]; // finished transactions
 
     int last_valid_log[num_coro]; //filter out last
     
@@ -413,7 +413,7 @@ bool DTX::IssueUndoLogRecovery(coro_yield_t& yield){
             char* undo_log = thread_rdma_buffer_alloc->Alloc(undo_log_size); // or 512 bytes
 
             undo_logs [c][i] = undo_log; //allocating space;
-            offset_t log_offset = thread_remote_log_offset_alloc->GetStarLogOffset(i, coro_id);
+            offset_t log_offset = thread_remote_log_offset_alloc->GetStartLogOffset(i, coro_id);
             RCQP* qp = thread_qp_man->GetRemoteLogQPWithNodeID(i);
     
             //RDMA Read
@@ -455,7 +455,7 @@ bool DTX::IssueUndoLogRecovery(coro_yield_t& yield){
                 UndoLogRecord* record =  (UndoLogRecord *)undo_logs [c][i];                  
                 //to check if the transaction has been commited or partioal log locks are held. still need to unlock. 
                 //Latch log will never be written out of order, assuing truncation
-                if(record[r]->tx_id_ < 0){
+                if(record[r].tx_id_ < 0){
                     if(r==0){
                         //not even started
                         log_received &= false;  
@@ -477,7 +477,7 @@ bool DTX::IssueUndoLogRecovery(coro_yield_t& yield){
 
                 //TODO - handle (-1) in uncompleted last transactions.unflagged logs. 
 
-                if(curr_agreed_tx_id != record[r]->tx_id_){
+                if(curr_agreed_tx_id != record[r].tx_id_){
 
                         //TODO- check if the tx if is -1;
                         tx_mismatched = true;
@@ -539,14 +539,14 @@ bool DTX::IssueUndoLogRecovery(coro_yield_t& yield){
         //r is the index
 
         if(!has_started_commit){
-           has_started_commit[c] = has_started_commit; ; //TODO- iinvoke unlocks
+           coro_has_started_commit[c] = has_started_commit; ; //TODO- iinvoke unlocks
         }
 
         else{
 
             //TODO - check in-place updates
             num_valid_logs[c] = num_valid_logs;
-            has_started_commit[c] = has_started_commit;
+            coro_has_started_commit[c] = has_started_commit;
 
             //Iterate through logs (table, key) and read in-place values.
 
@@ -559,7 +559,7 @@ bool DTX::IssueUndoLogRecovery(coro_yield_t& yield){
 
                 for (int rc =0 ; rc < num_valid_logs; rc++){  //recorc c
 
-                        DataItem* logged_item= record_node_0[rc]->data_ ; 
+                        DataItem* logged_item= &record_node_0[rc].data_ ; 
 
                         table_id_t logged_table_id = logged_item->table_id;
                         itemkey_t logged_key = logged_item->key;
@@ -587,7 +587,7 @@ bool DTX::IssueUndoLogRecovery(coro_yield_t& yield){
 
         }
 
-        //everything is ok;
+    } //everything is ok;
 
 }
 

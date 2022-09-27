@@ -374,17 +374,24 @@ bool DTX::UndoLogInsertsOnly() {
   char* written_log_buf = thread_rdma_buffer_alloc->Alloc(log_size);
   offset_t cur = 0;
 
+  //set the last flag for inserts.
+  int lg_count=0;
+  t_id_t last_flag=0xffffffff;
+
   for (auto& set_it : read_write_set) { 
 
-    if (!set_it.is_logged && set_it.item_ptr->user_insert) {           
+    if (!set_it.is_logged && set_it.item_ptr->user_insert) {  
+
+
       std::memcpy(written_log_buf + cur, &tx_id, sizeof(tx_id));
       cur += sizeof(tx_id);
-      std::memcpy(written_log_buf + cur, &t_id, sizeof(t_id));
+      std::memcpy(written_log_buf + cur, ((lg_count==num_log_entries-1)? &last_flag: &t_id), sizeof(t_id));
       cur += sizeof(t_id);
       std::memcpy(written_log_buf + cur, set_it.item_ptr.get(), DataItemSize);
       cur += DataItemSize;
 
-      set_it.is_logged = true;   
+      set_it.is_logged = true; 
+      lg_count++;  
 
     }
   }
@@ -408,6 +415,8 @@ bool DTX::LatchLog() {
   size_t log_record_size = sizeof(tx_id)+sizeof(t_id)+sizeof(itemkey_t);
   // this does not include inserts as they get locked suring the validation phase. 
   // This works with seperate locking as well.
+
+  //TODO- add last flag. object should be marked for the last flag during execution. ]~
 
   size_t num_log_entries = 0;
   for (auto& set_it : read_write_set) { 
@@ -455,7 +464,10 @@ bool DTX::LatchLog() {
 //DAM -latch logs with Data QPs
 bool DTX::LatchLogDataQP() {
 
-  size_t log_record_size = sizeof(tx_id)+sizeof(t_id)+sizeof(itemkey_t);
+  //size_t log_record_size = sizeof(tx_id)+sizeof(t_id)+sizeof(itemkey_t);
+  size_t log_record_size = sizeof(tx_id_t)+sizeof(t_id_t)+ sizeof(table_id_t)+sizeof(itemkey_t);
+  //size_t log_record_size = sizeof(LatchLogRecord);
+
   // this does not include inserts as they get locked suring the validation phase. 
   // This works with seperate locking as well.
 
@@ -474,11 +486,14 @@ bool DTX::LatchLogDataQP() {
   for (auto& set_it : read_write_set) { 
 
     if (!set_it.is_logged) {           
-      std::memcpy(written_log_buf + cur, &tx_id, sizeof(tx_id));
-      cur += sizeof(tx_id);
-      std::memcpy(written_log_buf + cur, &t_id, sizeof(t_id));
-      cur += sizeof(t_id);
+      std::memcpy(written_log_buf + cur, &tx_id, sizeof(tx_id_t));
+      cur += sizeof(tx_id_t);
+      std::memcpy(written_log_buf + cur, &t_id, sizeof(t_id_t));
+      cur += sizeof(t_id_t);
       //logging the key
+      std::memcpy(written_log_buf + cur, &((set_it.item_ptr.get())->table_id), sizeof(table_id_t));
+      cur +=  sizeof(table_id_t);
+
       std::memcpy(written_log_buf + cur, &((set_it.item_ptr.get())->key), sizeof(itemkey_t));
       cur +=  sizeof(itemkey_t);
 

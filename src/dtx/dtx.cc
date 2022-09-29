@@ -305,7 +305,9 @@ bool DTX::UndoLogWithoutInserts() {
   //DAM- t_id is unnecssary. it is used to flag the last log entry. and /or first log entry.
   // if we can give the number of potential log entries at the beggining, size can be written to the first tid
   
-  size_t log_record_size = sizeof(tx_id)+sizeof(t_id)+DataItemSize;
+  //size_t log_record_size = sizeof(tx_id_t)+sizeof(t_id_t)+DataItemSize;
+  size_t log_record_size = sizeof(UndoLogRecord);
+
   // this does not include inserts as they get locked suring the validation phase. 
   // This works with seperate locking as well.
 
@@ -325,12 +327,21 @@ bool DTX::UndoLogWithoutInserts() {
   for (auto& set_it : read_write_set) { 
 
     if (!set_it.is_logged && !set_it.item_ptr->user_insert) {           
-      std::memcpy(written_log_buf + cur, &tx_id, sizeof(tx_id));
-      cur += sizeof(tx_id);
-      std::memcpy(written_log_buf + cur, &t_id, sizeof(t_id));
-      cur += sizeof(t_id);
-      std::memcpy(written_log_buf + cur, set_it.item_ptr.get(), DataItemSize);
-      cur += DataItemSize;
+      
+      UndoLogRecord new_record;
+      new_record.tx_id_ = tx_id;
+      new_record.t_id_=t_id;
+      new_record.data_ = *(set_it.item_ptr.get());
+
+      //std::memcpy(written_log_buf + cur, &tx_id, sizeof(tx_id_t));
+      //cur += sizeof(tx_id_t);
+      //std::memcpy(written_log_buf + cur, &t_id, sizeof(t_id_t));
+      //cur += sizeof(t_id_t);
+      //std::memcpy(written_log_buf + cur, set_it.item_ptr.get(), DataItemSize);
+      //cur += DataItemSize;
+
+      std::memcpy(written_log_buf + cur, &new_record, sizeof(UndoLogRecord));
+      cur += sizeof(UndoLogRecord);
 
       set_it.is_logged = true;   
 
@@ -357,7 +368,9 @@ bool DTX::UndoLogInsertsOnly() {
   //DAM- t_id is unnecssary. it is used to flag the last log entry. and /or first log entry.
   // if we can give the number of potential log entries at the beggining, size can be written to the first tid
   
-  size_t log_record_size = sizeof(tx_id)+sizeof(t_id)+DataItemSize;
+  //size_t log_record_size = sizeof(tx_id_t)+sizeof(t_id_t)+DataItemSize;
+  size_t log_record_size = sizeof(UndoLogRecord);
+
   // this does not include inserts as they get locked suring the validation phase. 
   // This works with seperate locking as well.
 
@@ -382,13 +395,20 @@ bool DTX::UndoLogInsertsOnly() {
 
     if (!set_it.is_logged && set_it.item_ptr->user_insert) {  
 
+      UndoLogRecord new_record;
+      new_record.tx_id_ = tx_id;
+      new_record.t_id_=((lg_count==num_log_entries-1)? last_flag: t_id);
+      new_record.data_ = *(set_it.item_ptr.get());
 
-      std::memcpy(written_log_buf + cur, &tx_id, sizeof(tx_id));
-      cur += sizeof(tx_id);
-      std::memcpy(written_log_buf + cur, ((lg_count==num_log_entries-1)? &last_flag: &t_id), sizeof(t_id));
-      cur += sizeof(t_id);
-      std::memcpy(written_log_buf + cur, set_it.item_ptr.get(), DataItemSize);
-      cur += DataItemSize;
+      //std::memcpy(written_log_buf + cur, &tx_id, sizeof(tx_id_t));
+      //cur += sizeof(tx_id_t);
+      //std::memcpy(written_log_buf + cur, ((lg_count==num_log_entries-1)? &last_flag: &t_id), sizeof(t_id_t));
+      //cur += sizeof(t_id_t);
+      //std::memcpy(written_log_buf + cur, set_it.item_ptr.get(), DataItemSize);
+      //cur += DataItemSize;
+
+      std::memcpy(written_log_buf + cur, &new_record, sizeof(UndoLogRecord));
+      cur += sizeof(UndoLogRecord);
 
       set_it.is_logged = true; 
       lg_count++;  
@@ -412,7 +432,8 @@ bool DTX::UndoLogInsertsOnly() {
 //DAM  - latch logging with logQPs
 bool DTX::LatchLog() {
 
-  size_t log_record_size = sizeof(tx_id)+sizeof(t_id)+sizeof(itemkey_t);
+  size_t log_record_size = sizeof(tx_id_t)+sizeof(t_id_t)+sizeof(itemkey_t);
+
   // this does not include inserts as they get locked suring the validation phase. 
   // This works with seperate locking as well.
 
@@ -433,10 +454,10 @@ bool DTX::LatchLog() {
   for (auto& set_it : read_write_set) { 
 
     if (!set_it.is_logged) {           
-      std::memcpy(written_log_buf + cur, &tx_id, sizeof(tx_id));
-      cur += sizeof(tx_id);
-      std::memcpy(written_log_buf + cur, &t_id, sizeof(t_id));
-      cur += sizeof(t_id);
+      std::memcpy(written_log_buf + cur, &tx_id, sizeof(tx_id_t));
+      cur += sizeof(tx_id_t);
+      std::memcpy(written_log_buf + cur, &t_id, sizeof(t_id_t));
+      cur += sizeof(t_id_t);
       //logging the key
       std::memcpy(written_log_buf + cur, &((set_it.item_ptr.get())->key), sizeof(itemkey_t));
       cur +=  sizeof(itemkey_t);
@@ -465,7 +486,10 @@ bool DTX::LatchLog() {
 bool DTX::LatchLogDataQP() {
 
   //size_t log_record_size = sizeof(tx_id)+sizeof(t_id)+sizeof(itemkey_t);
-  size_t log_record_size = sizeof(tx_id_t)+sizeof(t_id_t)+ sizeof(table_id_t)+sizeof(itemkey_t);
+
+  //size_t log_record_size = sizeof(tx_id_t)+sizeof(t_id_t)+ sizeof(table_id_t)+sizeof(itemkey_t);
+  size_t log_record_size=sizeof(LatchLogRecord);
+
   //size_t log_record_size = sizeof(LatchLogRecord);
 
   // this does not include inserts as they get locked suring the validation phase. 
@@ -486,16 +510,26 @@ bool DTX::LatchLogDataQP() {
   for (auto& set_it : read_write_set) { 
 
     if (!set_it.is_logged) {           
-      std::memcpy(written_log_buf + cur, &tx_id, sizeof(tx_id_t));
-      cur += sizeof(tx_id_t);
-      std::memcpy(written_log_buf + cur, &t_id, sizeof(t_id_t));
-      cur += sizeof(t_id_t);
-      //logging the key
-      std::memcpy(written_log_buf + cur, &((set_it.item_ptr.get())->table_id), sizeof(table_id_t));
-      cur +=  sizeof(table_id_t);
+      
+      LatchLogRecord new_record;
+      new_record.tx_id_ = tx_id;
+      new_record.t_id_=t_id;
+      new_record.table_id_ =  ((set_it.item_ptr.get())->table_id);
+      new_record.key_ = ((set_it.item_ptr.get())->key);
 
-      std::memcpy(written_log_buf + cur, &((set_it.item_ptr.get())->key), sizeof(itemkey_t));
-      cur +=  sizeof(itemkey_t);
+
+      //std::memcpy(written_log_buf + cur, &tx_id, sizeof(tx_id_t));
+      //cur += sizeof(tx_id_t);
+      //std::memcpy(written_log_buf + cur, &t_id, sizeof(t_id_t));
+      //cur += sizeof(t_id_t);
+      //logging the key
+      //std::memcpy(written_log_buf + cur, &((set_it.item_ptr.get())->table_id), sizeof(table_id_t));
+      //cur +=  sizeof(table_id_t);
+      //std::memcpy(written_log_buf + cur, &((set_it.item_ptr.get())->key), sizeof(itemkey_t));
+      //cur +=  sizeof(itemkey_t);
+
+      std::memcpy(written_log_buf + cur, &new_record, sizeof(LatchLogRecord));
+      cur +=  sizeof(LatchLogRecord);
 
       //DAM- fix this prevents taking undo later
       //set_it.is_logged = true;   

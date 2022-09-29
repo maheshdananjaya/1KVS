@@ -406,9 +406,9 @@ bool DTX::IssueUndoLogRecovery(coro_yield_t& yield){
 
     //read all logs.
 
-    char* undo_log;
+    //char* undo_log;
 
-    for (int c=0 ; c < num_coro ; c++){   
+    for (int c=1 ; c < num_coro ; c++){   
         for (int i = 0; i < global_meta_man->remote_nodes.size(); i++){
             char* undo_log = thread_rdma_buffer_alloc->Alloc(undo_log_size); // or 512 bytes
 
@@ -424,9 +424,12 @@ bool DTX::IssueUndoLogRecovery(coro_yield_t& yield){
         }    
     }
 
-    coro_sched->Yield(yield, coro_id); //wait for logs to arrive.
+        coro_sched->Yield(yield, coro_id); //wait for logs to arrive.
+        while (!coro_sched->CheckLogAck(coro_id)){
+            //wait for a 1 micro second
+        }
 
-    for (int c = 0 ; c < num_coro ; c++){   
+    for (int c = 1 ; c < num_coro ; c++){   
 
         //every node //see first two logs and check if they are not negative. //check all logs.
         bool has_started_commit = false; //not useful here.
@@ -471,7 +474,7 @@ bool DTX::IssueUndoLogRecovery(coro_yield_t& yield){
                     //Dam log record                
                 
                 if(i==0){
-                    curr_agreed_tx_id = record->tx_id_;                    
+                    curr_agreed_tx_id = record[r].tx_id_;                    
                     continue;
                 }
 
@@ -484,13 +487,13 @@ bool DTX::IssueUndoLogRecovery(coro_yield_t& yield){
                         curr_log_matched &= false;
                         tx_id_agreed &= false;
                         index_at_curr_tx_mismatch = r; // index mismatch without reaching the last flag can be considered as failed. 
-                        curr_agreed_tx_id = (curr_agreed_tx_id > record->tx_id_)? curr_agreed_tx_id : record->tx_id_;
+                        curr_agreed_tx_id = (curr_agreed_tx_id > record[r].tx_id_)? curr_agreed_tx_id : record[r].tx_id_;
                         
                         //last_commited_tx_id = curr_agreed_tx_id;  
                         break;
                 }
                 //if tx matched. if the last flag is set. tx has staretd commiting. 
-                last_flagged &= (bool)record->tx_id_;  
+                last_flagged &= (bool)record[r].t_id_;  
             }
 
 
@@ -588,7 +591,7 @@ bool DTX::IssueUndoLogRecovery(coro_yield_t& yield){
             //check in-place values.
             coro_sched->Yield(yield, coro_id); //wait for all in-place to arrive.
 
-            for (int c = 0 ; c < num_coro ; c++){ 
+            for (int c = 1 ; c < num_coro ; c++){ 
                 
                 if(coro_has_started_commit[c]){
                    

@@ -249,7 +249,7 @@ bool DTX::IssueLatchLogRecoveryRead(coro_yield_t& yield){
 
     char* latch_log;
 
-    for (int c=0 ; c < num_coro ; c++){   
+    for (int c=1 ; c < num_coro ; c++){   
         for (int i = 0; i < global_meta_man->remote_nodes.size(); i++){
             char* latch_log = thread_rdma_buffer_alloc->Alloc(latch_log_size); // or 512 bytes
 
@@ -268,7 +268,7 @@ bool DTX::IssueLatchLogRecoveryRead(coro_yield_t& yield){
     coro_sched->Yield(yield, coro_id); //wait for logs to arrive.
 
     //we have all latch log records of all nodes //for each coroutine
-    for (int c = 0 ; c < num_coro ; c++){   
+    for (int c = 1 ; c < num_coro ; c++){   
 
         //every node //see first two logs and check if they are not negative. //check all logs.
         bool has_started_commit = false; //not useful here.

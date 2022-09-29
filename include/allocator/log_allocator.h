@@ -53,16 +53,34 @@ class LogOffsetAllocator {
     }
 
     num_coros_per_thread = num_coro;
+     num_threads_per_machine = num_thread;
   }
 
   //DAM - For recovery
-  offset_t GetStartLogOffset(node_id_t node_id, coro_id_t coro_id) {
+
+  offset_t GetStartLogOffset(node_id_t node_id, coro_id_t coro_id) {     
+
       return coro_start_log_offsets[node_id][coro_id];
   }
 
+  offset_t GetStartLogOffsetForThread(node_id_t node_id, coro_id_t coro_id, t_id_t thread_id) {      
+      
+      auto per_thread_remote_log_buffer_size = LOG_BUFFER_SIZE / num_threads_per_machine;
+      auto per_coro_remote_log_buffer_size = per_thread_remote_log_buffer_size/num_coros_per_thread;
+
+      return (thread_id * per_thread_remote_log_buffer_size) + (coro_id * per_coro_remote_log_buffer_size);
+
+      //return coro_start_log_offsets[node_id][coro_id];
+  }
+
   //DAM - For recovery
-  offset_t GetStartLatchLogOffset(node_id_t node_id, coro_id_t coro_id) {
-      return coro_latch_start_log_offsets[node_id][coro_id];
+  offset_t GetStartLatchLogOffsetForThread(node_id_t node_id, coro_id_t coro_id, t_id_t thread_id) {
+      
+      auto per_thread_remote_log_buffer_size = LOG_BUFFER_SIZE / num_thread_per_machine;
+      auto per_coro_remote_log_buffer_size = per_thread_remote_log_buffer_size/num_coro_per_thread;
+      return HASH_BUFFER_SIZE + (thread_id * per_thread_remote_log_buffer_size) + (coro_id*per_coro_remote_log_buffer_size);
+      
+      //return coro_latch_start_log_offsets[node_id][coro_id];
   }
 
   offset_t GetNextLogOffset(node_id_t node_id, size_t log_entry_size) {
@@ -113,6 +131,11 @@ class LogOffsetAllocator {
   }
 
 
+  t_id_t GetNumThreadsPerMachine(){
+      return num_thread_per_machine;
+  }
+
+
  private:
   offset_t start_log_offsets[NUM_MEMORY_NODES];
   offset_t end_log_offsets[NUM_MEMORY_NODES];
@@ -128,6 +151,8 @@ class LogOffsetAllocator {
   offset_t coro_latch_current_log_offsets[NUM_MEMORY_NODES][MAX_NUM_COROS];
   
   coro_id_t num_coros_per_thread;
+  t_id_t    num_threads_per_machine;
+
 
 
 };

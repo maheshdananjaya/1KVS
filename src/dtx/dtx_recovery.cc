@@ -296,7 +296,7 @@ bool DTX::IssueLatchLogRecoveryRead(coro_yield_t& yield){
                 LatchLogRecord* record =  (LatchLogRecord *)latch_logs [c][i];                  
                 //to check if the transaction has been commited or partioal log locks are held. still need to unlock. 
                 //Latch log will never be written out of order, assuing truncation
-                if(record->tx_id_ < 0){
+                if(record[r].tx_id_ < 0){
                     if(r==0){
                         //not even started
                         log_received &= false;  
@@ -312,26 +312,26 @@ bool DTX::IssueLatchLogRecoveryRead(coro_yield_t& yield){
                     //Dam log record                
                 
                 if(i==0){
-                    curr_agreed_tx_id = record->tx_id_;                    
+                    curr_agreed_tx_id = record[r].tx_id_;                    
                     continue;
                 }
 
                 //TODO - handle (-1) in uncompleted last transactions.unflagged logs. 
 
-                if(curr_agreed_tx_id != record->tx_id_){
+                if(curr_agreed_tx_id != record[r].tx_id_){
 
                         //TODO- check if the tx if is -1;
                         tx_mismatched = true;
                         curr_log_matched &= false;
                         tx_id_agreed &= false;
                         index_at_curr_tx_mismatch = r; // index mismatch without reaching the last flag can be considered as failed. 
-                        curr_agreed_tx_id = (curr_agreed_tx_id > record->tx_id_)? curr_agreed_tx_id : record->tx_id_;
+                        curr_agreed_tx_id = (curr_agreed_tx_id > record[r].tx_id_)? curr_agreed_tx_id : record[r].tx_id_;
                         
                         //last_commited_tx_id = curr_agreed_tx_id;  
                         break;
                 }
                 //if tx matched. if the last flag is set. tx has staretd commiting. 
-                last_flagged &= (bool)record->tx_id_;  
+                last_flagged &= (bool)record[r].t_id_;  
             }
 
 

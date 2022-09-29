@@ -76,8 +76,8 @@ class LogOffsetAllocator {
   //DAM - For recovery
   offset_t GetStartLatchLogOffsetForThread(node_id_t node_id, coro_id_t coro_id, t_id_t thread_id) {
       
-      auto per_thread_remote_log_buffer_size = LOG_BUFFER_SIZE / num_thread_per_machine;
-      auto per_coro_remote_log_buffer_size = per_thread_remote_log_buffer_size/num_coro_per_thread;
+      auto per_thread_remote_log_buffer_size = LOG_BUFFER_SIZE / num_threads_per_machine;
+      auto per_coro_remote_log_buffer_size = per_thread_remote_log_buffer_size/num_coros_per_thread;
       return HASH_BUFFER_SIZE + (thread_id * per_thread_remote_log_buffer_size) + (coro_id*per_coro_remote_log_buffer_size);
       
       //return coro_latch_start_log_offsets[node_id][coro_id];
@@ -132,7 +132,7 @@ class LogOffsetAllocator {
 
 
   t_id_t GetNumThreadsPerMachine(){
-      return num_thread_per_machine;
+      return num_threads_per_machine;
   }
 
 

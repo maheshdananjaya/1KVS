@@ -63,6 +63,11 @@ class LogOffsetAllocator {
       return coro_start_log_offsets[node_id][coro_id];
   }
 
+   offset_t GetStartLatchLogOffset(node_id_t node_id, coro_id_t coro_id) {     
+
+      return coro_latch_start_log_offsets[node_id][coro_id];
+  }
+
   offset_t GetStartLogOffsetForThread(node_id_t node_id, coro_id_t coro_id, t_id_t thread_id) {      
       
       auto per_thread_remote_log_buffer_size = LOG_BUFFER_SIZE / num_threads_per_machine;

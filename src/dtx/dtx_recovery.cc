@@ -407,7 +407,7 @@ bool DTX::IssueUndoLogRecovery(coro_yield_t& yield){
     //read all logs.
 
     //char* undo_log;
-    for(int t=0; t<num_thread;t++){
+    
        for (int c=1 ; c < num_coro ; c++){   
            for (int i = 0; i < global_meta_man->remote_nodes.size(); i++){
                char* undo_log = thread_rdma_buffer_alloc->Alloc(undo_log_size); // or 512 bytes
@@ -423,7 +423,7 @@ bool DTX::IssueUndoLogRecovery(coro_yield_t& yield){
                //RDMAREAD - logs.
            }    
        }
-    }
+    
 
         coro_sched->Yield(yield, coro_id); //wait for logs to arrive.
         while (!coro_sched->CheckLogAck(coro_id)){
@@ -644,7 +644,7 @@ bool DTX::IssueLatchLogRecoveryReadForAllThreads(coro_yield_t& yield){
 
     //need to store: all nodes: all coroutines.
     //Log coro [coror] -> node [i]
-    char* latch_logs[nume_thread][num_coro][global_meta_man->remote_nodes.size()]; // log buffer
+    char* latch_logs[num_thread][num_coro][global_meta_man->remote_nodes.size()]; // log buffer
     int num_valid_logs[nume_thread][num_coro]; //filter out last
     int last_valid_log[nume_thread][num_coro]; //filter out last
     bool tx_done [nume_thread][num_coro]; // finished transactions
@@ -663,7 +663,7 @@ bool DTX::IssueLatchLogRecoveryReadForAllThreads(coro_yield_t& yield){
         for (int i = 0; i < global_meta_man->remote_nodes.size(); i++){
             char* latch_log = thread_rdma_buffer_alloc->Alloc(latch_log_size); // or 512 bytes
 
-            latch_logs [c][i] = latch_log; //allocating space;
+            latch_logs [t][c][i] = latch_log; //allocating space;
             offset_t log_offset = thread_remote_log_offset_alloc->GetStartLatchLogOffsetForThread(i, coro_id,t);
             RCQP* qp = thread_qp_man->GetRemoteDataQPWithNodeID(i);
     
@@ -705,7 +705,7 @@ bool DTX::IssueLatchLogRecoveryReadForAllThreads(coro_yield_t& yield){
             //Each machine
             for (int i = 0; i < global_meta_man->remote_nodes.size(); i++){      
 
-                LatchLogRecord* record =  (LatchLogRecord *)latch_logs [c][i];                  
+                LatchLogRecord* record =  (LatchLogRecord *)latch_logs [t][c][i];                  
                 //to check if the transaction has been commited or partioal log locks are held. still need to unlock. 
                 //Latch log will never be written out of order, assuing truncation
                 if(record[r].tx_id_ < 0){

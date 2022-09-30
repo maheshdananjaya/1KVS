@@ -645,9 +645,9 @@ bool DTX::IssueLatchLogRecoveryReadForAllThreads(coro_yield_t& yield){
     //need to store: all nodes: all coroutines.
     //Log coro [coror] -> node [i]
     char* latch_logs[num_thread][num_coro][global_meta_man->remote_nodes.size()]; // log buffer
-    int num_valid_logs[nume_thread][num_coro]; //filter out last
-    int last_valid_log[nume_thread][num_coro]; //filter out last
-    bool tx_done [nume_thread][num_coro]; // finished transactions
+    int num_valid_logs[num_thread][num_coro]; //filter out last
+    int last_valid_log[num_thread][num_coro]; //filter out last
+    bool tx_done [num_thread][num_coro]; // finished transactions
 
     //DAM
     //1 record for coro refetch.

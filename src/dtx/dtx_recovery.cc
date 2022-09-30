@@ -590,7 +590,27 @@ bool DTX::IssueUndoLogRecovery(coro_yield_t& yield){
             }
 
             //check in-place values.
-            coro_sched->Yield(yield, coro_id); //wait for all in-place to arrive.
+            //coro_sched->Yield(yield, coro_id); //wait for all in-place to arrive.
+            //
+            //for (int c = 1 ; c < num_coro ; c++){ 
+            //    
+            //    if(coro_has_started_commit[c]){
+            //       
+            //       for(int j=0; j < coro_num_valid_logs[c]; j++){
+            //            RDMA_LOG(INFO) << "recovery coro  - " << c;  
+            //        }
+            //
+            //    }
+            //    
+            //}
+
+
+        }
+
+    } //everything is ok; for every cortutine/
+
+    //check in-place values.
+    coro_sched->Yield(yield, coro_id); //wait for all in-place to arrive.
 
             for (int c = 1 ; c < num_coro ; c++){ 
                 
@@ -603,11 +623,6 @@ bool DTX::IssueUndoLogRecovery(coro_yield_t& yield){
                 }
                 
             }
-
-
-        }
-
-    } //everything is ok;
 
 
 }
@@ -832,185 +847,206 @@ bool DTX::IssueUndoLogRecoveryForAllThreads(coro_yield_t& yield){
 
     for (int t=0; t<num_thread; t++){
 
-    for (int c = 1 ; c < num_coro ; c++){   
-
-        //every node //see first two logs and check if they are not negative. //check all logs.
-        bool has_started_commit = false; //not useful here.
-        uint64_t coro_agreed_tx_id = 0; 
-        uint64_t num_valid_logs = 0;
-
-        bool tx_mismatched=false;
-        uint64_t index_at_curr_tx_mismatch=0; 
-        uint64_t last_commited_tx_id=0; 
-
-        bool last_flag_reached=false;
-        bool is_log_records_non_decreasing=false;
-
-        //For each log record
-        for(int r=0; r < MAX_DATA_LOG_RECORDS; r++ ){    
-
-            bool log_received=true;             
-            bool tx_id_agreed=true; //same as log_received
-            uint64_t curr_agreed_tx_id = 0; // largest of all agreed id. 
-            bool last_flagged=true; //in this log record. 
-            bool curr_log_matched=true;
-
-            //Each machine
-            for (int i = 0; i < global_meta_man->remote_nodes.size(); i++){      
-
-                UndoLogRecord* record =  (UndoLogRecord *)undo_logs [c][i];                  
-                //to check if the transaction has been commited or partioal log locks are held. still need to unlock. 
-                //Latch log will never be written out of order, assuing truncation
-                if(record[r].tx_id_ < 0){
-                    if(r==0){
-                        //not even started
-                        log_received &= false;  
-                        tx_id_agreed &= false;
-                        break;            
-                    }
-                    else{
-                        tx_id_agreed &= false;
-                        break;
-                    }                    
-                }
-                          
-                    //Dam log record                
-                
-                if(i==0){
-                    curr_agreed_tx_id = record[r].tx_id_;                    
-                    continue;
-                }
-
-                //TODO - handle (-1) in uncompleted last transactions.unflagged logs. 
-
-                if(curr_agreed_tx_id != record[r].tx_id_){
-
-                        //TODO- check if the tx if is -1;
-                        tx_mismatched = true;
-                        curr_log_matched &= false;
-                        tx_id_agreed &= false;
-                        index_at_curr_tx_mismatch = r; // index mismatch without reaching the last flag can be considered as failed. 
-                        curr_agreed_tx_id = (curr_agreed_tx_id > record[r].tx_id_)? curr_agreed_tx_id : record[r].tx_id_;
-                        
-                        //last_commited_tx_id = curr_agreed_tx_id;  
-                        break;
-                }
-                //if tx matched. if the last flag is set. tx has staretd commiting. 
-                last_flagged &= (bool)record[r].t_id_;  
-            }
-
-
-            if(!tx_id_agreed){
-                // simply unlock places and continue. 
-                //coro_agreed_tx_id = curr_tx_id;
-
-                //TODO- check if no transactions have started.
-                has_started_commit = false;
-
-                //TODO - call lock recovery
-
-                break;
-            }
-            //all last tx_ids agreed. 
-            else{
-
-                coro_agreed_tx_id = curr_agreed_tx_id;                
-
-                if(!last_flagged){
-                    //continue with the next log record if if
-                    assert((r+1) <= MAX_LATCH_LOG_RECORDS);
-                    continue;
-                }else{
-
-                    //then only we need to read undo
-                    //if last flagged, tx ids agrred and last tx_id is not complete. then only undo logs are needed. 
-
-                    //I know all the keys here. i can check directly whether all logs have been recoved.  
-                    //I can do this seperately after reading all the latch logs while logs being loaded/prefetched in the background.
-                    //then later I will check if all the logs havebeen recoved.
-                    has_started_commit = true;
-                    num_valid_logs = r+1; 
-                    break;
-
-                }
-
-            }          
-           //asserts if the log is larges than MAX LOG Size and if so fetch again. 
-
-
-        } //For each log record 
-
-        //TODO- check negative records.
-
-        //r is the index
-
-        if(!has_started_commit){
-           coro_has_started_commit[c] = has_started_commit; ; //TODO- iinvoke unlocks
-        }
-
-        else{
-
-            //TODO - check in-place updates
-            coro_num_valid_logs[c] = (int)num_valid_logs;
-            coro_has_started_commit[c] = has_started_commit;
-
-            //Iterate through logs (table, key) and read in-place values.
-
-            UndoLogRecord* record_node_0 =  (UndoLogRecord *)undo_logs [c][0]; 
-
-            for (int i = 0; i < global_meta_man->remote_nodes.size(); i++){
-                
-                char* inplace_update = thread_rdma_buffer_alloc->Alloc(inplace_update_size); // or 512 bytes        
-                inplace_updates [c][i] = inplace_update; //allocating space; 
-
-                for (int rc =0 ; rc < num_valid_logs; rc++){  //recorc c
-
-                        DataItem* logged_item= &record_node_0[rc].data_ ; 
-
-                        table_id_t logged_table_id = logged_item->table_id;
-                        itemkey_t logged_key = logged_item->key;
-                        node_id_t remote_node_id = global_meta_man->GetPrimaryNodeID(logged_item->table_id);
-                        
-                        RCQP* qp = thread_qp_man->GetRemoteDataQPWithNodeID(remote_node_id);
-                        auto offset = addr_cache->Search(remote_node_id, logged_item->table_id, logged_item->key);
-
-                        //assume all logs keys are a cache hit.
-                        if (offset != NOT_FOUND) {
-                            if (!coro_sched->RDMARead(coro_id, qp, &inplace_update[rc], offset, DataItemSize)) {
-                                return false;
-                            }
-
-                        } 
+        for (int c = 1 ; c < num_coro ; c++){   
+    
+            //every node //see first two logs and check if they are not negative. //check all logs.
+            bool has_started_commit = false; //not useful here.
+            uint64_t coro_agreed_tx_id = 0; 
+            uint64_t num_valid_logs = 0;
+    
+            bool tx_mismatched=false;
+            uint64_t index_at_curr_tx_mismatch=0; 
+            uint64_t last_commited_tx_id=0; 
+    
+            bool last_flag_reached=false;
+            bool is_log_records_non_decreasing=false;
+    
+            //For each log record
+            for(int r=0; r < MAX_DATA_LOG_RECORDS; r++ ){    
+    
+                bool log_received=true;             
+                bool tx_id_agreed=true; //same as log_received
+                uint64_t curr_agreed_tx_id = 0; // largest of all agreed id. 
+                bool last_flagged=true; //in this log record. 
+                bool curr_log_matched=true;
+    
+                //Each machine
+                for (int i = 0; i < global_meta_man->remote_nodes.size(); i++){      
+    
+                    UndoLogRecord* record =  (UndoLogRecord *)undo_logs [t][c][i];                  
+                    //to check if the transaction has been commited or partioal log locks are held. still need to unlock. 
+                    //Latch log will never be written out of order, assuing truncation
+                    if(record[r].tx_id_ < 0){
+                        if(r==0){
+                            //not even started
+                            log_received &= false;  
+                            tx_id_agreed &= false;
+                            break;            
+                        }
                         else{
-                            //TODO- report back to me
-                            assert(false);
-                        }           
-                        //+ we can read the undo logs at the same time. or do that later 
-                        //RDMAREAD - logs.
-                }   
-
+                            tx_id_agreed &= false;
+                            break;
+                        }                    
+                    }
+                              
+                        //Dam log record                
+                    
+                    if(i==0){
+                        curr_agreed_tx_id = record[r].tx_id_;                    
+                        continue;
+                    }
+    
+                    //TODO - handle (-1) in uncompleted last transactions.unflagged logs. 
+    
+                    if(curr_agreed_tx_id != record[r].tx_id_){
+    
+                            //TODO- check if the tx if is -1;
+                            tx_mismatched = true;
+                            curr_log_matched &= false;
+                            tx_id_agreed &= false;
+                            index_at_curr_tx_mismatch = r; // index mismatch without reaching the last flag can be considered as failed. 
+                            curr_agreed_tx_id = (curr_agreed_tx_id > record[r].tx_id_)? curr_agreed_tx_id : record[r].tx_id_;
+                            
+                            //last_commited_tx_id = curr_agreed_tx_id;  
+                            break;
+                    }
+                    //if tx matched. if the last flag is set. tx has staretd commiting. 
+                    last_flagged &= (bool)record[r].t_id_;  
+                }
+    
+    
+                if(!tx_id_agreed){
+                    // simply unlock places and continue. 
+                    //coro_agreed_tx_id = curr_tx_id;
+    
+                    //TODO- check if no transactions have started.
+                    has_started_commit = false;
+    
+                    //TODO - call lock recovery
+    
+                    break;
+                }
+                //all last tx_ids agreed. 
+                else{
+    
+                    coro_agreed_tx_id = curr_agreed_tx_id;                
+    
+                    if(!last_flagged){
+                        //continue with the next log record if if
+                        assert((r+1) <= MAX_LATCH_LOG_RECORDS);
+                        continue;
+                    }else{
+    
+                        //then only we need to read undo
+                        //if last flagged, tx ids agrred and last tx_id is not complete. then only undo logs are needed. 
+    
+                        //I know all the keys here. i can check directly whether all logs have been recoved.  
+                        //I can do this seperately after reading all the latch logs while logs being loaded/prefetched in the background.
+                        //then later I will check if all the logs havebeen recoved.
+                        has_started_commit = true;
+                        num_valid_logs = r+1; 
+                        break;
+    
+                    }
+    
+                }          
+               //asserts if the log is larges than MAX LOG Size and if so fetch again. 
+    
+    
+            } //For each log record 
+    
+            //TODO- check negative records.
+    
+            //r is the index
+    
+            if(!has_started_commit){
+               coro_has_started_commit[t][c] = has_started_commit; ; //TODO- iinvoke unlocks
             }
+    
+            else{
+    
+                //TODO - check in-place updates
+                coro_num_valid_logs[t][c] = (int)num_valid_logs;
+                coro_has_started_commit[t][c] = has_started_commit;
+    
+                //Iterate through logs (table, key) and read in-place values.
+    
+                UndoLogRecord* record_node_0 =  (UndoLogRecord *)undo_logs [t][c][0]; 
+    
+                for (int i = 0; i < global_meta_man->remote_nodes.size(); i++){
+                    
+                    char* inplace_update = thread_rdma_buffer_alloc->Alloc(inplace_update_size); // or 512 bytes        
+                    inplace_updates [t][c][i] = inplace_update; //allocating space; 
+    
+                    for (int rc =0 ; rc < num_valid_logs; rc++){  //recorc c
+    
+                            DataItem* logged_item= &record_node_0[rc].data_ ; 
+    
+                            table_id_t logged_table_id = logged_item->table_id;
+                            itemkey_t logged_key = logged_item->key;
+                            node_id_t remote_node_id = global_meta_man->GetPrimaryNodeID(logged_item->table_id);
+                            
+                            RCQP* qp = thread_qp_man->GetRemoteDataQPWithNodeID(remote_node_id);
+                            auto offset = addr_cache->Search(remote_node_id, logged_item->table_id, logged_item->key);
+    
+                            //assume all logs keys are a cache hit.
+                            if (offset != NOT_FOUND) {
+                                if (!coro_sched->RDMARead(coro_id, qp, &inplace_update[rc], offset, DataItemSize)) {
+                                    return false;
+                                }
+    
+                            } 
+                            else{
+                                //TODO- report back to me
+                                assert(false);
+                            }           
+                            //+ we can read the undo logs at the same time. or do that later 
+                            //RDMAREAD - logs.
+                    }   
+    
+                }
+    
+                //check in-place values.
+                //coro_sched->Yield(yield, coro_id); //wait for all in-place to arrive.
+                //
+                //for (int c = 1 ; c < num_coro ; c++){ 
+                //    
+                //    if(coro_has_started_commit[t][c]){
+                //       
+                //       for(int j=0; j < coro_num_valid_logs[c]; j++){
+                //            RDMA_LOG(INFO) << "recovery coro  - " << c;  
+                //        }
+                //
+                //    }
+                //    
+                //}
+    
+    
+            }// read all in place updates
 
-            //check in-place values.
-            coro_sched->Yield(yield, coro_id); //wait for all in-place to arrive.
+    
+        } //every coro
+
+    }// for every thread
+
+    //check in-place values.
+    coro_sched->Yield(yield, coro_id); //wait for all in-place to arrive.
+        for (int t=0; t<num_thread; t++){           
 
             for (int c = 1 ; c < num_coro ; c++){ 
                 
-                if(coro_has_started_commit[c]){
+                if(coro_has_started_commit[t][c]){
                    
-                   for(int j=0; j < coro_num_valid_logs[c]; j++){
+                   for(int j=0; j < coro_num_valid_logs[t][c]; j++){
                         RDMA_LOG(INFO) << "recovery coro  - " << c;  
                     }
 
                 }
                 
             }
-
-
         }
 
-    } //everything is ok;
-    }
+
 
 }
 //DAM - For Latch recovery for all pending transactions.

@@ -219,7 +219,8 @@ bool DTX::CheckLockRecoveryReadMultiple(std::vector<HashRead>& pending_hash_read
 
 bool DTX::TxLatchRecovery(coro_yield_t& yield){
     //IssueUndoLogRecovery(yield);
-    IssueLatchLogRecoveryRead(yield);
+    //IssueLatchLogRecoveryRead(yield);
+    IssueLatchLogRecoveryReadForAllThreads(yield);
 }
 
 bool DTX::TxUndoRecovery(coro_yield_t& yield){
@@ -682,7 +683,8 @@ bool DTX::IssueLatchLogRecoveryReadForAllThreads(coro_yield_t& yield){
         }
     }
 
-    coro_sched->Yield(yield, coro_id); //wait for logs to arrive.
+    //coro_sched->Yield(yield, coro_id); //wait for logs to arrive.
+    while(!coro->CheckRecoveryDataAck(coro_id));
 
     //we have all latch log records of all nodes //for each coroutine
     for(int t=0; t<num_thread;t++){ 
@@ -846,7 +848,7 @@ bool DTX::IssueUndoLogRecoveryForAllThreads(coro_yield_t& yield){
         }
     }
 
-        coro_sched->Yield(yield, coro_id); //wait for logs to arrive.
+        //coro_sched->Yield(yield, coro_id); //wait for logs to arrive.
         //while (!coro_sched->CheckLogAck(coro_id)){
         while (!coro_sched->CheckRecoveryLogAck(coro_id)){
             //wait for a 1 micro second

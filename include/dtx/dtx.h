@@ -332,7 +332,7 @@ class DTX {
 
 #endif
 
-#if defined(LATCH_RECOVERY || UNDO_RECOVERY) 
+#if defined(LATCH_RECOVERY) || defined(UNDO_RECOVERY)
 
     public: 
      

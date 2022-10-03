@@ -215,7 +215,7 @@ bool DTX::CheckLockRecoveryReadMultiple(std::vector<HashRead>& pending_hash_read
 
 
 
-#if defined(LATCH_RECOVERY || UNDO_RECOVERY)
+#if defined(LATCH_RECOVERY) || defined(UNDO_RECOVERY)
 
 bool DTX::TxLatchRecovery(coro_yield_t& yield){
     //IssueUndoLogRecovery(yield);

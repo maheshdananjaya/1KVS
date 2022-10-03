@@ -215,10 +215,16 @@ bool DTX::CheckLockRecoveryReadMultiple(std::vector<HashRead>& pending_hash_read
 
 
 
-#ifdef LATCH_RECOVERY
+#if defined(LATCH_RECOVERY || UNDO_RECOVERY)
 
 bool DTX::TxLatchRecovery(coro_yield_t& yield){
-    IssueUndoLogRecovery(yield);
+    //IssueUndoLogRecovery(yield);
+    IssueLatchLogRecoveryRead(yield);
+}
+
+bool DTX::TxUndoRecovery(coro_yield_t& yield){
+    //IssueUndoLogRecovery(yield);
+    IssueUndoLogRecoveryForAllThreads(yield);
     //IssueLatchLogRecoveryRead(yield);
 }
 
@@ -841,8 +847,10 @@ bool DTX::IssueUndoLogRecoveryForAllThreads(coro_yield_t& yield){
     }
 
         coro_sched->Yield(yield, coro_id); //wait for logs to arrive.
-        while (!coro_sched->CheckLogAck(coro_id)){
+        //while (!coro_sched->CheckLogAck(coro_id)){
+        while (!coro_sched->CheckRecoveryLogAck(coro_id)){
             //wait for a 1 micro second
+
         }
 
     for (int t=0; t<num_thread; t++){
@@ -1030,7 +1038,12 @@ bool DTX::IssueUndoLogRecoveryForAllThreads(coro_yield_t& yield){
     }// for every thread
 
     //check in-place values.
-    coro_sched->Yield(yield, coro_id); //wait for all in-place to arrive.
+
+    //coro_sched->Yield(yield, coro_id); //wait for all in-place to arrive.
+    //Replacing yield with just a while loop.
+
+    while(!coro_sched->CheckRecoveryDataAck());
+
         for (int t=0; t<num_thread; t++){           
 
             for (int c = 1 ; c < num_coro ; c++){ 

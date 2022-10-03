@@ -824,7 +824,26 @@ void PollCompletion(coro_yield_t& yield) {
       // RDMA_LOG(DBG) << "Coro 0 yields to coro " << next->coro_id;
       coro_sched->RunCoroutine(yield, next);
     }
-    if (stop_run) break;
+    if (stop_run){ 
+
+        //moving undo recovery to the coro -0
+        #ifdef UNDO_RECOVERY
+          if(thread_gid==0){
+            printf("Starting Coordinator-Side Undo Recovery at gid=0.. \n");
+            coro_id_t coro_id=0;
+             DTX* dtx = new DTX(meta_man, qp_man, thread_gid, coro_id, coro_sched, rdma_buffer_allocator,
+                     log_offset_allocator, addr_cache);
+            clock_gettime(CLOCK_REALTIME, &msr_start);
+            dtx->TxUndoRecovery(yield);
+            clock_gettime(CLOCK_REALTIME, &msr_end);
+            double rec_msr_sec = (msr_end.tv_sec - msr_start.tv_sec) + (double)(msr_end.tv_nsec - msr_start.tv_nsec) / 1000000000;
+            printf("Undo Recovery time - %f \n", rec_msr_sec);
+          }
+        #endif
+
+      break;
+    }
+
   }
 }
 

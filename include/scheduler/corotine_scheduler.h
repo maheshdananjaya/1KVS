@@ -69,6 +69,12 @@ class CoroutineScheduler {
 
   bool CheckLogAck(coro_id_t c_id);
 
+  //For recovery
+  bool CheckRecoveryLogAck(coro_id_t c_id);
+  bool CheckRecoveryDataAck(coro_id_t c_id);
+  void PollLogCompletionForRecovery();
+  void PollRegularCompletionForRecovery();
+
   // Link coroutines in a loop manner
   void LoopLinkCoroutine(coro_id_t coro_num);
 

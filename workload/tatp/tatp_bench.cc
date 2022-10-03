@@ -421,7 +421,19 @@ void PollCompletion(coro_yield_t& yield) {
       // RDMA_LOG(DBG) << "Coro 0 yields to coro " << next->coro_id;
       coro_sched->RunCoroutine(yield, next);
     }
-    if (stop_run) break;
+    if (stop_run) {
+      //Moving undo recovery to coro zero- main thread. 
+      #ifdef UNDO_RECOVERY
+          
+        if(thread_gid==0){
+          printf("Starting Coordinator-Side Undo Recovery at gid=0.. \n");
+          //dtx->TxLatchRecovery(yield);
+        }  
+      #endif
+
+      break;
+    }
+
   }
 }
 

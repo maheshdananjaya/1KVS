@@ -332,16 +332,17 @@ class DTX {
 
 #endif
 
-#ifdef LATCH_RECOVERY 
+#if defined(LATCH_RECOVERY || UNDO_RECOVERY) 
 
     public: 
      
       bool TxLatchRecovery(coro_yield_t& yield);
+      bool TxUndoRecovery(coro_yield_t& yield);
       bool IssueLatchLogRecoveryRead(coro_yield_t& yield);
       bool IssueUndoLogRecovery(coro_yield_t& yield);
       bool IssueLatchLogRecoveryReadForAllThreads(coro_yield_t& yield);
       bool IssueUndoLogRecoveryForAllThreads(coro_yield_t& yield);
-      
+
 #endif
 
 

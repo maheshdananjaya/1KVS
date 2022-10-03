@@ -827,11 +827,14 @@ void PollCompletion(coro_yield_t& yield) {
     if (stop_run){ 
 
         //moving undo recovery to the coro -0
-        #ifdef UNDO_RECOVERY
+        #ifdef UNDO_RECOVERY_NAH
+
           if(thread_gid==0){
             printf("Starting Coordinator-Side Undo Recovery at gid=0.. \n");
             coro_id_t coro_id=0;
+
              DTX* dtx = new DTX(meta_man, qp_man, thread_gid, coro_id, coro_sched, rdma_buffer_allocator,
+            
                      log_offset_allocator, addr_cache);
             clock_gettime(CLOCK_REALTIME, &msr_start);
             dtx->TxUndoRecovery(yield);
@@ -839,8 +842,10 @@ void PollCompletion(coro_yield_t& yield) {
             double rec_msr_sec = (msr_end.tv_sec - msr_start.tv_sec) + (double)(msr_end.tv_nsec - msr_start.tv_nsec) / 1000000000;
             printf("Undo Recovery time - %f \n", rec_msr_sec);
           }
+
         #endif
 
+            //usleep(2000);
       break;
     }
 
@@ -987,9 +992,20 @@ void RunTx(coro_yield_t& yield, coro_id_t coro_id) {
   }
 #endif
 
+    #ifdef UNDO_RECOVERY
+    if(thread_gid==0 && coro_id==1){
+      printf("Starting Coordinator-Side Undo Recovery at gid=0.. \n");
+      clock_gettime(CLOCK_REALTIME, &msr_start);
+      dtx->TxUndoRecovery(yield);
+      clock_gettime(CLOCK_REALTIME, &msr_end);
+      double rec_msr_sec = (msr_end.tv_sec - msr_start.tv_sec) + (double)(msr_end.tv_nsec - msr_start.tv_nsec) / 1000000000;
+      printf("Recovery time - %f \n", rec_msr_sec);
+    }
+  #endif
+
 
   #ifdef LATCH_RECOVERY
-    if(thread_gid==0){
+    if(thread_gid==0 && coro_id==1){
       printf("Starting Coordinator-Side Latch Recovery at gid=0.. \n");
       clock_gettime(CLOCK_REALTIME, &msr_start);
       dtx->TxLatchRecovery(yield);
@@ -998,6 +1014,8 @@ void RunTx(coro_yield_t& yield, coro_id_t coro_id) {
       printf("Recovery time - %f \n", rec_msr_sec);
     }
   #endif
+
+
 
   delete dtx;
 }
@@ -1064,7 +1082,7 @@ void run_thread(struct thread_params* params) {
 
   // Stop running
   stop_run = true;
-
+  usleep(2000);
   // RDMA_LOG(DBG) << "Thread: " << thread_gid << ". Loop RDMA alloc times: " << rdma_buffer_allocator->loop_times;
 
   // Clean

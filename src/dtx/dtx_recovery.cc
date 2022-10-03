@@ -1042,7 +1042,7 @@ bool DTX::IssueUndoLogRecoveryForAllThreads(coro_yield_t& yield){
     //coro_sched->Yield(yield, coro_id); //wait for all in-place to arrive.
     //Replacing yield with just a while loop.
 
-    while(!coro_sched->CheckRecoveryDataAck());
+    while(!coro_sched->CheckRecoveryDataAck(coro_id));
 
         for (int t=0; t<num_thread; t++){           
 

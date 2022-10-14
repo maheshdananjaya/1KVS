@@ -185,7 +185,7 @@ class RCQPImpl {
     qp_attr.min_rnr_timer = 20;
 
     #ifdef ROCE
-      RDMA_LOG(EMPH) << "ROCE- 2recv";
+      //RDMA_LOG(EMPH) << "ROCE- 2recv";
       qp_attr.ah_attr.dlid = 0; //ROCE
       qp_attr.ah_attr.sl = 0;
       qp_attr.ah_attr.src_path_bits = 0;
@@ -199,7 +199,7 @@ class RCQPImpl {
       qp_attr.ah_attr.grh.hop_limit = 1; //ROCE
 
     #else 
-      RDMA_LOG(EMPH) << "Infiniband- 2recv";
+      //RDMA_LOG(EMPH) << "Infiniband- 2recv";
       qp_attr.ah_attr.dlid = attr.lid;
       qp_attr.ah_attr.sl = 0;
       qp_attr.ah_attr.src_path_bits = 0;
@@ -238,7 +238,7 @@ class RCQPImpl {
     qp_attr.min_rnr_timer = 20;
 
     #ifdef ROCE
-      RDMA_LOG(EMPH) << "ROCE- torecv";
+      //RDMA_LOG(EMPH) << "ROCE- torecv";
       qp_attr.ah_attr.dlid = 0; //ROCE
       qp_attr.ah_attr.sl = 0;
       qp_attr.ah_attr.src_path_bits = 0;
@@ -252,7 +252,7 @@ class RCQPImpl {
       qp_attr.ah_attr.grh.hop_limit = 1;
 
     #else
-      RDMA_LOG(EMPH) << "Infiniband- torecv";
+      //RDMA_LOG(EMPH) << "Infiniband- torecv";
       qp_attr.ah_attr.dlid = attr.lid;
       qp_attr.ah_attr.sl = 0;
       qp_attr.ah_attr.src_path_bits = 0;

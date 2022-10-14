@@ -523,7 +523,7 @@ bool DTX::IssueUndoLogRecovery(coro_yield_t& yield){
 
                 if(!last_flagged){
                     //continue with the next log record if if
-                    assert((r+1) <= MAX_LATCH_LOG_RECORDS);
+                    assert((r+1) <= MAX_DATA_LOG_RECORDS);
                     continue;
                 }else{
 
@@ -821,7 +821,7 @@ bool DTX::IssueUndoLogRecoveryForAllThreads(coro_yield_t& yield){
     int coro_num_valid_logs[num_thread][num_coro]; //filter out last
     bool coro_has_started_commit [num_thread][num_coro]; // finished transactions
 
-    int last_valid_log[num_thread][num_coro]; //filter out last
+    int last_valid_log [num_thread][num_coro]; //filter out last
     
     bool tx_done [num_thread][num_coro]; // finished transactions
 
@@ -922,10 +922,12 @@ bool DTX::IssueUndoLogRecoveryForAllThreads(coro_yield_t& yield){
                     }
                     //if tx matched. if the last flag is set. tx has staretd commiting. 
                     last_flagged &= (bool)record[r].t_id_;  
+
                 }
     
     
                 if(!tx_id_agreed){
+
                     // simply unlock places and continue. 
                     //coro_agreed_tx_id = curr_tx_id;
     
@@ -943,7 +945,7 @@ bool DTX::IssueUndoLogRecoveryForAllThreads(coro_yield_t& yield){
     
                     if(!last_flagged){
                         //continue with the next log record if if
-                        assert((r+1) <= MAX_LATCH_LOG_RECORDS);
+                        assert((r+1) <= MAX_DATA_LOG_RECORDS);
                         continue;
                     }else{
     
@@ -975,7 +977,7 @@ bool DTX::IssueUndoLogRecoveryForAllThreads(coro_yield_t& yield){
     
             else{
     
-                //TODO - check in-place updates
+                // TODO - check in-place updates 
                 coro_num_valid_logs[t][c] = (int)num_valid_logs;
                 coro_has_started_commit[t][c] = has_started_commit;
     
@@ -1001,7 +1003,10 @@ bool DTX::IssueUndoLogRecoveryForAllThreads(coro_yield_t& yield){
     
                             //assume all logs keys are a cache hit.
                             if (offset != NOT_FOUND) {
-                                if (!coro_sched->RDMARead(coro_id, qp, &inplace_update[rc], offset, DataItemSize)) {
+
+                                //TODO - pointers are 
+                                if (!coro_sched->RDMARead(coro_id, qp, &inplace_updates [t][c][i][rc*DataItemSize], offset, DataItemSize)) {
+                                //if (!coro_sched->RDMARead(coro_id, qp, &inplace_update[rc], offset, DataItemSize)) {
                                     return false;
                                 }
     
@@ -1033,6 +1038,9 @@ bool DTX::IssueUndoLogRecoveryForAllThreads(coro_yield_t& yield){
     
     
             }// read all in place updates
+
+            //Freening pointer and threads.
+            //TODO. 
 
     
         } //every coro

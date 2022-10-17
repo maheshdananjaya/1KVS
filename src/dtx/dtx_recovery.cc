@@ -940,7 +940,7 @@ bool DTX::IssueUndoLogRecoveryForAllThreads(coro_yield_t& yield){
 
                         //do not care about the last flagged. do recovery regardles of last falgged. no harm here. a bit conservative.
                         has_started_commit = true;
-                        num_valid_logs = r+1;
+                        num_valid_logs = r;
                         //coro_agreed_tx_id is same as the last one.
 
                     }            

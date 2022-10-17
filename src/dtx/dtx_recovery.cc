@@ -886,7 +886,7 @@ bool DTX::IssueUndoLogRecoveryForAllThreads(coro_yield_t& yield){
                     UndoLogRecord* record =  (UndoLogRecord *)undo_logs [t][c][i];                  
                     //to check if the transaction has been commited or partioal log locks are held. still need to unlock. 
                     //Latch log will never be written out of order, assuing truncation
-                    if(record[r].tx_id_ < 0){
+                    if(record[r].tx_id_ <= 0){
                         if(r==0){
                             //not even started
                             log_received &= false;  
@@ -923,7 +923,7 @@ bool DTX::IssueUndoLogRecoveryForAllThreads(coro_yield_t& yield){
                     //if tx matched. if the last flag is set. tx has staretd commiting. 
                     last_flagged &= (bool)record[r].t_id_;  
 
-                }
+                }// NODES
     
     
                 if(!tx_id_agreed){
@@ -932,7 +932,18 @@ bool DTX::IssueUndoLogRecoveryForAllThreads(coro_yield_t& yield){
                     //coro_agreed_tx_id = curr_tx_id;
     
                     //TODO- check if no transactions have started.
-                    has_started_commit = false;
+
+                    //modifying for non last flagged. 
+                    if(r==0){
+                        has_started_commit = false;
+                    }else{
+
+                        //do not care about the last flagged. do recovery regardles of last falgged. no harm here. a bit conservative.
+                        has_started_commit = true;
+                        num_valid_logs = r+1;
+                        //coro_agreed_tx_id is same as the last one.
+
+                    }            
     
                     //TODO - call lock recovery
     
@@ -958,6 +969,7 @@ bool DTX::IssueUndoLogRecoveryForAllThreads(coro_yield_t& yield){
                         has_started_commit = true;
                         num_valid_logs = r+1; 
                         break;
+
     
                     }
     
@@ -967,6 +979,7 @@ bool DTX::IssueUndoLogRecoveryForAllThreads(coro_yield_t& yield){
     
             } //For each log record 
     
+            
             //TODO- check negative records.
     
             //r is the index
@@ -996,6 +1009,7 @@ bool DTX::IssueUndoLogRecoveryForAllThreads(coro_yield_t& yield){
     
                             table_id_t logged_table_id = logged_item->table_id;
                             itemkey_t logged_key = logged_item->key;
+
                             node_id_t remote_node_id = global_meta_man->GetPrimaryNodeID(logged_item->table_id);
                             
                             RCQP* qp = thread_qp_man->GetRemoteDataQPWithNodeID(remote_node_id);

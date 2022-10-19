@@ -333,7 +333,7 @@ bool DTX::UndoLogWithoutInserts() {
       new_record.t_id_=t_id;
       new_record.data_ = *(set_it.item_ptr.get());
 
-      //std::memcpy(written_log_buf + cur, &tx_id, sizeof(tx_id_t));
+      //std::memcpy(written_log_buf + cur, &tx_id, sizeof(tx_id_t));  
       //cur += sizeof(tx_id_t);
       //std::memcpy(written_log_buf + cur, &t_id, sizeof(t_id_t));
       //cur += sizeof(t_id_t);

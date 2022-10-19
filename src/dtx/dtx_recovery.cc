@@ -716,7 +716,7 @@ bool DTX::IssueLatchLogRecoveryReadForAllThreads(coro_yield_t& yield){
                 LatchLogRecord* record =  (LatchLogRecord *)latch_logs [t][c][i];                  
                 //to check if the transaction has been commited or partioal log locks are held. still need to unlock. 
                 //Latch log will never be written out of order, assuing truncation
-                if(record[r].tx_id_ < 0){
+                if(record[r].tx_id_ <= 0){
                     if(r==0){
                         //not even started
                         log_received &= false;  
@@ -760,8 +760,22 @@ bool DTX::IssueLatchLogRecoveryReadForAllThreads(coro_yield_t& yield){
                 //coro_agreed_tx_id = curr_tx_id;
 
                 //TODO- check if no transactions have started.
-                has_started_commit = false;
-                break;
+                //has_started_commit = false;
+                //break;
+
+                //tight implementation where all locks of the last transaction is set regardless of the last flagged. 
+                    if(r==0){
+                        has_started_commit = false;
+                    }
+                    else
+                    {
+
+                        //do not care about the last flagged. do recovery regardles of last falgged. no harm here. a bit conservative.
+                        has_started_commit = true;
+                        num_valid_logs = r;
+                        //coro_agreed_tx_id is same as the last one.
+                    } 
+                    break;
             }
             //all last tx_ids agreed. 
             else{

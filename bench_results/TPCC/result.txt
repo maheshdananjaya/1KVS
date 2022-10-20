@@ -48,3 +48,43 @@ FORD 82.909 26.8369 149.305 4587.77
 
 FORD with new undo logs including inserts
 FORD 85.5079 26.9874 162.017 3886.72
+
+WIthout logging
+16 threads
+FORD 90.623 28.9649 149.034 2169.01
+32 threads
+FORD 65.5874 16.8633 414.153 3378.56
+64
+FORD 71.2348 16.5828 550.036 10043
+8 threads????
+FORD 75.368 30.7891 89.1424 1849.98
+
+1 threads 8 corutines
+FORD 14.6741 12.1378 83.237 1947.38
+
+1 thread 16 coroutines
+FORD 16.9459 11.6083 103.781 3350.78
+
+1 thread 16 coro
+FORD 16.9161 11.5513 103.615 3366.06
+1 thread 4 coros
+FORD 9.21799 8.50157 137.399 3354.88
+
+
+
+with latch logging
+
+1 thread 4 coros
+FORD 7.67464 7.01846 98.439 3281.17
+
+1 thread 2 coros(smallest)
+FORD 3.16233 3.16233 199.202 2691.5
+
+this is withou logging for 1 thread and 2 coroutines. 
+FORD 3.16286 3.16286 199.114 2694.09
+
+1thread 8 coros without latch logging
+FORD 11.4345 9.41993 128.159 3153.86
+
+1 thread 8 coros with latch logging
+FORD 12.676 10.0896 77.112 4096.74

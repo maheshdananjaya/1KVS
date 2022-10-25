@@ -422,13 +422,13 @@ void DTX::TxBegin(tx_id_t txid) {
 
 ALWAYS_INLINE
 void DTX::AddToReadOnlySet(DataItemPtr item) {
-  DataSetItem data_set_item{.item_ptr = std::move(item), .is_fetched = false, .is_logged = false, .read_which_node = -1};
+  DataSetItem data_set_item{.item_ptr = std::move(item), .is_fetched = false, .is_logged = false, .is_latch_logged=false, .read_which_node = -1};
   read_only_set.emplace_back(data_set_item);
 }
 
 ALWAYS_INLINE
 void DTX::AddToReadWriteSet(DataItemPtr item) {
-  DataSetItem data_set_item{.item_ptr = std::move(item), .is_fetched = false, .is_logged = false, .read_which_node = -1};
+  DataSetItem data_set_item{.item_ptr = std::move(item), .is_fetched = false, .is_logged = false, .is_latch_logged=false, .read_which_node = -1};
   read_write_set.emplace_back(data_set_item);
 }
 

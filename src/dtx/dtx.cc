@@ -498,7 +498,7 @@ bool DTX::LatchLogDataQP() {
   size_t num_log_entries = 0;
   for (auto& set_it : read_write_set) { 
 
-    if (!set_it.is_logged) num_log_entries++;
+    if (!set_it.is_latch_logged) num_log_entries++;
   }
 
   if(num_log_entries == 0) return false;
@@ -509,7 +509,7 @@ bool DTX::LatchLogDataQP() {
 
   for (auto& set_it : read_write_set) { 
 
-    if (!set_it.is_logged) {           
+    if (!set_it.is_latch_logged) {           
       
       LatchLogRecord new_record;
       new_record.tx_id_ = tx_id;
@@ -532,7 +532,7 @@ bool DTX::LatchLogDataQP() {
       cur +=  sizeof(LatchLogRecord);
 
       //DAM- fix this prevents taking undo later
-      //set_it.is_logged = true;   
+      set_it.is_latch_logged = true;   
     }
   }
 

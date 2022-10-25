@@ -39,3 +39,25 @@ without latch loggong
 FORD 1645.07 1390.28 69.2875 217.645
 FORD 1297.58 1095.29 86.1821 247.908
 FORD 1285.17 1085.6 87.6905 258.451
+
+without latch logging
+1 thread 2 coros.
+FORD 45.5246 39.8318 22.571 51.089
+
+with latch logging
+1 thread 2 cros
+FORD 51.3618 44.939 21.118 33.38
+FORD 51.3743 44.95 21.115 33.349
+
+without latch logging
+1 thread 2 coros
+FORD 65.9392 57.6935 16.023 28.196
+FORD 65.93 57.6855 16.027 28.217
+
+
+1 thread 8 coros
+without latch logging
+FORD 266.58 232.925 26.508 47.858
+
+with latch logging
+FORD 224.213 195.987 32.41 52.466

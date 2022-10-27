@@ -88,3 +88,30 @@ FORD 11.4345 9.41993 128.159 3153.86
 
 1 thread 8 coros with latch logging
 FORD 12.676 10.0896 77.112 4096.74
+
+
+with 3 way replication, three machines.
+FORD 83.069 26.9456 158.476 2134.47
+FORD 81.8893 26.4732 160.427 2143.05
+
+
+FORD 75.8448 23.9428 183.558 3119.62
+
+
+FORD 70.2889 22.8205 179.22 3589.89
+FORD 80.6333 26.328 160.931 2195.65
+
+My assumption was right. single QP makes a huge overhead on the tx running on a single thread. no wonder why ford makes huge gains from batching just read+cas. 
+
+lets take.
+1thread 1 coro
+FORD 4.02621 4.02621 137.576 2668.39
+FORD 14.6627 12.153 80.488 1970
+FORD 56.829 32.2487 48.4036 1523.79
+FORD 80.6459 26.2929 162.296 2209.11
+
+with latch logging
+FORD 3.2657 3.2657 202.333 2673.4
+FORD 12.7093 10.0624 78.119 2446.3
+FORD 48.298 27.3521 53.2134 1668.47
+FORD 72.2233 23.4704 172.895 3588.2

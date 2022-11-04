@@ -652,7 +652,7 @@ bool DTX::IssueLatchLogRecoveryReadForAllThreads(coro_yield_t& yield){
     //need to store: all nodes: all coroutines.
     //Log coro [coror] -> node [i]
     char* latch_logs[num_thread][num_coro][global_meta_man->remote_nodes.size()]; // log buffer
-    int num_valid_logs[num_thread][num_coro]; //filter out last
+    int coro_num_valid_logs[num_thread][num_coro]; //filter out last
     int last_valid_log[num_thread][num_coro]; //filter out last
     bool tx_done [num_thread][num_coro]; // finished transactions
 
@@ -693,6 +693,7 @@ bool DTX::IssueLatchLogRecoveryReadForAllThreads(coro_yield_t& yield){
         //every node //see first two logs and check if they are not negative. //check all logs.
         bool has_started_commit = false; //not useful here.
         uint64_t coro_agreed_tx_id = 0; 
+        uint64_t num_valid_logs = 0;
 
         bool tx_mismatched=false;
         uint64_t index_at_curr_tx_mismatch=0; 
@@ -806,10 +807,14 @@ bool DTX::IssueLatchLogRecoveryReadForAllThreads(coro_yield_t& yield){
         //TODO- check negative records.
 
         if(!has_started_commit); //TODO- unlock al the places and reconfigure.
+        else{
+            //coro_num_valid_logs
+        }
 
         //everything is ok;
 
     }
+    
     }
    
 

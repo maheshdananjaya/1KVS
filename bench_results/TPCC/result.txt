@@ -88,3 +88,114 @@ FORD 11.4345 9.41993 128.159 3153.86
 
 1 thread 8 coros with latch logging
 FORD 12.676 10.0896 77.112 4096.74
+
+
+with 3 way replication, three memory machines. 1 coordinator
+FORD 83.069 26.9456 158.476 2134.47
+FORD 81.8893 26.4732 160.427 2143.05
+
+
+FORD 75.8448 23.9428 183.558 3119.62
+
+
+FORD 70.2889 22.8205 179.22 3589.89
+FORD 80.6333 26.328 160.931 2195.65
+
+My assumption was right. single QP makes a huge overhead on the tx running on a single thread. no wonder why ford makes huge gains from batching just read+cas. 
+
+lets take.
+1thread 1 coro
+FORD 4.02621 4.02621 137.576 2668.39
+FORD 14.6627 12.153 80.488 1970
+FORD 56.829 32.2487 48.4036 1523.79
+FORD 80.6459 26.2929 162.296 2209.11
+
+with latch logging
+FORD 3.2657 3.2657 202.333 2673.4
+FORD 12.7093 10.0624 78.119 2446.3
+FORD 48.298 27.3521 53.2134 1668.47
+FORD 72.2233 23.4704 172.895 3588.2
+
+
+3 way replication with 3 coordinators.
+16 threads 8 coros
+FORD 39.0544 9.37547 334.071 3508.07
+
+avoid.
+//FORD 15.1293 12.5391 76.783 1871.56
+
+1 thread 8 coros per machine
+FORD 12.7236 7.57996 73.638 1600.49
+
+//FORD 52.0547 28.9143 60.5782 1460.3
+
+4 threads 8 coros
+FORD 30.5504 11.8736 97.8237 1792.04
+
+I have kept the replication degree the same way
+lets change the replication degree to 2 and see.
+
+
+//FORD 51.8763 28.8777 60.9087 1484.58
+4 threads, 8 coros.
+FORD 29.9627 11.5163 101.03 1820.05
+
+1 thread 8 coro.
+FORD 15.9391 10.1 55.575 1030.19
+
+
+bandwidth tests
+1thread 8 coros
+FORD 15.9039 10.564 59.531 1050.68
+NW Counters: | port_xmit_data: 1.62 Gbits || port_rcv_data: 15.40 Gbits || port_xmit_packets: 1.18 MPS || port_rcv_packets: 1.41 MPS 
+
+4 thread 8 coros
+FORD 30.5463 11.5312 97.457 1684.89
+NW Counters: | port_xmit_data: 2.11 Gbits || port_rcv_data: 31.64 Gbits || port_xmit_packets: 2.14 MPS || port_rcv_packets: 2.48 MPS |
+
+
+one coordinator and 3 machines with 3 replicas. 
+1 thread 8 corors
+FORD 15.15 12.5454 77.002 1926.99
+NW Counters: | port_xmit_data: 1.70 Gbits || port_rcv_data: 11.22 Gbits || port_xmit_packets: 1.12 MPS || port_rcv_packets: 1.27 MPS |
+
+4 thread 8 coros
+FORD 52.0159 29.0099 60.8043 1463.98
+NW Counters: | port_xmit_data: 4.76 Gbits || port_rcv_data: 59.51 Gbits || port_xmit_packets: 3.94 MPS || port_rcv_packets: 4.76 MPS |
+
+8 thread 8 coros.
+FORD 69.5529 29.4401 92.8277 1754.58
+NW Counters: | port_xmit_data: 4.31 Gbits || port_rcv_data: 73.96 Gbits || port_xmit_packets: 4.32 MPS || port_rcv_packets: 5.37 MPS |
+
+10 threads 8 coros. 
+FORD 72.6883 27.9227 112.35 1924.06
+NW Counters: | port_xmit_data: 5.03 Gbits || port_rcv_data: 84.64 Gbits || port_xmit_packets: 5.32 MPS || port_rcv_packets: 6.48 MPS |
+
+
+checking memory side bandwidth with node-2(memory-0)
+FORD 72.7448 27.9186 113.103 1904.56
+single coordinator here
+NW Counters: | port_xmit_data: 5.02 Gbits || port_rcv_data: 84.86 Gbits || port_xmit_packets: 5.31 MPS || port_rcv_packets: 6.48 MPS 
+memory side (with 3 machines, 3 way replication it saturates)
+NW Counters: | port_xmit_data: 80.84 Gbits || port_rcv_data: 3.51 Gbits || port_xmit_packets: 5.23 MPS || port_rcv_packets: 4.04 MPS |
+
+
+FORD 72.6943 28.0287 111.32 1986.05
+memory node-2 (node 1)
+NW Counters: | port_xmit_data: 0.64 Gbits || port_rcv_data: 0.92 Gbits || port_xmit_packets: 0.44 MPS || port_rcv_packets: 0.46 MPS |
+
+
+FORD 72.6421 27.8389 113.099 1889.68
+memory node 3 (memory node -2)
+NW Counters: | port_xmit_data: 3.27 Gbits || port_rcv_data: 0.71 Gbits || port_xmit_packets: 0.71 MPS || port_rcv_packets: 0.68 MPS |
+cnclustion: some tables are highly congested. almost all the accesses are directed to the memory node -0. thats why increasing number of machines won't increase the throughput.
+
+with lathc logging.
+FORD 71.7529 26.6695 108.148 5233.23
+compute : NW Counters: | port_xmit_data: 4.53 Gbits || port_rcv_data: 65.50 Gbits || port_xmit_packets: 4.88 MPS || port_rcv_packets: 5.78 MPS |
+memory 0: NW Counters: | port_xmit_data: 54.03 Gbits || port_rcv_data: 2.53 Gbits || port_xmit_packets: 3.72 MPS || port_rcv_packets: 2.93 MPS |
+memory 1: NW Counters: | port_xmit_data: 0.90 Gbits || port_rcv_data: 1.21 Gbits || port_xmit_packets: 0.87 MPS || port_rcv_packets: 0.88 MPS |
+memory 2: NW Counters: | port_xmit_data: 2.96 Gbits || port_rcv_data: 1.28 Gbits || port_xmit_packets: 1.22 MPS || port_rcv_packets: 1.21 MPS |
+
+latch logging does not show significant impact in tpcc why?.
+

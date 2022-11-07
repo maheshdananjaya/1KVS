@@ -14,10 +14,24 @@
 #include "connection/qp_manager.h"
 #include "dtx/dtx.h"
 // #include "util/latency.h"
-
+//#define CRASH_TPUT
 using namespace std::placeholders;
 
 // All the functions are executed in each thread
+
+//For Crash TPUT
+static bool crash_emu=false;
+extern uint64_t * tx_attempted;
+extern uint64_t * tx_commited;
+extern bool * thread_done;
+extern double * window_start_time;
+extern double * window_curr_time;
+extern node_id_t machine_num_;
+extern node_id_t machine_id_;
+extern t_id_t thread_num_per_machine_;
+
+
+__thread t_id_t local_thread_id;
 
 extern std::atomic<uint64_t> tx_id_generator;
 extern std::atomic<uint64_t> connected_t_num;
@@ -52,6 +66,21 @@ __thread double* timer;
 // const int lat_multiplier = 10; // For sub-microsecond latency measurement
 __thread uint64_t stat_attempted_tx_total = 0;  // Issued transaction number
 __thread uint64_t stat_committed_tx_total = 0;  // Committed transaction number
+
+//__thread uint64_t window_attempted_tx_total = 0;  // Issued transaction number
+//__thread uint64_t window_committed_tx_total = 0;  // Committed transaction number
+
+#ifdef CRASH_TPUT
+
+thread_local std::ofstream file_out;// per thread file writes
+__thread const double window_time_ns=500000; // exmaple 100 microseconds -  
+__thread double last_recorded_nsec_time = 0;
+__thread uint64_t last_recorded_attempted_tx = 0;  // Issued transaction number
+__thread uint64_t last_recorded_committed_tx = 0;  // Committed transaction number
+__thread double curr_time =0;
+__thread double recorded_start_time=0;
+#endif
+
 const coro_id_t POLL_ROUTINE_ID = 0;            // The poll coroutine ID
 
 /******************** The business logic (Transaction) start ********************/
@@ -299,6 +328,15 @@ bool TxWriteCheck(coro_yield_t& yield, tx_id_t tx_id, DTX* dtx) {
 /******************** The business logic (Transaction) end ********************/
 
 void PollCompletion(coro_yield_t& yield) {
+
+  #ifdef CRASH_TPUT
+   while(crash_emu);
+  clock_gettime(CLOCK_REALTIME, &msr_start);
+  last_recorded_nsec_time = (double)(msr_start.tv_sec) * 1000000000 + (double)(msr_start.tv_nsec);
+  recorded_start_time=last_recorded_nsec_time;
+  window_start_time[local_thread_id] = recorded_start_time; // in nano seconds
+  #endif
+
   while (true) {
     coro_sched->PollCompletion();
     Coroutine* next = coro_sched->coro_head->next_coro;
@@ -307,6 +345,26 @@ void PollCompletion(coro_yield_t& yield) {
       coro_sched->RunCoroutine(yield, next);
     }
     if (stop_run) break;
+
+
+      #ifdef CRASH_TPUT
+        while(crash_emu);
+
+        //only a single coro has to do this.
+        clock_gettime(CLOCK_REALTIME, &msr_end);
+        curr_time =  (double) msr_end.tv_sec *1000000000 + (double)(msr_end.tv_nsec);
+
+         if(curr_time >= (last_recorded_nsec_time + window_time_ns)){
+             //take tput numbers
+              uint64_t attempted_tx = (stat_attempted_tx_total-last_recorded_attempted_tx);
+              uint64_t commited_tx = (stat_committed_tx_total-last_recorded_committed_tx);
+              file_out << (curr_time-recorded_start_time)/1000 << ", " << ( ((double)commited_tx*1000) / ((double) (curr_time - last_recorded_nsec_time)) ) << std::endl;
+              last_recorded_nsec_time = curr_time;
+              last_recorded_attempted_tx = stat_attempted_tx_total;
+              last_recorded_committed_tx = stat_committed_tx_total;
+         }
+
+      #endif
   }
 }
 
@@ -318,8 +376,12 @@ void RunTx(coro_yield_t& yield, coro_id_t coro_id) {
   struct timespec tx_start_time, tx_end_time;
   bool tx_committed = false;
 
+  //This to log the throughput in crash-recovery window. this is run by non-faulty ones. 
+  //we only need to do this with the single coroutine. 
+
   // Running transactions
   clock_gettime(CLOCK_REALTIME, &msr_start);
+
   while (true) {
     SmallBankTxType tx_type = workgen_arr[FastRand(&seed) % 100];
     uint64_t iter = ++tx_id_generator;  // Global atomic transaction id
@@ -410,7 +472,17 @@ void RunTx(coro_yield_t& yield, coro_id_t coro_id) {
       timer[stat_committed_tx_total++] = tx_usec;
       // latency->update(tx_usec * lat_multiplier);
       // stat_committed_tx_total++;
+
+
+      //adding to the 
+        tx_attempted[local_thread_id] = stat_attempted_tx_total;
+        tx_commited[local_thread_id] = stat_committed_tx_total;
+        window_curr_time[local_thread_id] = tx_usec;  // in miro seconds   
+
     }
+
+    //
+
     // Stat after a million of transactions finish
     if (stat_attempted_tx_total == ATTEMPTED_NUM) {
       // A coroutine calculate the total execution time and exits
@@ -435,17 +507,47 @@ void RunTx(coro_yield_t& yield, coro_id_t coro_id) {
 
       break;
     }
+
+    #ifdef UNDO_RECOVERY
+      if(stat_attempted_tx_total == (ATTEMPTED_NUM/10 && thread_gid==0)){
+          printf("Crashed-Recovery \n");
+          crash_emu = true;
+          dtx->TxUndoRecovery(yield);
+          printf("Wait starts \n");
+          usleep(500000);
+          printf("Wait Ends \n");
+          crash_emu = false;
+      }
+      while(crash_emu); // stop all other threads from progressing. 
+
+    #endif
+
     /********************************** Stat end *****************************************/
   }
 
-  #ifdef LATCH_RECOVERY
+    #ifdef UNDO_RECOVERY
+  
     if(thread_gid==0){
-      printf("Starting Coordinator-Side Recovery at gid=0.. \n");
-      dtx->TxLatchRecovery(yield);
+      printf("Starting Coordinator-Side Undo Recovery at gid=0.. \n");
+      clock_gettime(CLOCK_REALTIME, &msr_start);
+      dtx->TxUndoRecovery(yield);
+      clock_gettime(CLOCK_REALTIME, &msr_end);
+      double rec_msr_sec = (msr_end.tv_sec - msr_start.tv_sec) + (double)(msr_end.tv_nsec - msr_start.tv_nsec) / 1000000000;
+      printf("Recovery time - %f \n", rec_msr_sec);
     }
   #endif
 
 
+  #ifdef LATCH_RECOVERY
+    if(thread_gid==0){
+      printf("Starting Coordinator-Side Latch Recovery at gid=0.. \n");
+      clock_gettime(CLOCK_REALTIME, &msr_start);
+      dtx->TxLatchRecovery(yield);
+      clock_gettime(CLOCK_REALTIME, &msr_end);
+      double rec_msr_sec = (msr_end.tv_sec - msr_start.tv_sec) + (double)(msr_end.tv_nsec - msr_start.tv_nsec) / 1000000000;
+      printf("Recovery time - %f \n", rec_msr_sec);
+    }
+  #endif
 
   delete dtx;
 }
@@ -497,13 +599,25 @@ void run_thread(struct thread_params* params) {
     usleep(2000);
   }
 
+  //initializing the file
+  #ifdef CRASH_TPUT
+    std::string file_name = "results/result_"+ std::to_string(thread_gid) + ".txt";
+    file_out.open(file_name.c_str(), std::ios::app);
+     local_thread_id =    thread_gid - (machine_id_*thread_num_per_machine_); 
+  #endif
+
+
   // Start the first coroutine
   coro_sched->coro_array[0].func();
 
   // Stop running
   stop_run = true;
+  thread_done[local_thread_id] = true;
 
   // RDMA_LOG(DBG) << "Thread: " << thread_gid << ". Loop RDMA alloc times: " << rdma_buffer_allocator->loop_times;
+  #ifdef CRASH_TPUT  
+    file_out.close();
+  #endif  
 
   // Clean
   // delete latency;

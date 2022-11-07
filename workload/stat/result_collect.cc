@@ -14,6 +14,19 @@ std::vector<double> medianlat_vec;
 std::vector<double> taillat_vec;
 std::vector<double> lock_durations;
 
+//For partial results.
+uint64_t * tx_attempted;
+uint64_t * tx_commited;
+bool * thread_done;
+double * window_start_time;
+double * window_curr_time;
+node_id_t machine_num_;
+node_id_t machine_id_;
+t_id_t thread_num_per_machine_;
+
+//CounterTimer
+ struct timespec timer_start,timer_end;
+
 void CollectResult(std::string workload_name, std::string system_name) {
   std::ofstream of, of_detail;
   std::string res_file = "../../../bench_results/" + workload_name + "/result.txt";
@@ -66,6 +79,7 @@ void CollectResult(std::string workload_name, std::string system_name) {
     double total_lock_dur = 0;
     for (int i = 0; i < lock_durations.size(); i++) {
       total_lock_dur += lock_durations[i];
+
     }
 
     of << system_name << " " << total_lock_dur / lock_durations.size() << std::endl;
@@ -73,3 +87,72 @@ void CollectResult(std::string workload_name, std::string system_name) {
   }
 #endif
 }
+void InitCounters(node_id_t machine_num, node_id_t machine_id, t_id_t thread_num_per_machine){
+
+  machine_num_ = machine_num; // 
+  machine_id_ = machine_id; // 
+  thread_num_per_machine_ = thread_num_per_machine; //
+
+  tx_attempted= new uint64_t[thread_num_per_machine]();
+  tx_commited = new uint64_t[thread_num_per_machine]();
+  thread_done =  new bool[thread_num_per_machine]();
+
+  //std::fill_n( a, 100, 0 ); 
+
+  window_start_time = new double[thread_num_per_machine]();
+  window_curr_time = new double[thread_num_per_machine]();
+
+  //std::fill_n( a, 100, 0 ); 
+  assert(!thread_done[0]);
+
+
+}
+
+//background thread taking stats.
+void CollectStats(struct thread_params* params){
+
+    //rrecord partial results.
+  std::cout << "starting the counters" << std.endl;
+  //start
+  std::ofstream file_out;
+  std::string file_name = "result_all_threads.txt";
+  file_out.open(file_name.c_str(), std::ios::app);
+  
+  uint64_t start_tx_count = 0;
+  for(int t = 0; t < thread_num_per_machine ; t++){
+    start_tx_count+= tx_commited[t];    
+  }
+
+  clock_gettime(CLOCK_REALTIME, &timer_start);
+  double start_time = (double) timer_start.tv_sec *1000000 + (double)(timer_start.tv_nsec)/1000;
+  
+  uint64_t last_tx_count = start_tx_count;
+  double last_usec = start_time; // micro seconds
+
+  while(true){
+
+      //check if any of the transactions are done or have reached the attemp txs.
+        usleep(500);
+        clock_gettime(CLOCK_REALTIME, &timer_end);
+        double curr_time =  (double) timer_end.tv_sec *1000000 + (double)(timer_end.tv_nsec)*1000;
+
+          uint64_t now_tx_count = 0;
+
+            for(int t = 0; t < thread_num_per_machine ; t++){
+              
+              now_tx_count += tx_commited[t];
+              if (thread_done[t]) break;
+            
+            }
+
+        double tput = (now_tx_count-last_tx_count)/(double)(curr_time-last_usec); // window  tp
+          file_out << (curr_time-start_time) << ", " << tput << std::end
+          last_tx_count = now_tx_count;
+          last_usec = curr_time;
+  }
+
+  //at least one thread is done. we stop the stat counter. 
+  file_out.close();
+  return 0;
+}
+

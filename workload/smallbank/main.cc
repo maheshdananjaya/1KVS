@@ -36,34 +36,46 @@ int main(int argc, char* argv[]) {
   /* Start working */
   tx_id_generator = 0;  // Initial transaction id == 0
   connected_t_num = 0;  // Sync all threads' RDMA QP connections
-  auto thread_arr = new std::thread[thread_num_per_machine];
+
+  //
+  auto thread_arr = new std::thread[thread_num_per_machine +1];
+
   SmallBank* smallbank_client = new SmallBank();
   auto* global_meta_man = new MetaManager();
   RDMA_LOG(INFO) << "Alloc local memory: " << (size_t)(thread_num_per_machine * PER_THREAD_ALLOC_SIZE) / (1024 * 1024) << " MB. Waiting...";
   auto* global_rdma_region = new RDMARegionAllocator(global_meta_man, thread_num_per_machine);
 
-  auto* param_arr = new struct thread_params[thread_num_per_machine];
+  auto* param_arr = new struct thread_params[thread_num_per_machine+1];
+
+  //intializing stat queues.  
+  InitCounters(machine_num,machine_id,thread_num_per_machine);  
 
   RDMA_LOG(INFO) << "spawn threads to execute...";
-  for (t_id_t i = 0; i < thread_num_per_machine; i++) {
-    param_arr[i].thread_local_id = i;
-    param_arr[i].thread_global_id = (machine_id * thread_num_per_machine) + i;
-    param_arr[i].coro_num = coro_num;
-    param_arr[i].smallbank_client = smallbank_client;
-    param_arr[i].global_meta_man = global_meta_man;
-    param_arr[i].global_rdma_region = global_rdma_region;
-    param_arr[i].thread_num_per_machine = thread_num_per_machine;
-    param_arr[i].total_thread_num = thread_num_per_machine * machine_num;
-    thread_arr[i] = std::thread(run_thread, &param_arr[i]);
 
-    /* Pin thread i to hardware thread 2 * i */
-    cpu_set_t cpuset;
-    CPU_ZERO(&cpuset);
-    CPU_SET(i, &cpuset);
-    int rc = pthread_setaffinity_np(thread_arr[i].native_handle(), sizeof(cpu_set_t), &cpuset);
-    if (rc != 0) {
-      RDMA_LOG(WARNING) << "Error calling pthread_setaffinity_np: " << rc;
-    }
+  //modifying for loop for an extra thread that taked all the records. stats. 
+  for (t_id_t i = 0; i < thread_num_per_machine +1; i++) {
+
+      param_arr[i].thread_local_id = i;
+      param_arr[i].thread_global_id = (machine_id * thread_num_per_machine) + i;
+      param_arr[i].coro_num = coro_num;
+      param_arr[i].smallbank_client = smallbank_client;
+      param_arr[i].global_meta_man = global_meta_man;
+      param_arr[i].global_rdma_region = global_rdma_region;
+      param_arr[i].thread_num_per_machine = thread_num_per_machine;
+      param_arr[i].total_thread_num = thread_num_per_machine * machine_num;
+      
+      if( i == thread_num_per_machine) thread_arr[i] = std::thread(CollectStats, &param_arr[i]);
+      else  thread_arr[i] = std::thread(run_thread, &param_arr[i]);
+  
+      /* Pin thread i to hardware thread 2 * i */
+      cpu_set_t cpuset;
+      CPU_ZERO(&cpuset);
+      CPU_SET(i, &cpuset);
+      int rc = pthread_setaffinity_np(thread_arr[i].native_handle(), sizeof(cpu_set_t), &cpuset);
+      if (rc != 0) {
+        RDMA_LOG(WARNING) << "Error calling pthread_setaffinity_np: " << rc;
+      }
+  
   }
 
   for (t_id_t i = 0; i < thread_num_per_machine; i++) {

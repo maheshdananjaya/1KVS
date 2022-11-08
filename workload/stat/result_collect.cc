@@ -119,7 +119,7 @@ void CollectStats(struct thread_params* params){
   file_out.open(file_name.c_str(), std::ios::app);
   
   uint64_t start_tx_count = 0;
-  for(int t = 0; t < thread_num_per_machine ; t++){
+  for(int t = 0; t < thread_num_per_machine_ ; t++){
     start_tx_count+= tx_commited[t];    
   }
 
@@ -138,7 +138,7 @@ void CollectStats(struct thread_params* params){
 
           uint64_t now_tx_count = 0;
 
-            for(int t = 0; t < thread_num_per_machine ; t++){
+            for(int t = 0; t < thread_num_per_machine_ ; t++){
               
               now_tx_count += tx_commited[t];
               if (thread_done[t]) break;

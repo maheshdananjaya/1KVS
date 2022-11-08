@@ -14,5 +14,6 @@
 #include "common/common.h"
 
 #define TEST_DURATION 1
-
+void CollectStats(struct thread_params* params);
+void InitCounters(node_id_t machine_num, node_id_t machine_id, t_id_t thread_num_per_machine);
 void CollectResult(std::string workload_name, std::string system_name);

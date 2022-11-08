@@ -2,7 +2,7 @@
 // Copyright (c) 2021
 
 #include "stat/result_collect.h"
-
+   #include <unistd.h>
 std::atomic<uint64_t> tx_id_generator;
 std::atomic<uint64_t> connected_t_num;
 std::mutex mux;
@@ -103,7 +103,7 @@ void InitCounters(node_id_t machine_num, node_id_t machine_id, t_id_t thread_num
   window_curr_time = new double[thread_num_per_machine]();
 
   //std::fill_n( a, 100, 0 ); 
-  assert(!thread_done[0]);
+  //assert(!thread_done[0]);
 
 
 }
@@ -112,7 +112,7 @@ void InitCounters(node_id_t machine_num, node_id_t machine_id, t_id_t thread_num
 void CollectStats(struct thread_params* params){
 
     //rrecord partial results.
-  std::cout << "starting the counters" << std.endl;
+  std::cout << "starting the counters" << std::endl;
   //start
   std::ofstream file_out;
   std::string file_name = "result_all_threads.txt";
@@ -132,7 +132,7 @@ void CollectStats(struct thread_params* params){
   while(true){
 
       //check if any of the transactions are done or have reached the attemp txs.
-        usleep(500);
+        usleep(1000);
         clock_gettime(CLOCK_REALTIME, &timer_end);
         double curr_time =  (double) timer_end.tv_sec *1000000 + (double)(timer_end.tv_nsec)*1000;
 
@@ -141,18 +141,19 @@ void CollectStats(struct thread_params* params){
             for(int t = 0; t < thread_num_per_machine_ ; t++){
               
               now_tx_count += tx_commited[t];
-              if (thread_done[t]) break;
+              if (thread_done[t]) return;
             
             }
 
-        double tput = (now_tx_count-last_tx_count)/(double)(curr_time-last_usec); // window  tp
-          file_out << (curr_time-start_time) << ", " << tput << std::end
+
+        double tput = (double)(now_tx_count-last_tx_count)/(double)(curr_time-last_usec); // window  tp
+          file_out << (curr_time-start_time) << ", " << tput << std::endl;
           last_tx_count = now_tx_count;
           last_usec = curr_time;
   }
 
   //at least one thread is done. we stop the stat counter. 
   file_out.close();
-  return 0;
+  return;
 }
 

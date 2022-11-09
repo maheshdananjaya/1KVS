@@ -107,8 +107,8 @@ void InitCounters(node_id_t machine_num, node_id_t machine_id, t_id_t thread_num
     tx_attempted[i] = 0;
     tx_commited[i] = 0;
     thread_done[i] = false;
-    window_start_time [i] = 0;
-    window_curr_time [i] = 0;
+    window_start_time [i] = 0.0;
+    window_curr_time [i] = 0.0;
 
   }
 
@@ -153,14 +153,12 @@ void CollectStats(struct thread_params* params){
       
 
           uint64_t now_tx_count = 0;
-          uint64_t sum_of_delta_tx = 0;
-          double sum_of_delta_usec =0;
           double tx_tput = 0;
+          uint64_t tx=0; double usec =0; // per thread;
 
           clock_gettime(CLOCK_REALTIME, &timer_end);
-          double curr_time =  (double) timer_end.tv_sec *1000000 + (double)(timer_end.tv_nsec)*1000;
+          double curr_time =  (double) timer_end.tv_sec *1000000 + (double)(timer_end.tv_nsec)/1000;
 
-          uint64_t tx=0; double usec =0; // per thread;
 
             for(int t = 0; t < thread_num_per_machine_ ; t++){
               
@@ -172,8 +170,8 @@ void CollectStats(struct thread_params* params){
               tx = tx_commited[t];
               usec =  window_curr_time[t];
 
-              uint64_t tx_delta = (last_commited_tx[t] - tx);
-              double usec_delta = (last_comimted_usec[t] - usec);     
+              uint64_t tx_delta = (tx - last_commited_tx[t]);
+              double usec_delta = (usec - last_comimted_usec[t]);     
 
               //tx tput - Mtps
               tx_tput += (((double)tx_delta) / usec_delta);

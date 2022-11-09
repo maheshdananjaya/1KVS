@@ -176,7 +176,9 @@ void CollectStats(struct thread_params* params){
               double usec_delta = (last_comimted_usec[t] - usec);     
 
               //tx tput - Mtps
-              tx_tput += (tx_delta/usec_delta);
+              tx_tput += (((double)tx_delta) / usec_delta);
+
+
 
               last_commited_tx[t] =  tx;
               last_comimted_usec[t] = usec;

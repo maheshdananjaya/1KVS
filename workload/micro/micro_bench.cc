@@ -379,6 +379,13 @@ void RunTx(coro_yield_t& yield, coro_id_t coro_id) {
 
   // Running transactions
   clock_gettime(CLOCK_REALTIME, &msr_start);
+
+  #ifdef STATS
+    RDMA_LOG(INFO) << "Stats Starting" ;
+    double tx_usec_start = (msr_start.tv_sec) * 1000000 + (double)(msr_start.tv_nsec) / 1000;
+    window_start_time[local_thread_id] = tx_usec_start;  // in miro seconds   
+  #endif
+
   while (true) {
     uint64_t iter = ++tx_id_generator;  // Global atomic transaction id
     stat_attempted_tx_total++;

@@ -20,7 +20,7 @@ using namespace std::placeholders;
 // All the functions are executed in each thread
 
 //For Crash TPUT
-#define STATS
+#ifdef STATS
   extern uint64_t * tx_attempted;
   extern uint64_t * tx_commited;
   extern bool * thread_done;

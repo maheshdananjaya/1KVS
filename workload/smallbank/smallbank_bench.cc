@@ -621,7 +621,10 @@ void run_thread(struct thread_params* params) {
 
   // Stop running
   stop_run = true;
-  thread_done[local_thread_id] = true;
+
+  #ifdef STATS
+    thread_done[local_thread_id] = true;
+  #endif
 
   // RDMA_LOG(DBG) << "Thread: " << thread_gid << ". Loop RDMA alloc times: " << rdma_buffer_allocator->loop_times;
   #ifdef CRASH_TPUT  

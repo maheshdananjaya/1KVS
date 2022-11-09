@@ -102,6 +102,16 @@ void InitCounters(node_id_t machine_num, node_id_t machine_id, t_id_t thread_num
   window_start_time = new double[thread_num_per_machine]();
   window_curr_time = new double[thread_num_per_machine]();
 
+  for(i=0;i<thread_num_per_machine;i++){
+    //initial values
+    tx_attempted[i] = 0;
+    tx_commited[i] = 0;
+    thread_done[i] = false;
+    window_start_time [i] = 0;
+    window_curr_time [i] = 0;
+
+  }
+
   //std::fill_n( a, 100, 0 ); 
   //assert(!thread_done[0]);
 

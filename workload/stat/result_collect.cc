@@ -140,7 +140,7 @@ void CollectStats(struct thread_params* params){
   }
 
   clock_gettime(CLOCK_REALTIME, &timer_start);
-  double start_time = (double) timer_start.tv_sec *1000000 + (double)(timer_start.tv_nsec)/1000;
+  double start_time = (double) (timer_start.tv_sec *1000000) + (double)(timer_start.tv_nsec)/1000;
   
   uint64_t last_tx_count = start_tx_count;
   double last_usec = start_time; // micro seconds
@@ -162,7 +162,7 @@ void CollectStats(struct thread_params* params){
 
             for(int t = 0; t < thread_num_per_machine_ ; t++){
               
-              if (thread_done[t]) return;
+              if (thread_done[t]) { file_out.close(); return;}
 
               now_tx_count += tx_commited[t]; // for all threads.
 
@@ -184,7 +184,7 @@ void CollectStats(struct thread_params* params){
 
 
 
-        double tput = (double)(now_tx_count-last_tx_count)/(double)(curr_time-last_usec); // window  tp
+         double tput = (double)(now_tx_count-last_tx_count)/(double)(curr_time-last_usec); // window  tp
           file_out << (curr_time-start_time) << ", " << tput  << ", " << (tx_tput) << std::endl;
           last_tx_count = now_tx_count;
           last_usec = curr_time;

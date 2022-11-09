@@ -479,7 +479,7 @@ void RunTx(coro_yield_t& yield, coro_id_t coro_id) {
       //adding to the 
         tx_attempted[local_thread_id] = stat_attempted_tx_total;
         tx_commited[local_thread_id] = stat_committed_tx_total;
-        window_curr_time[local_thread_id] = tx_usec;  // in miro seconds   
+        window_curr_time[local_thread_id] = (tx_end_time.tv_sec) * 1000000 + (double)(tx_end_time.tv_nsec) / 1000;  // in miro seconds   
 
     }
 

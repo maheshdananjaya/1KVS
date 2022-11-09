@@ -381,6 +381,8 @@ void RunTx(coro_yield_t& yield, coro_id_t coro_id) {
 
   // Running transactions
   clock_gettime(CLOCK_REALTIME, &msr_start);
+  double tx_usec_start = (msr_start.tv_sec) * 1000000 + (double)(msr_start.tv_nsec) / 1000;
+  window_start_time[local_thread_id] = tx_usec_start;  // in miro seconds   
 
   while (true) {
     SmallBankTxType tx_type = workgen_arr[FastRand(&seed) % 100];

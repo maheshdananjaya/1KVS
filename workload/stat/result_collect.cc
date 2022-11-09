@@ -127,10 +127,16 @@ void CollectStats(struct thread_params* params){
   std::ofstream file_out;
   std::string file_name = "result_all_threads.txt";
   file_out.open(file_name.c_str(), std::ios::app);
+
+    uint64_t last_commited_tx [thread_num_per_machine_]; // per thread last count and time 
+  double last_comimted_usec[thread_num_per_machine_];
+
   
   uint64_t start_tx_count = 0;
   for(int t = 0; t < thread_num_per_machine_ ; t++){
-    start_tx_count+= tx_commited[t];    
+    start_tx_count += tx_commited[t]; 
+    last_commited_tx[t] = tx_commited[t]; 
+    last_comimted_usec[t] = window_curr_time[t];
   }
 
   clock_gettime(CLOCK_REALTIME, &timer_start);
@@ -139,25 +145,47 @@ void CollectStats(struct thread_params* params){
   uint64_t last_tx_count = start_tx_count;
   double last_usec = start_time; // micro seconds
 
+
   while(true){
 
       //check if any of the transactions are done or have reached the attemp txs.
         usleep(1000);
-        clock_gettime(CLOCK_REALTIME, &timer_end);
-        double curr_time =  (double) timer_end.tv_sec *1000000 + (double)(timer_end.tv_nsec)*1000;
+      
 
           uint64_t now_tx_count = 0;
+          uint64_t sum_of_delta_tx = 0;
+          double sum_of_delta_usec =0;
+          double tx_tput = 0;
+
+          clock_gettime(CLOCK_REALTIME, &timer_end);
+          double curr_time =  (double) timer_end.tv_sec *1000000 + (double)(timer_end.tv_nsec)*1000;
+
+          uint64_t tx=0; double usec =0; // per thread;
 
             for(int t = 0; t < thread_num_per_machine_ ; t++){
               
-              now_tx_count += tx_commited[t];
               if (thread_done[t]) return;
-            
+
+              now_tx_count += tx_commited[t]; // for all threads.
+
+              //per thread
+              tx = tx_commited[t];
+              usec =  window_curr_time[t];
+
+              uint64_t tx_delta = (last_commited_tx[t] - tx);
+              double usec_delta = (last_comimted_usec[t] - usec);     
+
+              //tx tput - Mtps
+              tx_tput += (tx_delta/usec_delta);
+
+              last_commited_tx[t] =  tx;
+              last_comimted_usec[t] = usec;
             }
 
 
+
         double tput = (double)(now_tx_count-last_tx_count)/(double)(curr_time-last_usec); // window  tp
-          file_out << (curr_time-start_time) << ", " << tput << std::endl;
+          file_out << (curr_time-start_time) << ", " << tput  << ", " << (tx_tput) << std::endl;
           last_tx_count = now_tx_count;
           last_usec = curr_time;
   }

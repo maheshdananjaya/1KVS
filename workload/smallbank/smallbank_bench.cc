@@ -20,18 +20,19 @@ using namespace std::placeholders;
 // All the functions are executed in each thread
 
 //For Crash TPUT
-static bool crash_emu=false;
-extern uint64_t * tx_attempted;
-extern uint64_t * tx_commited;
-extern bool * thread_done;
-extern double * window_start_time;
-extern double * window_curr_time;
-extern node_id_t machine_num_;
-extern node_id_t machine_id_;
-extern t_id_t thread_num_per_machine_;
-
+#define STATS
+  extern uint64_t * tx_attempted;
+  extern uint64_t * tx_commited;
+  extern bool * thread_done;
+  extern double * window_start_time;
+  extern double * window_curr_time;
+  extern node_id_t machine_num_;
+  extern node_id_t machine_id_;
+  extern t_id_t thread_num_per_machine_;
+#endif
 
 __thread t_id_t local_thread_id;
+
 
 extern std::atomic<uint64_t> tx_id_generator;
 extern std::atomic<uint64_t> connected_t_num;
@@ -71,7 +72,7 @@ __thread uint64_t stat_committed_tx_total = 0;  // Committed transaction number
 //__thread uint64_t window_committed_tx_total = 0;  // Committed transaction number
 
 #ifdef CRASH_TPUT
-
+  static bool crash_emu=false;
 thread_local std::ofstream file_out;// per thread file writes
 __thread const double window_time_ns=500000; // exmaple 100 microseconds -  
 __thread double last_recorded_nsec_time = 0;
@@ -381,8 +382,11 @@ void RunTx(coro_yield_t& yield, coro_id_t coro_id) {
 
   // Running transactions
   clock_gettime(CLOCK_REALTIME, &msr_start);
-  double tx_usec_start = (msr_start.tv_sec) * 1000000 + (double)(msr_start.tv_nsec) / 1000;
-  window_start_time[local_thread_id] = tx_usec_start;  // in miro seconds   
+  
+  #ifdef STATS
+    double tx_usec_start = (msr_start.tv_sec) * 1000000 + (double)(msr_start.tv_nsec) / 1000;
+    window_start_time[local_thread_id] = tx_usec_start;  // in miro seconds   
+  #endif
 
   while (true) {
     SmallBankTxType tx_type = workgen_arr[FastRand(&seed) % 100];
@@ -477,10 +481,12 @@ void RunTx(coro_yield_t& yield, coro_id_t coro_id) {
 
 
       //adding to the 
+      #ifdef STATS
         tx_attempted[local_thread_id] = stat_attempted_tx_total;
         tx_commited[local_thread_id] = stat_committed_tx_total;
         window_curr_time[local_thread_id] = (tx_end_time.tv_sec) * 1000000 + (double)(tx_end_time.tv_nsec) / 1000;  // in miro seconds   
 
+      #endif
     }
 
     //
@@ -509,6 +515,7 @@ void RunTx(coro_yield_t& yield, coro_id_t coro_id) {
 
       break;
     }
+
 
     #ifdef UNDO_RECOVERY
       if(stat_attempted_tx_total == (ATTEMPTED_NUM/10 && thread_gid==0)){

@@ -22,6 +22,20 @@ using namespace std::placeholders;
 #define ATTEMPED_NUM 100000
 
 // All the functions are executed in each thread
+//For Crash TPUT
+#define STATS
+  extern uint64_t * tx_attempted;
+  extern uint64_t * tx_commited;
+  extern bool * thread_done;
+  extern double * window_start_time;
+  extern double * window_curr_time;
+  extern node_id_t machine_num_;
+  extern node_id_t machine_id_;
+  extern t_id_t thread_num_per_machine_;
+#endif
+
+__thread t_id_t local_thread_id; 
+
 
 extern std::atomic<uint64_t> tx_id_generator;
 extern std::atomic<uint64_t> connected_t_num;
@@ -378,6 +392,14 @@ void RunTx(coro_yield_t& yield, coro_id_t coro_id) {
       timer[stat_committed_tx_total++] = tx_usec;
       // latency->update(tx_usec * lat_multiplier);
       // stat_committed_tx_total++;
+
+            //adding to the 
+      #ifdef STATS
+        tx_attempted[local_thread_id] = stat_attempted_tx_total;
+        tx_commited[local_thread_id] = stat_committed_tx_total;
+        window_curr_time[local_thread_id] = (tx_end_time.tv_sec) * 1000000 + (double)(tx_end_time.tv_nsec) / 1000;  // in miro seconds   
+      #endif
+
     }
     // Stat after a million of transactions finish
     if (stat_attempted_tx_total == ATTEMPED_NUM) {

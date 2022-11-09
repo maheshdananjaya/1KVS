@@ -121,6 +121,10 @@ void InitCounters(node_id_t machine_num, node_id_t machine_id, t_id_t thread_num
 //background thread taking stats.
 void CollectStats(struct thread_params* params){
 
+
+  #ifndef STATS 
+    return;
+  #endif
     //rrecord partial results.
   std::cout << "starting the counters" << std::endl;
   //start
@@ -144,6 +148,7 @@ void CollectStats(struct thread_params* params){
   
   uint64_t last_tx_count = start_tx_count;
   double last_usec = start_time; // micro seconds
+
 
 
   while(true){

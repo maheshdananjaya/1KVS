@@ -38,14 +38,14 @@ int main(int argc, char* argv[]) {
   connected_t_num = 0;  // Sync all threads' RDMA QP connections
 
   //
-  auto thread_arr = new std::thread[thread_num_per_machine +1];
+  auto thread_arr = new std::thread[thread_num_per_machine + 1];
 
   SmallBank* smallbank_client = new SmallBank();
   auto* global_meta_man = new MetaManager();
   RDMA_LOG(INFO) << "Alloc local memory: " << (size_t)(thread_num_per_machine * PER_THREAD_ALLOC_SIZE) / (1024 * 1024) << " MB. Waiting...";
   auto* global_rdma_region = new RDMARegionAllocator(global_meta_man, thread_num_per_machine);
 
-  auto* param_arr = new struct thread_params[thread_num_per_machine+1];
+  auto* param_arr = new struct thread_params[thread_num_per_machine + 1];
 
   //intializing stat queues.  
   InitCounters(machine_num,machine_id,thread_num_per_machine);  
@@ -53,7 +53,7 @@ int main(int argc, char* argv[]) {
   RDMA_LOG(INFO) << "spawn threads to execute...";
 
   //modifying for loop for an extra thread that taked all the records. stats. 
-  for (t_id_t i = 0; i < thread_num_per_machine +1; i++) {
+  for (t_id_t i = 0; i < thread_num_per_machine + 1; i++) {
 
       param_arr[i].thread_local_id = i;
       param_arr[i].thread_global_id = (machine_id * thread_num_per_machine) + i;
@@ -78,7 +78,7 @@ int main(int argc, char* argv[]) {
   
   }
 
-  for (t_id_t i = 0; i < thread_num_per_machine; i++) {
+  for (t_id_t i = 0; i < thread_num_per_machine + 1; i++) {
     thread_arr[i].join();
   }
 

@@ -229,13 +229,13 @@ void CollectStats(struct thread_params* params){
               atomic_last_commited_tx[t] =  tx;
               atomic_last_comimted_usec[t] = usec;
 
-              free(new_record);
+              //free(new_record);
 
             }
 
 
          double tput = (double)(now_tx_count-last_tx_count)/(double)(curr_time-last_usec); // window  tp
-          file_out << (curr_time-start_time) << ", " << tput  << ", " << (tx_tput) << std::endl;
+          file_out << (curr_time-start_time) << ", " << tput  << ", " << (tx_tput)  << " atomic tput : " << atomic_tx_tput << std::endl;
           last_tx_count = now_tx_count;
           last_usec = curr_time;
   }

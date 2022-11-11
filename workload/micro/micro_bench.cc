@@ -20,15 +20,25 @@
 using namespace std::placeholders;
 
 #define ATTEMPED_NUM 100000
-
+#define STAT_NUM_MAX_THREADS 128
 // All the functions are executed in each thread
 //For Crash TPUT
 #ifdef STATS
-  extern uint64_t * tx_attempted;
-  extern uint64_t * tx_commited;
-  extern bool * thread_done;
-  extern double * window_start_time;
-  extern double * window_curr_time;
+  //extern uint64_t * tx_attempted;
+  //extern uint64_t * tx_commited;
+  //extern bool * thread_done;
+  //extern double * window_start_time;
+  //extern double * window_curr_time;
+
+ extern uint64_t tx_attempted alignas(8)[STAT_NUM_MAX_THREADS];
+ extern uint64_t tx_commited alignas(8) [STAT_NUM_MAX_THREADS];
+ extern bool thread_done [STAT_NUM_MAX_THREADS];
+ extern double window_start_time alignas(8) [STAT_NUM_MAX_THREADS];
+ extern double window_curr_time alignas (8) [STAT_NUM_MAX_THREADS];
+
+ extern REC* record_ptrs [STAT_NUM_MAX_THREADS];
+
+
   extern node_id_t machine_num_;
   extern node_id_t machine_id_;
   extern t_id_t thread_num_per_machine_;
@@ -404,7 +414,15 @@ void RunTx(coro_yield_t& yield, coro_id_t coro_id) {
       #ifdef STATS
         tx_attempted[local_thread_id] = stat_attempted_tx_total;
         tx_commited[local_thread_id] = stat_committed_tx_total;
-        window_curr_time[local_thread_id] = (tx_end_time.tv_sec) * 1000000 + (double)(tx_end_time.tv_nsec) / 1000;  // in miro seconds   
+        double usec = (tx_end_time.tv_sec) * 1000000 + (double)(tx_end_time.tv_nsec) / 1000;  // in miro seconds ;
+        window_curr_time[local_thread_id] =   usec;
+      
+        REC atomic_record;
+        atomic_record.txs = stat_committed_tx_total;
+        atomic_record.usecs = usec;
+
+        record_ptrs[local_thread_id] = &atomic_record; // pointer change. 
+
       #endif
 
     }

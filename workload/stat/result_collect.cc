@@ -3,6 +3,14 @@
 
 #include "stat/result_collect.h"
    #include <unistd.h>
+
+
+typedef struct atomic_record{
+  uint64_t txs;
+  double usecs;
+} REC;
+
+
 std::atomic<uint64_t> tx_id_generator;
 std::atomic<uint64_t> connected_t_num;
 std::mutex mux;
@@ -15,14 +23,26 @@ std::vector<double> taillat_vec;
 std::vector<double> lock_durations;
 
 //For partial results.
-uint64_t * tx_attempted;
-uint64_t * tx_commited;
-bool * thread_done;
-double * window_start_time;
-double * window_curr_time;
+//uint64_t * tx_attempted;
+//uint64_t * tx_commited;
+//bool * thread_done;
+//double * window_start_time;
+//double * window_curr_time;
+
 node_id_t machine_num_;
 node_id_t machine_id_;
+
 t_id_t thread_num_per_machine_;
+
+#define STAT_NUM_MAX_THREADS 128
+
+ uint64_t tx_attempted alignas(8)[STAT_NUM_MAX_THREADS];
+ uint64_t tx_commited alignas(8) [STAT_NUM_MAX_THREADS];
+ bool thread_done [STAT_NUM_MAX_THREADS];
+ double window_start_time alignas(8) [STAT_NUM_MAX_THREADS];
+ double window_curr_time alignas (8) [STAT_NUM_MAX_THREADS];
+
+ REC* record_ptrs [STAT_NUM_MAX_THREADS];
 
 //CounterTimer
  struct timespec timer_start,timer_end;
@@ -93,14 +113,13 @@ void InitCounters(node_id_t machine_num, node_id_t machine_id, t_id_t thread_num
   machine_id_ = machine_id; // 
   thread_num_per_machine_ = thread_num_per_machine; //
 
-  tx_attempted= new uint64_t[thread_num_per_machine]();
-  tx_commited = new uint64_t[thread_num_per_machine]();
-  thread_done =  new bool[thread_num_per_machine]();
+  //tx_attempted= new uint64_t[thread_num_per_machine]();
+  //tx_commited = new uint64_t[thread_num_per_machine]();
+  //thread_done =  new bool[thread_num_per_machine]();
+  //window_start_time = new double[thread_num_per_machine]();
+  //window_curr_time = new double[thread_num_per_machine]();
 
   //std::fill_n( a, 100, 0 ); 
-
-  window_start_time = new double[thread_num_per_machine]();
-  window_curr_time = new double[thread_num_per_machine]();
 
   for(int i=0;i<thread_num_per_machine;i++){
     //initial values
@@ -111,11 +130,8 @@ void InitCounters(node_id_t machine_num, node_id_t machine_id, t_id_t thread_num
     window_curr_time [i] = 0.0;
 
   }
-
   //std::fill_n( a, 100, 0 ); 
   //assert(!thread_done[0]);
-
-
 }
 
 //background thread taking stats.
@@ -135,12 +151,19 @@ void CollectStats(struct thread_params* params){
     uint64_t last_commited_tx [thread_num_per_machine_]; // per thread last count and time 
   double last_comimted_usec[thread_num_per_machine_];
 
+
+  uint64_t atomic_last_commited_tx [thread_num_per_machine_]; // per thread last count and time 
+  double atomic_last_comimted_usec[thread_num_per_machine_];
+
   
   uint64_t start_tx_count = 0;
   for(int t = 0; t < thread_num_per_machine_ ; t++){
     start_tx_count += tx_commited[t]; 
     last_commited_tx[t] = tx_commited[t]; 
     last_comimted_usec[t] = window_curr_time[t];
+
+    atomic_last_commited_tx[t] = tx_commited[t]; 
+    atomic_last_comimted_usec[t] = window_curr_time[t];
   }
 
   clock_gettime(CLOCK_REALTIME, &timer_start);
@@ -148,7 +171,6 @@ void CollectStats(struct thread_params* params){
   
   uint64_t last_tx_count = start_tx_count;
   double last_usec = start_time; // micro seconds
-
 
 
   while(true){
@@ -159,7 +181,11 @@ void CollectStats(struct thread_params* params){
 
           uint64_t now_tx_count = 0;
           double tx_tput = 0;
+          double atomic_tx_tput=0;
+
           uint64_t tx=0; double usec =0; // per thread;
+
+           uint64_t tx_delta=0,double usec_delta=0;
 
           clock_gettime(CLOCK_REALTIME, &timer_end);
           double curr_time =  (double) timer_end.tv_sec *1000000 + (double)(timer_end.tv_nsec)/1000;
@@ -171,22 +197,41 @@ void CollectStats(struct thread_params* params){
 
               now_tx_count += tx_commited[t]; // for all threads.
 
-              //per thread
+              //per thread. ERROR this is not an atomic actions. I need either std::atomics or 
+
               tx = tx_commited[t];
               usec =  window_curr_time[t];
 
-              uint64_t tx_delta = (tx - last_commited_tx[t]);
-              double usec_delta = (usec - last_comimted_usec[t]);    
-
+               tx_delta = (tx - last_commited_tx[t]);
+               usec_delta = (usec - last_comimted_usec[t]);    
 
               //tx tput - Mtps
               if(usec_delta != 0) tx_tput += (((double)tx_delta) / usec_delta);
 
-
+              assert( tx >= last_commited_tx[t]);
               last_commited_tx[t] =  tx;
               last_comimted_usec[t] = usec;
-            }
 
+              //CALCULATE TPUT USING 
+              REC * new_record = record_ptrs[t]; // atomic action
+
+              tx = new_record->txs;
+              usec =  new_record->usecs;
+
+
+                
+              tx_delta = (tx - atomic_last_commited_tx[t]);
+              usec_delta = (usec - atomic_last_comimted_usec[]);
+
+              if(usec_delta != 0) atomic_tx_tput += (((double)tx_delta) / usec_delta);
+
+              assert( tx >= atomic_last_commited_tx[t]);
+              atomic_last_commited_tx[t] =  tx;
+              atomic_last_comimted_usec[t] = usec;
+
+              free(new_record);
+
+            }
 
 
          double tput = (double)(now_tx_count-last_tx_count)/(double)(curr_time-last_usec); // window  tp

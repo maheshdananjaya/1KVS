@@ -208,7 +208,7 @@ void CollectStats(struct thread_params* params){
               //tx tput - Mtps
               if(usec_delta != 0) tx_tput += (((double)tx_delta) / usec_delta);
 
-              assert( tx >= last_commited_tx[t]);
+              assert( tx > last_commited_tx[t]);
               last_commited_tx[t] =  tx;
               last_comimted_usec[t] = usec;
 
@@ -221,11 +221,11 @@ void CollectStats(struct thread_params* params){
 
                 
               tx_delta = (tx - atomic_last_commited_tx[t]);
-              usec_delta = (usec - atomic_last_comimted_usec[]);
+              usec_delta = (usec - atomic_last_comimted_usec[t]);
 
               if(usec_delta != 0) atomic_tx_tput += (((double)tx_delta) / usec_delta);
 
-              assert( tx >= atomic_last_commited_tx[t]);
+              assert( tx > atomic_last_commited_tx[t]);
               atomic_last_commited_tx[t] =  tx;
               atomic_last_comimted_usec[t] = usec;
 

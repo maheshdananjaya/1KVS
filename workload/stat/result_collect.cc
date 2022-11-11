@@ -2,8 +2,8 @@
 // Copyright (c) 2021
 
 #include "stat/result_collect.h"
-   #include <unistd.h>
-
+#include <unistd.h>
+#include <assert.h>
 
 typedef struct atomic_record{
   uint64_t txs;
@@ -185,7 +185,7 @@ void CollectStats(struct thread_params* params){
 
           uint64_t tx=0; double usec =0; // per thread;
 
-           uint64_t tx_delta=0,double usec_delta=0;
+           uint64_t tx_delta=0; double usec_delta=0;
 
           clock_gettime(CLOCK_REALTIME, &timer_end);
           double curr_time =  (double) timer_end.tv_sec *1000000 + (double)(timer_end.tv_nsec)/1000;

@@ -5,11 +5,6 @@
 #include <unistd.h>
 #include <assert.h>
 
-typedef struct atomic_record{
-  uint64_t txs;
-  double usecs;
-} REC;
-
 
 std::atomic<uint64_t> tx_id_generator;
 std::atomic<uint64_t> connected_t_num;

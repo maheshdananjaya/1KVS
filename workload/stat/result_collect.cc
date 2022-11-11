@@ -124,7 +124,7 @@ void InitCounters(node_id_t machine_num, node_id_t machine_id, t_id_t thread_num
     window_start_time [i] = 0.0;
     window_curr_time [i] = 0.0;
 
-    record_ptrs[t] = NULL;
+    record_ptrs[i] = NULL;
 
   }
   //std::fill_n( a, 100, 0 ); 

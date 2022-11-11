@@ -203,7 +203,7 @@ void CollectStats(struct thread_params* params){
               //tx tput - Mtps
               if(usec_delta != 0) tx_tput += (((double)tx_delta) / usec_delta);
 
-              assert( tx > last_commited_tx[t]);
+              //assert( tx > last_commited_tx[t]);
               last_commited_tx[t] =  tx;
               last_comimted_usec[t] = usec;
 

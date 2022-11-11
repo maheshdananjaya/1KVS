@@ -124,6 +124,8 @@ void InitCounters(node_id_t machine_num, node_id_t machine_id, t_id_t thread_num
     window_start_time [i] = 0.0;
     window_curr_time [i] = 0.0;
 
+    record_ptrs[t] = NULL;
+
   }
   //std::fill_n( a, 100, 0 ); 
   //assert(!thread_done[0]);
@@ -210,19 +212,22 @@ void CollectStats(struct thread_params* params){
               //CALCULATE TPUT USING 
               REC * new_record = record_ptrs[t]; // atomic action
 
-              tx = new_record->txs;
-              usec =  new_record->usecs;
+              if(new_record != NULL) {
 
-
-                
-              tx_delta = (tx - atomic_last_commited_tx[t]);
-              usec_delta = (usec - atomic_last_comimted_usec[t]);
-
-              if(usec_delta != 0) atomic_tx_tput += (((double)tx_delta) / usec_delta);
-
-              assert( tx > atomic_last_commited_tx[t]);
-              atomic_last_commited_tx[t] =  tx;
-              atomic_last_comimted_usec[t] = usec;
+                tx = new_record->txs;
+                usec =  new_record->usecs;
+  
+  
+                  
+                tx_delta = (tx - atomic_last_commited_tx[t]);
+                usec_delta = (usec - atomic_last_comimted_usec[t]);
+  
+                if(usec_delta != 0) atomic_tx_tput += (((double)tx_delta) / usec_delta);
+  
+                assert( tx > atomic_last_commited_tx[t]);
+                atomic_last_commited_tx[t] =  tx;
+                atomic_last_comimted_usec[t] = usec;
+              }
 
               //free(new_record);
 

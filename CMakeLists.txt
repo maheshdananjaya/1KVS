@@ -37,7 +37,7 @@ include_directories(
 )
 
 add_subdirectory(thirdparty/rlib)
-add_subdirectory(thirdparty/erpc)
+add_subdirectory(thirdparty/eRPC)
 
 add_subdirectory(src)
 

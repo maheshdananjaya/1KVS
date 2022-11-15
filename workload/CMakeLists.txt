@@ -9,7 +9,9 @@ set(WORKLOAD_INCLUDE
 
 include_directories(${WORKLOAD_INCLUDE})
 
-set(WORKLOAD_LIB ford)
+set(WORKLOAD_LIB ford erpc)
+
+add_subdirectory(test_erpc)
 
 add_subdirectory(stat)
 

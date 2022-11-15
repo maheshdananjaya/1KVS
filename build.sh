@@ -36,7 +36,7 @@ CMAKE_CMD="cmake \
       -DBoost_NO_BOOST_CMAKE=TRUE \
       -DBOOST_INCLUDEDIR=/usr/local/include \
       -DBOOST_LIBRARYDIR=/usr/local/lib \
-      -DCMAKE_BUILD_TYPE=${BUILD_TYPE} ../"
+      -DCMAKE_BUILD_TYPE=${BUILD_TYPE} ../ -DPERF=OFF -DTRANSPORT=infiniband -DROCE=on -DERPC_INFINIBAND=true"
 echo ${CMAKE_CMD}
 cd ./build
 ${CMAKE_CMD}

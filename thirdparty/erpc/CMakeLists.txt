@@ -361,6 +361,7 @@ endif()
 
 # Compile the library
 add_library(erpc ${SOURCES})
+set_target_properties(erpc PROPERTIES LINKER_LANGUAGE CXX)
 
 if(DPDK_NEEDED STREQUAL "true")
   if (NOT WIN32)

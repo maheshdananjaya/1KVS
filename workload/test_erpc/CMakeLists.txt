@@ -14,4 +14,4 @@ set(WORKLOAD_RUN client.cc)
 
 add_executable(test_erpc_client ${WORKLOAD_RUN})
 
-target_link_libraries(test_erpc_client ${WORKLOAD_LIB} ${ERPC_LIB)
+target_link_libraries(test_erpc_client ${WORKLOAD_LIB} ${ERPC_LIB})

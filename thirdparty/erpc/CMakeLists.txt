@@ -360,8 +360,15 @@ if(NOT WIN32)
 endif()
 
 # Compile the library
-add_library(erpc ${SOURCES})
+add_library(erpc STATIC ${SOURCES})
 set_target_properties(erpc PROPERTIES LINKER_LANGUAGE CXX)
+target_link_libraries(erpc ${LIBRARIES})
+
+#from 
+#add_library(rlib STATIC ${SOURCES})
+#set_target_properties(rlib PROPERTIES LINKER_LANGUAGE CXX)
+#target_link_libraries(rlib ibverbs pthread)
+
 
 if(DPDK_NEEDED STREQUAL "true")
   if (NOT WIN32)

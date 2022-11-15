@@ -70,7 +70,7 @@ src/config.h
 .ycm_extra_conf.py
 
 # Third-party downloads
-third_party
+#third_party
 
 # vscode
 .clang_complete

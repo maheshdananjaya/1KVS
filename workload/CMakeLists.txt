@@ -5,11 +5,14 @@ set(WORKLOAD_INCLUDE
         ${PROJECT_SOURCE_DIR}/include
         ${PROJECT_SOURCE_DIR}/workload
         ${PROJECT_SOURCE_DIR}/thirdparty
+        ${PROJECT_SOURCE_DIR}/thirdparty/eRPC/src
+        ${PROJECT_SOURCE_DIR}/thirdparty/eRPC/third_party/asio/include
         )
 
 include_directories(${WORKLOAD_INCLUDE})
 
-set(WORKLOAD_LIB ford erpc)
+set(WORKLOAD_LIB ford)
+set(ERPC_LIB erpc)
 
 add_subdirectory(test_erpc)
 

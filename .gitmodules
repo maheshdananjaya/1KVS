@@ -1,0 +1,3 @@
+[submodule "thirdparty/eRPC"]
+	path = thirdparty/eRPC
+	url = https://github.com/erpc-io/eRPC.git

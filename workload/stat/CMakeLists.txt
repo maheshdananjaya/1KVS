@@ -22,13 +22,13 @@ add_custom_command(
 # Include generated *.pb.h files
 include_directories("${CMAKE_CURRENT_BINARY_DIR}")
 
-add_library(hw_grpc_proto
+add_library(hw_grpc_proto_client
   ${hw_grpc_srcs}
   ${hw_grpc_hdrs}
   ${hw_proto_srcs}
   ${hw_proto_hdrs})
 
-target_link_libraries(hw_grpc_proto
+target_link_libraries(hw_grpc_proto_client
   ${_REFLECTION}
   ${_GRPC_GRPCPP}
   ${_PROTOBUF_LIBPROTOBUF})
@@ -37,4 +37,4 @@ target_link_libraries(hw_grpc_proto
 set(WROKLOAD_SOURCES result_collect.cc)
 add_library(stat STATIC ${WROKLOAD_SOURCES})
 set_target_properties(stat PROPERTIES LINKER_LANGUAGE CXX)
-target_link_libraries(stat ${WORKLOAD_LIB} hw_grpc_proto ${_REFLECTION} ${_GRPC_GRPCPP} ${_PROTOBUF_LIBPROTOBUF} )
+target_link_libraries(stat ${WORKLOAD_LIB} hw_grpc_proto_client ${_REFLECTION} ${_GRPC_GRPCPP} ${_PROTOBUF_LIBPROTOBUF} )

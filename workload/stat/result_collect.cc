@@ -5,6 +5,7 @@
 #include <unistd.h>
 #include <assert.h>
 
+#include "stat/grpc_client.h"
 
 std::atomic<uint64_t> tx_id_generator;
 std::atomic<uint64_t> connected_t_num;
@@ -134,7 +135,10 @@ void InitCounters(node_id_t machine_num, node_id_t machine_id, t_id_t thread_num
 //background thread taking stats.
 void CollectStats(struct thread_params* params){
 
-
+  //For grpc clinet- FD alsways runs on 10.10.1.1
+  GreeterClient greeter(grpc::CreateChannel("10.10.1.1:50051", grpc::InsecureChannelCredentials()));
+  std::string user("node-2");
+  
   #ifndef STATS 
     return;
   #endif
@@ -170,10 +174,11 @@ void CollectStats(struct thread_params* params){
   double last_usec = start_time; // micro seconds
 
 
+
   while(true){
 
       //check if any of the transactions are done or have reached the attemp txs.
-        usleep(1000);
+        usleep(5000);
       
 
           uint64_t now_tx_count = 0;
@@ -238,6 +243,12 @@ void CollectStats(struct thread_params* params){
           file_out << (curr_time-start_time) << ", " << tput  << ", " << (tx_tput)  << " atomic tput : " << atomic_tx_tput << std::endl;
           last_tx_count = now_tx_count;
           last_usec = curr_time;
+
+
+          //Send messages to the fault detector.
+          std::string reply = greeter.SayHello(user);
+          std::cout << "Ack received: " << reply << std::endl;
+
   }
 
   //at least one thread is done. we stop the stat counter. 

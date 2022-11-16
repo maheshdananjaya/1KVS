@@ -36,8 +36,21 @@ include_directories(
 	/usr/local/include
 )
 
+
+include(FetchContent)
+FetchContent_Declare(
+  gRPC
+  GIT_REPOSITORY https://github.com/grpc/grpc
+  GIT_TAG        RELEASE_TAG_HERE  # e.g v1.28.0
+)
+set(FETCHCONTENT_QUIET OFF)
+FetchContent_MakeAvailable(gRPC)
+
+#add_executable(my_exe my_exe.cc)
+#target_link_libraries(my_exe grpc++)
+
 add_subdirectory(thirdparty/rlib)
-add_subdirectory(thirdparty/eRPC)
+# add_subdirectory(thirdparty/eRPC)
 
 add_subdirectory(src)
 

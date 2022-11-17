@@ -89,8 +89,8 @@ __thread uint64_t stat_committed_tx_total = 0;  // Committed transaction number
 const coro_id_t POLL_ROUTINE_ID = 0;            // The poll coroutine ID
 
 
-  extern bool crash_emu=false;
-  
+extern bool crash_emu;
+
 #ifdef CRASH_TPUT
 
 thread_local std::ofstream file_out;// per thread file writes
@@ -101,7 +101,6 @@ __thread uint64_t last_recorded_committed_tx = 0;  // Committed transaction numb
 __thread double curr_time =0;
 __thread double recorded_start_time=0;
 #endif
-
 
 /******************** The business logic (Transaction) start ********************/
 

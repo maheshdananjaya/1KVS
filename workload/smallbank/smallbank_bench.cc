@@ -72,9 +72,9 @@ __thread uint64_t stat_committed_tx_total = 0;  // Committed transaction number
 //__thread uint64_t window_committed_tx_total = 0;  // Committed transaction number
 
 
-  extern bool crash_emu=false;
-#ifdef CRASH_TPUT
+  extern bool crash_emu;
 
+#ifdef CRASH_TPUT
 thread_local std::ofstream file_out;// per thread file writes
 __thread const double window_time_ns=500000; // exmaple 100 microseconds -  
 __thread double last_recorded_nsec_time = 0;

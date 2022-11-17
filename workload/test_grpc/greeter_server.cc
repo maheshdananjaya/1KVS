@@ -47,7 +47,8 @@ class GreeterServiceImpl final : public Greeter::Service {
   Status SayHello(ServerContext* context, const HelloRequest* request,
                   HelloReply* reply) override {
     std::string prefix("ACK ");
-    std::string token = (request->name()).substr(0, s.find(" ")); 
+    std::string req = request->name();
+    std::string token = (req).substr(0, req.find(" ")); 
     
     //failed
     //if(token);

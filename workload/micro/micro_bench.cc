@@ -88,6 +88,19 @@ __thread uint64_t stat_attempted_tx_total = 0;  // Issued transaction number
 __thread uint64_t stat_committed_tx_total = 0;  // Committed transaction number
 const coro_id_t POLL_ROUTINE_ID = 0;            // The poll coroutine ID
 
+
+#ifdef CRASH_TPUT
+  static bool crash_emu=false;
+thread_local std::ofstream file_out;// per thread file writes
+__thread const double window_time_ns=500000; // exmaple 100 microseconds -  
+__thread double last_recorded_nsec_time = 0;
+__thread uint64_t last_recorded_attempted_tx = 0;  // Issued transaction number
+__thread uint64_t last_recorded_committed_tx = 0;  // Committed transaction number
+__thread double curr_time =0;
+__thread double recorded_start_time=0;
+#endif
+
+
 /******************** The business logic (Transaction) start ********************/
 
 struct DataItemDuplicate {
@@ -359,6 +372,16 @@ bool TxRFlush2(coro_yield_t& yield, tx_id_t tx_id, DTX* dtx) {
 /******************** The business logic (Transaction) end ********************/
 
 void PollCompletion(coro_yield_t& yield) {
+
+
+  #ifdef CRASH_TPUT
+     while(crash_emu);
+    clock_gettime(CLOCK_REALTIME, &msr_start);
+    last_recorded_nsec_time = (double)(msr_start.tv_sec) * 1000000000 + (double)(msr_start.tv_nsec);
+    recorded_start_time=last_recorded_nsec_time;
+    window_start_time[local_thread_id] = recorded_start_time; // in nano seconds
+  #endif
+
   while (true) {
     coro_sched->PollCompletion();
     Coroutine* next = coro_sched->coro_head->next_coro;
@@ -367,6 +390,26 @@ void PollCompletion(coro_yield_t& yield) {
       coro_sched->RunCoroutine(yield, next);
     }
     if (stop_run) break;
+
+
+    #ifdef CRASH_TPUT
+        while(crash_emu);
+
+        //only a single coro has to do this.
+        clock_gettime(CLOCK_REALTIME, &msr_end);
+        curr_time =  (double) msr_end.tv_sec *1000000000 + (double)(msr_end.tv_nsec);
+
+         if(curr_time >= (last_recorded_nsec_time + window_time_ns)){
+             //take tput numbers
+              uint64_t attempted_tx = (stat_attempted_tx_total-last_recorded_attempted_tx);
+              uint64_t commited_tx = (stat_committed_tx_total-last_recorded_committed_tx);
+              file_out << (curr_time-recorded_start_time)/1000 << ", " << ( ((double)commited_tx*1000) / ((double) (curr_time - last_recorded_nsec_time)) ) << std::endl;
+              last_recorded_nsec_time = curr_time;
+              last_recorded_attempted_tx = stat_attempted_tx_total;
+              last_recorded_committed_tx = stat_committed_tx_total;
+         }
+
+      #endif
   }
 }
 
@@ -476,6 +519,29 @@ void RunTx(coro_yield_t& yield, coro_id_t coro_id) {
 
       break;
     }
+
+
+    // ebale crash here.
+     #ifdef CRASH_ENABLE
+      if(stat_attempted_tx_total == (ATTEMPTED_NUM/10 && thread_gid==0)){
+          
+          printf("Crashed-Recovery \n");
+          crash_emu = true;
+
+          //send gRPC failed. get the ack back. we sue the same machine for the recovery. we do not run the recovery on FD as its notnecessary.
+          //100micro seconds. --> machine id and failed ids. 
+
+          dtx->TxUndoRecovery(yield);
+          
+          //printf("Wait starts \n");
+          //usleep(500000);
+          //printf("Wait Ends \n");
+          crash_emu = false;
+      }
+      while(crash_emu); // stop all other threads from progressing. 
+
+    #endif
+
   }
 
   std::string thread_num_coro_num;
@@ -626,6 +692,13 @@ void run_thread(struct thread_params* params) {
     usleep(2000);
   }
 
+    //initializing the file
+  #ifdef CRASH_TPUT
+    std::string file_name = "results/result_"+ std::to_string(thread_gid) + ".txt";
+    file_out.open(file_name.c_str(), std::ios::app);
+     local_thread_id =    thread_gid - (machine_id_*thread_num_per_machine_); 
+  #endif
+
   // Start the first coroutine
   coro_sched->coro_array[0].func();
 
@@ -637,6 +710,10 @@ void run_thread(struct thread_params* params) {
   #endif
 
   // RDMA_LOG(DBG) << "Thread: " << thread_gid << ". Loop RDMA alloc times: " << rdma_buffer_allocator->loop_times;
+  #ifdef CRASH_TPUT  
+    file_out.close();
+  #endif  
+
 
   // Clean
   // delete latency;

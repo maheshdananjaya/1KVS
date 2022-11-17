@@ -250,7 +250,7 @@ void CollectStats(struct thread_params* params){
           double grpc_start_time =  (double) timer_end.tv_sec *1000000 + (double)(timer_end.tv_nsec)/1000;
 
           std::string reply = greeter.SayHello(user);
-          
+
           clock_gettime(CLOCK_REALTIME, &timer_end);
           double grpc_end_time =  (double) timer_end.tv_sec *1000000 + (double)(timer_end.tv_nsec)/1000;
           std::cout << "Ack received: " << reply  << " Time spent(RTT) " << (grpc_end_time - grpc_start_time) << std::endl;

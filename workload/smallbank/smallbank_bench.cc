@@ -517,14 +517,18 @@ void RunTx(coro_yield_t& yield, coro_id_t coro_id) {
     }
 
 
-    #ifdef UNDO_RECOVERY
+    #ifdef CRASH_ENABLE
       if(stat_attempted_tx_total == (ATTEMPTED_NUM/10 && thread_gid==0)){
           printf("Crashed-Recovery \n");
           crash_emu = true;
+
+          //send a crash signal to failure detector.         
+          // send a signal and get the ack back
+
           dtx->TxUndoRecovery(yield);
-          printf("Wait starts \n");
+          //printf("Wait starts \n");
           usleep(500000);
-          printf("Wait Ends \n");
+          //printf("Wait Ends \n");
           crash_emu = false;
       }
       while(crash_emu); // stop all other threads from progressing. 

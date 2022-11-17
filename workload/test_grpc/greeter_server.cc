@@ -42,9 +42,9 @@ using helloworld::HelloRequest;
 class GreeterServiceImpl final : public Greeter::Service {
   Status SayHello(ServerContext* context, const HelloRequest* request,
                   HelloReply* reply) override {
-    std::string prefix("Hello ");
-    
-    reply->set_message(prefix + request->name());
+    std::string prefix("ACK ");
+    std::cout << "Becon "  << request->name() << std::endl;
+    reply->set_message(prefix + request->name());     
     return Status::OK;
   }
 };

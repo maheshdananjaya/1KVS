@@ -53,7 +53,7 @@ const size_t MAX_ITEM_SIZE = 664;
 #define unlikely(x) __builtin_expect(!!(x), 0)
 #define likely(x) __builtin_expect(!!(x), 1)
 
-
+//STATS enabled for 
 #define STATS
 typedef struct atomic_record{
   uint64_t txs;

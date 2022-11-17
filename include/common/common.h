@@ -55,6 +55,7 @@ const size_t MAX_ITEM_SIZE = 664;
 
 //STATS enabled for 
 #define STATS
+
 typedef struct atomic_record{
   uint64_t txs;
   double usecs;

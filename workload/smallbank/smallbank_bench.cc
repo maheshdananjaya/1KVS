@@ -520,7 +520,7 @@ void RunTx(coro_yield_t& yield, coro_id_t coro_id) {
 
 
     #ifdef CRASH_ENABLE
-      if(stat_attempted_tx_total == (ATTEMPTED_NUM/10 && thread_gid==0)){
+      if( (stat_attempted_tx_total == (ATTEMPTED_NUM/10)) && (thread_gid==0)){
           printf("Crashed-Recovery \n");
           crash_emu = true;
 
@@ -540,7 +540,7 @@ void RunTx(coro_yield_t& yield, coro_id_t coro_id) {
     /********************************** Stat end *****************************************/
   }
 
-    #ifdef UNDO_RECOVERY
+    #ifdef UNDO_RECOVERY_
   
     if(thread_gid==0){
       printf("Starting Coordinator-Side Undo Recovery at gid=0.. \n");
@@ -553,7 +553,7 @@ void RunTx(coro_yield_t& yield, coro_id_t coro_id) {
   #endif
 
 
-  #ifdef LATCH_RECOVERY
+  #ifdef LATCH_RECOVERY_
     if(thread_gid==0){
       printf("Starting Coordinator-Side Latch Recovery at gid=0.. \n");
       clock_gettime(CLOCK_REALTIME, &msr_start);

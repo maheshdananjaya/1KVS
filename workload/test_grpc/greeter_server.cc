@@ -38,7 +38,7 @@ using helloworld::Greeter;
 using helloworld::HelloReply;
 using helloworld::HelloRequest;
 
-
+#define NUM_MAX_MACHINES 128
 double previous_ts[NUM_MAX_MACHINES];
 
 

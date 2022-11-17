@@ -89,8 +89,10 @@ __thread uint64_t stat_committed_tx_total = 0;  // Committed transaction number
 const coro_id_t POLL_ROUTINE_ID = 0;            // The poll coroutine ID
 
 
-#ifdef CRASH_TPUT
   extern bool crash_emu=false;
+  
+#ifdef CRASH_TPUT
+
 thread_local std::ofstream file_out;// per thread file writes
 __thread const double window_time_ns=500000; // exmaple 100 microseconds -  
 __thread double last_recorded_nsec_time = 0;
@@ -523,7 +525,7 @@ void RunTx(coro_yield_t& yield, coro_id_t coro_id) {
 
     // ebale crash here.
      #ifdef CRASH_ENABLE
-      if(stat_attempted_tx_total == (ATTEMPTED_NUM/10 && thread_gid==0)){
+      if(stat_attempted_tx_total == (ATTEMPED_NUM/10 && thread_gid==0)){
           
           printf("Crashed-Recovery \n");
           crash_emu = true;

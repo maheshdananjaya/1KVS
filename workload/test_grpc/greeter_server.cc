@@ -38,17 +38,29 @@ using helloworld::Greeter;
 using helloworld::HelloReply;
 using helloworld::HelloRequest;
 
+
+double previous_ts[NUM_MAX_MACHINES];
+
+
 // Logic and data behind the server's behavior.
 class GreeterServiceImpl final : public Greeter::Service {
   Status SayHello(ServerContext* context, const HelloRequest* request,
                   HelloReply* reply) override {
     std::string prefix("ACK ");
-    std::cout << "Becon "  << request->name() << std::endl;
+    std::string token = s.substr(0, s.find("\t")); 
+    
+    //failed
+    //if(token);
+    //else if(token)
+    //else; 
+
+    //std::cout << "Becon "  << request->name() << std::endl;
     reply->set_message(prefix + request->name());     
     return Status::OK;
   }
 };
 
+//This is DAM Failure Detector
 void RunServer() {
   std::string server_address("0.0.0.0:50051");
   GreeterServiceImpl service;

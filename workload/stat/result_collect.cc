@@ -137,7 +137,7 @@ void CollectStats(struct thread_params* params){
 
   //For grpc clinet- FD alsways runs on 10.10.1.1
   GreeterClient greeter(grpc::CreateChannel("10.10.1.1:50051", grpc::InsecureChannelCredentials()));
-  std::string user("node-2");
+  std::string user("node "+ machine_id_);
   
   #ifndef STATS 
     return;
@@ -195,7 +195,7 @@ void CollectStats(struct thread_params* params){
 
             for(int t = 0; t < thread_num_per_machine_ ; t++){
               
-              if (thread_done[t]) { file_out.close(); return;}
+              if (thread_done[t]) {file_out.close(); return;}
 
               now_tx_count += tx_commited[t]; // for all threads.
 
@@ -246,8 +246,14 @@ void CollectStats(struct thread_params* params){
 
 
           //Send messages to the fault detector.
+          clock_gettime(CLOCK_REALTIME, &timer_end);
+          double grpc_start_time =  (double) timer_end.tv_sec *1000000 + (double)(timer_end.tv_nsec)/1000;
+
           std::string reply = greeter.SayHello(user);
-          std::cout << "Ack received: " << reply << std::endl;
+          
+          clock_gettime(CLOCK_REALTIME, &timer_end);
+          double grpc_end_time =  (double) timer_end.tv_sec *1000000 + (double)(timer_end.tv_nsec)/1000;
+          std::cout << "Ack received: " << reply  << " Time spent(RTT) " << (grpc_end_time - grpc_start_time) << std::endl;
 
   }
 

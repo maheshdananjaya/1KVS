@@ -50,6 +50,10 @@ class GreeterServiceImpl final : public Greeter::Service {
     std::string req = request->name();
     std::string token = (req).substr(0, req.find(" ")); 
     
+
+    if(req == "CRASH"){
+      std::cout << "Crashing server" << req << std::endl;
+    }
     //failed
     //if(token);
     //else if(token)

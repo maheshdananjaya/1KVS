@@ -18,6 +18,9 @@ std::vector<double> medianlat_vec;
 std::vector<double> taillat_vec;
 std::vector<double> lock_durations;
 
+
+bool crash_emu=false;
+
 //For partial results.
 //uint64_t * tx_attempted;
 //uint64_t * tx_commited;
@@ -178,7 +181,7 @@ void CollectStats(struct thread_params* params){
   while(true){
 
       //check if any of the transactions are done or have reached the attemp txs.
-        usleep(5000);
+        usleep(1000);
       
 
           uint64_t now_tx_count = 0;
@@ -249,11 +252,14 @@ void CollectStats(struct thread_params* params){
           clock_gettime(CLOCK_REALTIME, &timer_end);
           double grpc_start_time =  (double) timer_end.tv_sec *1000000 + (double)(timer_end.tv_nsec)/1000;
 
-          std::string reply = greeter.SayHello(user);
+          if(crash_emu) std::string reply = greeter.SayHello("Crash-"+machine_id_);
+          else std::string reply = greeter.SayHello(user);
 
           clock_gettime(CLOCK_REALTIME, &timer_end);
           double grpc_end_time =  (double) timer_end.tv_sec *1000000 + (double)(timer_end.tv_nsec)/1000;
-          std::cout << "Ack received: " << reply  << " Time spent(RTT) " << (grpc_end_time - grpc_start_time) << std::endl;
+
+          //For GRPC round trips
+          //std::cout << "Ack received: " << reply  << " Time spent(RTT) " << (grpc_end_time - grpc_start_time) << std::endl;
 
   }
 

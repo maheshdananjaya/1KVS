@@ -19,7 +19,7 @@
 
 using namespace std::placeholders;
 
-#define ATTEMPED_NUM 100000
+#define ATTEMPED_NUM 1000000
 #define STAT_NUM_MAX_THREADS 128
 // All the functions are executed in each thread
 //For Crash TPUT
@@ -90,7 +90,7 @@ const coro_id_t POLL_ROUTINE_ID = 0;            // The poll coroutine ID
 
 
 #ifdef CRASH_TPUT
-  static bool crash_emu=false;
+  extern bool crash_emu=false;
 thread_local std::ofstream file_out;// per thread file writes
 __thread const double window_time_ns=500000; // exmaple 100 microseconds -  
 __thread double last_recorded_nsec_time = 0;

@@ -124,7 +124,7 @@ bool DTX::IssueReadLock(std::vector<CasRead>& pending_cas_rw,
       std::shared_ptr<LockReadBatch> doorbell = std::make_shared<LockReadBatch>();
       doorbell->SetLockReq(cas_buf, it->GetRemoteLockAddr(offset), STATE_CLEAN, STATE_LOCKED); 
       doorbell->SetReadReq(data_buf, offset, DataItemSize);  // Read a DataItem
-      if (!doorbell->SendReqs(coro_sched, qp, coro_id)) {
+      if (!doorbell->SendReqs(coro_sched, qp, coro_id)) {+
         return false;
       }
     } else {
@@ -137,7 +137,7 @@ bool DTX::IssueReadLock(std::vector<CasRead>& pending_cas_rw,
       offset_t node_off = idx * meta.node_size + meta.base_off;
       char* local_hash_node = thread_rdma_buffer_alloc->Alloc(sizeof(HashNode));
       if (it->user_insert) {
-        
+
         pending_insert_off_rw.emplace_back(InsertOffRead{.qp = qp, .item = &read_write_set[i], .buf = local_hash_node, .remote_node = remote_node_id, .meta = meta, .node_off = node_off});
       } else {
         pending_hash_rw.emplace_back(HashRead{.qp = qp, .item = &read_write_set[i], .buf = local_hash_node, .remote_node = remote_node_id, .meta = meta});

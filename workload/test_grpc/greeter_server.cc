@@ -53,6 +53,7 @@ class GreeterServiceImpl final : public Greeter::Service {
 
     if(token == "Crash"){
       std::cout << "Crashing server" << req << std::endl;
+      std::string prefix("F*CK ");
     }
     //failed
     //if(token);

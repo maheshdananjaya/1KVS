@@ -342,6 +342,7 @@ class DTX {
       bool IssueUndoLogRecovery(coro_yield_t& yield);
       bool IssueLatchLogRecoveryReadForAllThreads(coro_yield_t& yield);
       bool IssueUndoLogRecoveryForAllThreads(coro_yield_t& yield);
+      bool UpdatedIssueUndoLogRecoveryForAllThreads(coro_yield_t& yield);
 
 #endif
 

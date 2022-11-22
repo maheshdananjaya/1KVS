@@ -124,7 +124,7 @@ bool DTX::IssueReadLock(std::vector<CasRead>& pending_cas_rw,
       std::shared_ptr<LockReadBatch> doorbell = std::make_shared<LockReadBatch>();
       doorbell->SetLockReq(cas_buf, it->GetRemoteLockAddr(offset), STATE_CLEAN, STATE_LOCKED); 
       doorbell->SetReadReq(data_buf, offset, DataItemSize);  // Read a DataItem
-      if (!doorbell->SendReqs(coro_sched, qp, coro_id)) {+
+      if (!doorbell->SendReqs(coro_sched, qp, coro_id)) {
         return false;
       }
     } else {

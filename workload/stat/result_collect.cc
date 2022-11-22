@@ -252,8 +252,11 @@ void CollectStats(struct thread_params* params){
           clock_gettime(CLOCK_REALTIME, &timer_end);
           double grpc_start_time =  (double) timer_end.tv_sec *1000000 + (double)(timer_end.tv_nsec)/1000;
 
-          if(crash_emu) std::string reply = greeter.SayHello("Crash "+ machine_id_);
-          else std::string reply = greeter.SayHello(user);
+          std::string reply;
+
+          if(crash_emu) reply = greeter.SayHello("Crash "+ machine_id_);
+          else reply = greeter.SayHello(user);
+          
           if(crash_emu) std::cout << reply << std::endl;
 
           clock_gettime(CLOCK_REALTIME, &timer_end);

@@ -813,7 +813,7 @@ bool DTX::IssueLatchLogRecoveryReadForAllThreads(coro_yield_t& yield){
         if(!has_started_commit); //TODO- unlock al the places and reconfigure.
         else{
             //coro_num_valid_logs
-            
+
         }
 
         //everything is ok;
@@ -1349,7 +1349,7 @@ bool DTX::UpdatedIssueUndoLogRecoveryForAllThreads(coro_yield_t& yield){
                         //assume all logs keys are a cache hit.
                         if (offset != NOT_FOUND) {
                             //TODO - pointers are 
-                            if (!coro_sched->RDMARead(coro_id, qp, &inplace_updates [t][c][i][rc*DataItemSize], offset, DataItemSize)) {
+                            if (!coro_sched->RDMARead(coro_id, qp, &inplace_updates [t][c][0][rc*DataItemSize], offset, DataItemSize)) {
                             //if (!coro_sched->RDMARead(coro_id, qp, &inplace_update[rc], offset, DataItemSize)) {
                                 return false;
                             }
@@ -1357,13 +1357,14 @@ bool DTX::UpdatedIssueUndoLogRecoveryForAllThreads(coro_yield_t& yield){
                         } 
                         else{
                             //TODO- report back to me
+                            RDMA_LOG(INFO) << "Error 0- Local Cache Miss "; 
                             assert(false);
                         }          
 
 
-                        auto* backup_node_ids = global_meta_man->GetBackupNodeID(it->table_id);
+                        auto* backup_node_ids = global_meta_man->GetBackupNodeID(logged_item->table_id);
                         if (!backup_node_ids) continue;  // There are no backups in the PM pool
-                        assert(backup_node_ids.size() <=  (global_meta_man->remote_nodes.size()-1))
+                        assert(backup_node_ids.size() <=  (global_meta_man->remote_nodes.size()-1));
 
                         for (size_t i = 0; i < backup_node_ids->size(); i++) {
 
@@ -1375,7 +1376,7 @@ bool DTX::UpdatedIssueUndoLogRecoveryForAllThreads(coro_yield_t& yield){
                                     return false;
                                 }
                             }else{
-                                RDMA_LOG(INFO) << "Error 0 "; 
+                                RDMA_LOG(INFO) << "Error 0: Local Cache Miss"; 
                                 assert(false); // When the offset is not present in the cache, for recovery i assume that everything is in the cache.
                             }
                         }
@@ -1436,7 +1437,7 @@ bool DTX::UpdatedIssueUndoLogRecoveryForAllThreads(coro_yield_t& yield){
 
                         //TODO; assume thet it is equal to the number of replicas. 
                         //ideally relicas+1
-                        DataItem* logged_item = &record_node_0[rc].data_ ;
+                        DataItem* logged_item = &record_node_0[j].data_ ;
                         bool is_updated_inplace=true;
                         int match_count=0;
 
@@ -1444,9 +1445,9 @@ bool DTX::UpdatedIssueUndoLogRecoveryForAllThreads(coro_yield_t& yield){
                         //TODO: if amemory replic fails whatever present in the backup replicas will be used. 
                         for (int i = 0; i < global_meta_man->remote_nodes.size(); i++){                            
                                 
-                                DataItem * in_place_item = inplace_updates [t][c][i][rc];
-                                if(logged_item->versions <= in_place_item->versions){
-                                    is_updated_iplace= true;
+                                DataItem * in_place_item = inplace_updates [t][c][i][j];
+                                if(logged_item->version <= in_place_item->version){
+                                    is_updated_inplace= true;
                                     match_count++;
                                     //break;
                                 }
@@ -1460,7 +1461,8 @@ bool DTX::UpdatedIssueUndoLogRecoveryForAllThreads(coro_yield_t& yield){
                             RCQP* qp = thread_qp_man->GetRemoteDataQPWithNodeID(remote_node_id);
                             auto offset = addr_cache->Search(remote_node_id, logged_item->table_id, logged_item->key);
                              if (offset != NOT_FOUND) {
-                                if (!coro_sched->RDMAWrite(coro_id, qp,logged_item, offset, DataItemSize)) {
+
+                               if (!coro_sched->RDMAWrite(coro_id, qp, (char*)logged_item, offset, DataItemSize)) {
                                        return false;
                                 }    
                             }else{
@@ -1469,7 +1471,7 @@ bool DTX::UpdatedIssueUndoLogRecoveryForAllThreads(coro_yield_t& yield){
                                 assert(false);
                             }
 
-                            auto* backup_node_ids = global_meta_man->GetBackupNodeID(it->table_id);
+                            auto* backup_node_ids = global_meta_man->GetBackupNodeID(logged_item->table_id);
                             if (!backup_node_ids) continue;  // There are no backups in the PM pool
     
                             for (size_t i = 0; i < backup_node_ids->size(); i++) {
@@ -1478,7 +1480,7 @@ bool DTX::UpdatedIssueUndoLogRecoveryForAllThreads(coro_yield_t& yield){
                                 auto offset = addr_cache->Search(backup_node_ids->at(i), logged_item->table_id, logged_item->key);
     
                                 if (offset != NOT_FOUND) {
-                                    if (!coro_sched->RDMAWrite(coro_id, qp, logged_item, offset, DataItemSize)) {
+                                    if (!coro_sched->RDMAWrite(coro_id, qp, (char*)logged_item, offset, DataItemSize)) {
                                         return false;
                                     }
                                 }else{

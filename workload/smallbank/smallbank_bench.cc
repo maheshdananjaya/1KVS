@@ -540,7 +540,7 @@ void RunTx(coro_yield_t& yield, coro_id_t coro_id) {
     /********************************** Stat end *****************************************/
   }
 
-    #ifdef UNDO_RECOVERY_
+    #ifdef UNDO_RECOVERY
   
     if(thread_gid==0){
       printf("Starting Coordinator-Side Undo Recovery at gid=0.. \n");
@@ -553,7 +553,7 @@ void RunTx(coro_yield_t& yield, coro_id_t coro_id) {
   #endif
 
 
-  #ifdef LATCH_RECOVERY_
+  #ifdef LATCH_RECOVERY
     if(thread_gid==0){
       printf("Starting Coordinator-Side Latch Recovery at gid=0.. \n");
       clock_gettime(CLOCK_REALTIME, &msr_start);

@@ -524,7 +524,7 @@ void RunTx(coro_yield_t& yield, coro_id_t coro_id) {
 
     // ebale crash here.
      #ifdef CRASH_ENABLE
-      if( (stat_attempted_tx_total == (ATTEMPTED_NUM/10)) && (thread_gid==0)){
+      if( (stat_attempted_tx_total == (ATTEMPED_NUM/10)) && (thread_gid==0)){
           
           printf("Crashed-Recovery \n");
           crash_emu = true;

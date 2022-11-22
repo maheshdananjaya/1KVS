@@ -254,14 +254,14 @@ void CollectStats(struct thread_params* params){
 
           if(crash_emu) std::string reply = greeter.SayHello("Crash "+ machine_id_);
           else std::string reply = greeter.SayHello(user);
-          if(crash_emu) td::cout << reply << std::endl;
+          if(crash_emu) std::cout << reply << std::endl;
 
           clock_gettime(CLOCK_REALTIME, &timer_end);
           double grpc_end_time =  (double) timer_end.tv_sec *1000000 + (double)(timer_end.tv_nsec)/1000;
 
           //For GRPC round trips
           //std::cout << "Ack received: " << reply  << " Time spent(RTT) " << (grpc_end_time - grpc_start_time) << std::endl;
-
+s
   }
 
   //at least one thread is done. we stop the stat counter. 

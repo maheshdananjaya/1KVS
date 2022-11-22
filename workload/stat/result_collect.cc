@@ -264,7 +264,7 @@ void CollectStats(struct thread_params* params){
 
           //For GRPC round trips
           //std::cout << "Ack received: " << reply  << " Time spent(RTT) " << (grpc_end_time - grpc_start_time) << std::endl;
-s
+
   }
 
   //at least one thread is done. we stop the stat counter. 

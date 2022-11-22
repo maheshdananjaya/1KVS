@@ -813,6 +813,7 @@ bool DTX::IssueLatchLogRecoveryReadForAllThreads(coro_yield_t& yield){
         if(!has_started_commit); //TODO- unlock al the places and reconfigure.
         else{
             //coro_num_valid_logs
+            
         }
 
         //everything is ok;
@@ -1374,6 +1375,7 @@ bool DTX::UpdatedIssueUndoLogRecoveryForAllThreads(coro_yield_t& yield){
                                     return false;
                                 }
                             }else{
+                                RDMA_LOG(INFO) << "Error 0 "; 
                                 assert(false); // When the offset is not present in the cache, for recovery i assume that everything is in the cache.
                             }
                         }
@@ -1462,6 +1464,8 @@ bool DTX::UpdatedIssueUndoLogRecoveryForAllThreads(coro_yield_t& yield){
                                        return false;
                                 }    
                             }else{
+
+                                RDMA_LOG(INFO) << "Error 1 ";  
                                 assert(false);
                             }
 
@@ -1478,6 +1482,7 @@ bool DTX::UpdatedIssueUndoLogRecoveryForAllThreads(coro_yield_t& yield){
                                         return false;
                                     }
                                 }else{
+                                    RDMA_LOG(INFO) << "Error 2 ";  
                                     assert(false); // When the offset is not present in the cache, for recovery i assume that everything is in the cache.
                                 }
                             }

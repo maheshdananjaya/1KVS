@@ -1445,10 +1445,10 @@ bool DTX::UpdatedIssueUndoLogRecoveryForAllThreads(coro_yield_t& yield){
                         //TODO: if amemory replic fails whatever present in the backup replicas will be used. 
                         for (int i = 0; i < global_meta_man->remote_nodes.size(); i++){                            
                                 
-                                DataItem * in_place_item = inplace_updates [t][c][i][j];
+                                DataItem * in_place_item =  (DataItem *) inplace_updates [t][c][i][j*DataItemSize];
                                 if(logged_item->version <= in_place_item->version){
                                     is_updated_inplace= true;
-                                    match_count++;
+                                    match_count++; 
                                     //break;
                                 }
                         }

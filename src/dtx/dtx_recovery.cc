@@ -1424,16 +1424,17 @@ bool DTX::UpdatedIssueUndoLogRecoveryForAllThreads(coro_yield_t& yield){
         for (int t=0; t<num_thread; t++){           
 
             for (int c = 1 ; c < num_coro ; c++){ 
+                RDMA_LOG(INFO) << "recovery coro  - " << c;  
                 
                 if(coro_has_started_commit[t][c]){
-                   
+                    RDMA_LOG(INFO) << " --> TX has started commit  - " << c;  
 
                    UndoLogRecord* record_node_0 =  (UndoLogRecord *)undo_logs [t][c][0]; 
 
                    bool  tx_completed = true;
 
                    for(int j=0; j < coro_num_valid_logs[t][c]; j++){
-                        RDMA_LOG(INFO) << "recovery coro  - " << c;  
+                        
 
                         //TODO; assume thet it is equal to the number of replicas. 
                         //ideally relicas+1

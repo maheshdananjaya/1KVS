@@ -19,7 +19,7 @@ std::vector<double> taillat_vec;
 std::vector<double> lock_durations;
 
 
-bool crash_emu=false;
+bool crash_emu = false;
 
 //For partial results.
 //uint64_t * tx_attempted;
@@ -131,6 +131,8 @@ void InitCounters(node_id_t machine_num, node_id_t machine_id, t_id_t thread_num
     record_ptrs[i] = NULL;
 
   }
+
+  crash_emu = false;
   //std::fill_n( a, 100, 0 ); 
   //assert(!thread_done[0]);
 }

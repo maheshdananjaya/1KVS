@@ -538,8 +538,10 @@ void RunTx(coro_yield_t& yield, coro_id_t coro_id) {
           //usleep(500000);
           //printf("Wait Ends \n");
           crash_emu = false;
+          asm volatile("mfence" ::: "memory");
+
       }
-      while(crash_emu); // stop all other threads from progressing. 
+      while(crash_emu){}; // stop all other threads from progressing. 
 
     #endif
 

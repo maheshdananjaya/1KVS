@@ -32,7 +32,6 @@ bool crash_emu = false;
 
 node_id_t machine_num_;
 node_id_t machine_id_;
-
 t_id_t thread_num_per_machine_;
 
 #define STAT_NUM_MAX_THREADS 128
@@ -148,9 +147,10 @@ void CollectStats(struct thread_params* params){
     std::string user("node "+ machine_id_);
   #endif
   
-  #ifndef STATS 
-    
-    return;
+  #ifndef STATS   
+     usleep(10000);
+    std::cout << "Exiting stat thread. Bye!" << std::endl;    
+    return; 
   #endif
     //rrecord partial results.
   std::cout << "starting the counters" << std::endl;

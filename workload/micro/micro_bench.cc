@@ -35,13 +35,10 @@ using namespace std::placeholders;
  extern bool thread_done [STAT_NUM_MAX_THREADS];
  extern double window_start_time alignas(8) [STAT_NUM_MAX_THREADS];
  extern double window_curr_time alignas (8) [STAT_NUM_MAX_THREADS];
-
  extern REC* record_ptrs [STAT_NUM_MAX_THREADS];
-
-
-  extern node_id_t machine_num_;
-  extern node_id_t machine_id_;
-  extern t_id_t thread_num_per_machine_;
+ extern node_id_t machine_num_;
+ extern node_id_t machine_id_;
+ extern t_id_t thread_num_per_machine_;
 #endif
 
 __thread t_id_t local_thread_id; 
@@ -92,7 +89,6 @@ const coro_id_t POLL_ROUTINE_ID = 0;            // The poll coroutine ID
 extern bool crash_emu;
 
 #ifdef CRASH_TPUT
-
 thread_local std::ofstream file_out;// per thread file writes
 __thread const double window_time_ns=500000; // exmaple 100 microseconds -  
 __thread double last_recorded_nsec_time = 0;

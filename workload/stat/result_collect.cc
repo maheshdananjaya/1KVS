@@ -197,10 +197,18 @@ void CollectStats(struct thread_params* params){
           clock_gettime(CLOCK_REALTIME, &timer_end);
           double curr_time =  (double) timer_end.tv_sec *1000000 + (double)(timer_end.tv_nsec)/1000;
 
+          bool all_thread_done=true;
+
+
 
             for(int t = 0; t < thread_num_per_machine_ ; t++){
               
-              if (thread_done[t]) {file_out.close(); return;}
+              if (!thread_done[t]) {
+                  all_thread_done &= false;;
+                //file_out.close(); return;
+              }else{
+                continue;
+              }
 
               now_tx_count += tx_commited[t]; // for all threads.
 
@@ -227,14 +235,16 @@ void CollectStats(struct thread_params* params){
                 tx = new_record->txs;
                 usec =  new_record->usecs;
   
-  
+                //Mmemory fance
                   
                 tx_delta = (tx - atomic_last_commited_tx[t]);
                 usec_delta = (usec - atomic_last_comimted_usec[t]);
   
-                if(usec_delta != 0) atomic_tx_tput += (((double)tx_delta) / usec_delta);
+
+                //if(usec_delta != 0) atomic_tx_tput += (((double)tx_delta) / usec_delta);
+                if(usec_delta > 0 && tx_delta >= 0) atomic_tx_tput += (((double)tx_delta) / usec_delta);
   
-                assert( tx > atomic_last_commited_tx[t]);
+                //assert( tx > atomic_last_commited_tx[t]);
                 atomic_last_commited_tx[t] =  tx;
                 atomic_last_comimted_usec[t] = usec;
               }
@@ -267,6 +277,11 @@ void CollectStats(struct thread_params* params){
           //For GRPC round trips
           //std::cout << "Ack received: " << reply  << " Time spent(RTT) " << (grpc_end_time - grpc_start_time) << std::endl;
 
+          if(all_thread_done){
+            usleep(1000000);
+            file_out.close(); 
+            return;
+          }
   }
 
   //at least one thread is done. we stop the stat counter. 

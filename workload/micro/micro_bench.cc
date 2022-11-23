@@ -699,8 +699,10 @@ void run_thread(struct thread_params* params) {
   #ifdef CRASH_TPUT
     std::string file_name = "results/result_"+ std::to_string(thread_gid) + ".txt";
     file_out.open(file_name.c_str(), std::ios::app);
-     local_thread_id =    thread_gid - (machine_id_*thread_num_per_machine_); 
+    //local_thread_id =    thread_gid - (machine_id_*thread_num_per_machine_); 
   #endif
+  
+  local_thread_id =  thread_gid - (machine_id_*thread_num_per_machine_);
 
   // Start the first coroutine
   coro_sched->coro_array[0].func();

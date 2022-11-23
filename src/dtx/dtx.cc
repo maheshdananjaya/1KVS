@@ -108,6 +108,7 @@ bool DTX::ExeRW(coro_yield_t& yield) {
   //DAM - per coroutine log buffer.
 
   //UndoLog();  
+   UndoLogWithoutInserts();
 
   //DAM. redo
 
@@ -137,6 +138,7 @@ bool DTX::Validate(coro_yield_t& yield) {
   //TODO: this has to be done only if the validations is sucessful.
   
   //UndoLog();
+  UndoLogInsertsOnly();
 
   return res;
 }

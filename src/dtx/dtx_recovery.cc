@@ -225,7 +225,7 @@ bool DTX::TxLatchRecovery(coro_yield_t& yield){
 
 bool DTX::TxUndoRecovery(coro_yield_t& yield){
     //IssueUndoLogRecovery(yield);
-    IssueUndoLogRecoveryForAllThreads(yield);
+    UpdatedIssueUndoLogRecoveryForAllThreads(yield);
     //IssueLatchLogRecoveryRead(yield);
 }
 
@@ -1364,7 +1364,8 @@ bool DTX::UpdatedIssueUndoLogRecoveryForAllThreads(coro_yield_t& yield){
 
                         auto* backup_node_ids = global_meta_man->GetBackupNodeID(logged_item->table_id);
                         if (!backup_node_ids) continue;  // There are no backups in the PM pool
-                        assert(backup_node_ids.size() <=  (global_meta_man->remote_nodes.size()-1));
+
+                        assert(backup_node_ids->size() <=  (global_meta_man->remote_nodes.size()-1));
 
                         for (size_t i = 0; i < backup_node_ids->size(); i++) {
 

@@ -26,4 +26,7 @@ add_subdirectory(tatp)
 add_subdirectory(smallbank)
 
 add_subdirectory(micro)
-add_subdirectory(test_grpc)
+
+if(GRPC_FD) 
+	add_subdirectory(test_grpc)
+endif()

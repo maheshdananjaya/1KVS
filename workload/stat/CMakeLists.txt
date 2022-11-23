@@ -1,6 +1,8 @@
 # Author: Mahesh Dananjaya
 # Copyright (c) 2021
 
+
+if(GRPC_FD)
 get_filename_component(hw_proto "../test_grpc/protos/helloworld.proto" ABSOLUTE)
 get_filename_component(hw_proto_path "${hw_proto}" PATH)
 
@@ -33,8 +35,14 @@ target_link_libraries(hw_grpc_proto_client
   ${_GRPC_GRPCPP}
   ${_PROTOBUF_LIBPROTOBUF})
 
+endif()
 
 set(WROKLOAD_SOURCES result_collect.cc)
 add_library(stat STATIC ${WROKLOAD_SOURCES})
 set_target_properties(stat PROPERTIES LINKER_LANGUAGE CXX)
-target_link_libraries(stat ${WORKLOAD_LIB} hw_grpc_proto_client ${_REFLECTION} ${_GRPC_GRPCPP} ${_PROTOBUF_LIBPROTOBUF} )
+
+if(GRPC_FD)
+	target_link_libraries(stat ${WORKLOAD_LIB} hw_grpc_proto_client ${_REFLECTION} ${_GRPC_GRPCPP} ${_PROTOBUF_LIBPROTOBUF} )
+else()
+	target_link_libraries(stat ${WORKLOAD_LIB})
+endif()

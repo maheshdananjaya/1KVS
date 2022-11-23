@@ -37,19 +37,27 @@ include_directories(
 )
 
 
-include(FetchContent)
-FetchContent_Declare(
-  gRPC
-  GIT_REPOSITORY https://github.com/grpc/grpc
-  GIT_TAG        master  # e.g v1.28.0
-)
-set(FETCHCONTENT_QUIET OFF)
-FetchContent_MakeAvailable(gRPC)
-set(_PROTOBUF_LIBPROTOBUF libprotobuf)
-set(_REFLECTION grpc++_reflection)
-set(_PROTOBUF_PROTOC $<TARGET_FILE:protoc>)
-set(_GRPC_GRPCPP grpc++)
-set(_GRPC_CPP_PLUGIN_EXECUTABLE $<TARGET_FILE:grpc_cpp_plugin>)
+option(GRPC_FD "enable or disabele GRPC" OFF)
+
+
+if(GRPC_FD) 
+	
+	include(FetchContent)
+	FetchContent_Declare(
+	  gRPC
+	  GIT_REPOSITORY https://github.com/grpc/grpc
+	  GIT_TAG        master  # e.g v1.28.0
+	)
+	set(FETCHCONTENT_QUIET OFF)
+	FetchContent_MakeAvailable(gRPC)
+	set(_PROTOBUF_LIBPROTOBUF libprotobuf)
+	set(_REFLECTION grpc++_reflection)
+	set(_PROTOBUF_PROTOC $<TARGET_FILE:protoc>)
+	set(_GRPC_GRPCPP grpc++)
+	set(_GRPC_CPP_PLUGIN_EXECUTABLE $<TARGET_FILE:grpc_cpp_plugin>)
+endif()
+
+#unset(GRPC_FD CACHE) # <---- this is the important!!
 
 
 #add_executable(my_exe my_exe.cc)

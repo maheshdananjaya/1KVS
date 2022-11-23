@@ -5,7 +5,9 @@
 #include <unistd.h>
 #include <assert.h>
 
+#ifdef FD
 #include "stat/grpc_client.h"
+#endif
 
 std::atomic<uint64_t> tx_id_generator;
 std::atomic<uint64_t> connected_t_num;
@@ -141,10 +143,13 @@ void InitCounters(node_id_t machine_num, node_id_t machine_id, t_id_t thread_num
 void CollectStats(struct thread_params* params){
 
   //For grpc clinet- FD alsways runs on 10.10.1.1
-  GreeterClient greeter(grpc::CreateChannel("10.10.1.1:50051", grpc::InsecureChannelCredentials()));
-  std::string user("node "+ machine_id_);
+  #ifdef FD
+    GreeterClient greeter(grpc::CreateChannel("10.10.1.1:50051", grpc::InsecureChannelCredentials()));
+    std::string user("node "+ machine_id_);
+  #endif
   
   #ifndef STATS 
+    
     return;
   #endif
     //rrecord partial results.
@@ -260,19 +265,20 @@ void CollectStats(struct thread_params* params){
           last_usec = curr_time;
 
 
-          //Send messages to the fault detector.
-          clock_gettime(CLOCK_REALTIME, &timer_end);
-          double grpc_start_time =  (double) timer_end.tv_sec *1000000 + (double)(timer_end.tv_nsec)/1000;
-
-          std::string reply;
-
-          if(crash_emu) reply = greeter.SayHello("Crash "+ machine_id_);
-          else reply = greeter.SayHello(user);
-          
-          if(crash_emu) std::cout << reply << std::endl;
-
-          clock_gettime(CLOCK_REALTIME, &timer_end);
-          double grpc_end_time =  (double) timer_end.tv_sec *1000000 + (double)(timer_end.tv_nsec)/1000;
+          #ifdef FD
+            //Send messages to the fault detector.
+            clock_gettime(CLOCK_REALTIME, &timer_end);
+            double grpc_start_time =  (double) timer_end.tv_sec *1000000 + (double)(timer_end.tv_nsec)/1000;
+                     
+              std::string reply;
+              if(crash_emu) reply = greeter.SayHello("Crash "+ machine_id_);
+              else reply = greeter.SayHello(user);
+                      
+            if(crash_emu) std::cout << reply << std::endl;
+  
+            clock_gettime(CLOCK_REALTIME, &timer_end);
+            double grpc_end_time =  (double) timer_end.tv_sec *1000000 + (double)(timer_end.tv_nsec)/1000;
+          #endif 
 
           //For GRPC round trips
           //std::cout << "Ack received: " << reply  << " Time spent(RTT) " << (grpc_end_time - grpc_start_time) << std::endl;

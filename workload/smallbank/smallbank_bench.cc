@@ -621,7 +621,10 @@ void run_thread(struct thread_params* params) {
     //local_thread_id =    thread_gid - (machine_id_*thread_num_per_machine_); 
   #endif
 
-  local_thread_id =    thread_gid - (machine_id_*thread_num_per_machine_); 
+  
+  #ifdef STATS
+    local_thread_id =  thread_gid - (machine_id_*thread_num_per_machine_);
+  #endif
 
   // Start the first coroutine
   coro_sched->coro_array[0].func();

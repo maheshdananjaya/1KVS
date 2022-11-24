@@ -60,3 +60,6 @@ typedef struct atomic_record{
   uint64_t txs;
   double usecs;
 } REC;
+
+//#define STATS
+#define WITH_UNDO_LOGGING

@@ -69,7 +69,7 @@ bool DTX::ExeRW(coro_yield_t& yield) {
   std::list<InsertOffRead> pending_next_off_rw;
 
   //DAM- if latch lock is enabled. using log qps
-  #ifdef LATCH_LOG
+  #ifdef OLD_LATCH_LOG
     if(LatchLog()) {
 
       RDMA_LOG(DBG) << "coro: " << coro_id << " waiting for latch logs";
@@ -84,9 +84,11 @@ bool DTX::ExeRW(coro_yield_t& yield) {
   #endif
 
 
-  //if(LatchLogDataQP()){
-  //  coro_sched->Yield(yield, coro_id);
-  //}
+  #ifdef WITH_LATCH_LOGGING
+    if(LatchLogDataQP()){
+      coro_sched->Yield(yield, coro_id);
+    }
+  #endif
 
   //new latch logging using data qps
 
@@ -108,7 +110,9 @@ bool DTX::ExeRW(coro_yield_t& yield) {
   //DAM - per coroutine log buffer.
 
   //UndoLog();  
-   UndoLogWithoutInserts();
+  #ifdef WITH_UNDO_LOGGING
+    UndoLogWithoutInserts();
+  #endif
 
   //DAM. redo
 
@@ -138,7 +142,9 @@ bool DTX::Validate(coro_yield_t& yield) {
   //TODO: this has to be done only if the validations is sucessful.
   
   //UndoLog();
-  UndoLogInsertsOnly();
+  #ifdef WITH_UNDO_LOGGING
+    UndoLogInsertsOnly();
+  #endif
 
   return res;
 }

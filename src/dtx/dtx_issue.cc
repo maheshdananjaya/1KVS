@@ -169,7 +169,30 @@ bool DTX::IssueValidate(std::vector<ValidateRead>& pending_validate) {
       return false;
     }
   }
-  // For read-only items, we only need to read their versions
+ 
+#ifdef FIX_VALIDATE_ERROR
+
+  for (auto& set_it : read_only_set) {
+
+    auto it = set_it.item_ptr;
+    // If reading from backup, using backup's qp to validate the version on backup.
+    // Otherwise, the qp mismatches the remote version addr
+    RCQP* qp = thread_qp_man->GetRemoteDataQPWithNodeID(set_it.read_which_node);
+
+    //version buff niw has both lock value and 
+    char* version_buf = thread_rdma_buffer_alloc->Alloc(sizeof(version_t) + sizeof(lock_t));
+    //char* version_buf = thread_rdma_buffer_alloc->Alloc(sizeof(version_t));
+
+    pending_validate.push_back(ValidateRead{.qp = qp, .item = &set_it, .cas_buf = nullptr, .version_buf = version_buf, .has_lock_in_validate = false});
+    
+    if (!coro_sched->RDMARead(coro_id, qp, version_buf, it->GetRemoteVersionAddr(), sizeof(version_t)+sizeof(lock_t)) ) {
+      return false;
+    }
+  }
+
+#else  
+
+  //For read-only items, we only need to read their versions
   for (auto& set_it : read_only_set) {
 
     auto it = set_it.item_ptr;
@@ -182,6 +205,9 @@ bool DTX::IssueValidate(std::vector<ValidateRead>& pending_validate) {
       return false;
     }
   }
+#endif
+
+
   return true;
 }
 

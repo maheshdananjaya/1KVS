@@ -48,6 +48,7 @@ bool DTX::CheckReadRORW(std::vector<DirectRead>& pending_direct_ro,
   // }
 
   while (!pending_invisible_ro.empty() || !pending_next_hash_ro.empty() || !pending_next_hash_rw.empty() || !pending_next_off_rw.empty()) {
+    
     coro_sched->Yield(yield, coro_id);
 
     // Recheck read-only replies
@@ -133,10 +134,12 @@ bool DTX::CheckValidate(std::vector<ValidateRead>& pending_validate) {
       // Compare version
       if (my_version != *((version_t*)re.version_buf)) {
         // it->Debug();
+
         // RDMA_LOG(DBG) << "MY VERSION " << it->version;
         // RDMA_LOG(DBG) << "version_buf " << *((version_t*)re.version_buf);
         return false;
       }
+
     } else {
       // Compare version
       if (it->version != *((version_t*)re.version_buf)) {
@@ -144,6 +147,12 @@ bool DTX::CheckValidate(std::vector<ValidateRead>& pending_validate) {
         // RDMA_LOG(DBG) << "MY VERSION " << it->version;
         // RDMA_LOG(DBG) << "version_buf " << *((version_t*)re.version_buf);
         return false;
+      }else{
+          //check the lock value. if its set. abort the transactions. only for read-only set
+          char * lock_start = re.version_buf+sizeof(version_t);
+          if( *((lcok_t*)lock_start) != STATE_CLEAN) return false;
+            //*((lock_t*)re.cas_buf) != STATE_CLEAN
+            
       }
     }
   }

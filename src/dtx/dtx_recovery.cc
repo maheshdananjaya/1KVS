@@ -715,7 +715,8 @@ bool DTX::IssueLatchLogRecoveryReadForAllThreads(coro_yield_t& yield){
             bool last_flagged=true; //in this log record. 
             bool curr_log_matched=true;
 
-            //Each machine
+            //Each machine.
+            //TODO- only primary is enough if logs are recorded in the same memory node.
             for (int i = 0; i < global_meta_man->remote_nodes.size(); i++){      
 
                 LatchLogRecord* record =  (LatchLogRecord *)latch_logs [t][c][i];                  
@@ -734,7 +735,7 @@ bool DTX::IssueLatchLogRecoveryReadForAllThreads(coro_yield_t& yield){
                     }                    
                 }
                           
-                    //Dam log record                
+                    //Dam log record.                
                 
                 if(i==0){
                     curr_agreed_tx_id = record[r].tx_id_;                    
@@ -769,20 +770,21 @@ bool DTX::IssueLatchLogRecoveryReadForAllThreads(coro_yield_t& yield){
                 //break;
 
                 //tight implementation where all locks of the last transaction is set regardless of the last flagged. 
-                    if(r==0){
-                        has_started_commit = false;
-                    }
-                    else
-                    {
-
-                        //do not care about the last flagged. do recovery regardles of last falgged. no harm here. a bit conservative.
-                        has_started_commit = true;
-                        num_valid_logs = r;
-                        //coro_agreed_tx_id is same as the last one.
-                    } 
-                    break;
+                if(r==0){
+                    has_started_commit = false;
+                }
+                else
+                {
+                    //do not care about the last flagged. do recovery regardles of last falgged. no harm here. a bit conservative.
+                    has_started_commit = true;
+                    num_valid_logs = r;
+                    //coro_agreed_tx_id is same as the last one.
+                } 
+                break;
             }
+            
             //all last tx_ids agreed. 
+
             else{
 
                 coro_agreed_tx_id = curr_agreed_tx_id;                
@@ -802,6 +804,41 @@ bool DTX::IssueLatchLogRecoveryReadForAllThreads(coro_yield_t& yield){
                     has_started_commit = true;
                 }
 
+                //Send unlock messages here.  send CAS to check the process ids and unlock if the lock value matches the failed IDs.
+                LatchLogRecord* rec =  (LatchLogRecord *)latch_logs [t][c][0];
+                table_id_t logged_table_id =  rec[r].table_id_;
+                itemkey_t logged_key = rec[r].key_;
+
+                node_id_t remote_node_id = global_meta_man->GetPrimaryNodeID(logged_item->table_id);
+                            
+                RCQP* qp = thread_qp_man->GetRemoteDataQPWithNodeID(remote_node_id);
+                auto offset = addr_cache->Search(remote_node_id, logged_item->table_id, logged_item->key);
+
+                char* cas_buf = thread_rdma_buffer_alloc->Alloc(sizeof(lock_t));
+
+                //check the current lock value. if ots equal to the failed tx id or node id. then kill.
+    
+                            //assume all logs keys are a cache hit.
+                   if (offset != NOT_FOUND) {
+                       //TODO - pointers are 
+                    offset += sizeof(table_id_t)+sizeof(size_t) + sizeof(itemkey_t)+ sizeof(offset_t)+sizeof(version_t)+sizeof(lock_t); 
+
+                    //RDMACAS(coro_id_t coro_id, RCQP* qp, char* local_buf, uint64_t remote_offset, uint64_t compare, uint64_t swap)
+                    //TODO - STATE_LOCKED must be 
+                    if (!coro_sched->RDMACAS(coro_id, qp, cas_buf, offset, STATE_LOCKED, STATE_CLEAN)) {
+                       //if (!coro_sched->RDMARead(coro_id, qp, &inplace_update[rc], offset, DataItemSize)) {
+                           return false;
+                       }
+                    } 
+                    else{
+                       //TODO- report back to me
+                       assert(false);
+                       //report  back issues.
+                   }            
+                
+               
+                //
+
             }          
            //asserts if the log is larges than MAX LOG Size and if so fetch again. 
 
@@ -810,17 +847,45 @@ bool DTX::IssueLatchLogRecoveryReadForAllThreads(coro_yield_t& yield){
 
         //TODO- check negative records.
 
-        if(!has_started_commit); //TODO- unlock al the places and reconfigure.
+        if(!has_started_commit){
+
+        } //TODO- unlock al the places and reconfigure.
+
         else{
             //coro_num_valid_logs
+            //send unlock operations for all log records. 
+            
+            //or we can send unlock aftr each record. its also fine.
+
+
 
         }
 
         //everything is ok;
 
-    }
+    } // coros
+
+
+
     
+    }// therads
+
+    
+    /*  for (int t=0; t<num_thread; t++){           
+
+            for (int c = 1 ; c < num_coro ; c++){ 
+                RDMA_LOG(INFO) << "recovery coro  - " << c;  
+                
+                if(coro_has_started_commit[t][c]){
+                    RDMA_LOG(INFO) << " --> TX has started commit  - " << c; 
+
+
+                }
+            }
     }
+    */
+
+
    
 
 }

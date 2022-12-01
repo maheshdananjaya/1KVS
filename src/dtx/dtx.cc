@@ -544,6 +544,23 @@ bool DTX::LatchLogDataQP() {
     }
   }
 
+  
+  // This method is tricky when we have multiple primary nodes involves in a single transaction. becuase how can  i read logs. 
+  //one cos - we dont know all priamries before taking log+locks. farm can do as it writes lock values at the same time. FORD cannot.
+  
+  #ifdef LATCH_LOG_PRIMARY_ONLY
+      //TODO - only primary node must be logged 
+      for (int i = 0; i < global_meta_man->remote_nodes.size(); i++) {
+            offset_t log_offset = thread_remote_log_offset_alloc->GetNextLatchLogOffset(i, coro_id, log_size);
+            //DAM -using data qps to write latch logs.
+            RCQP* qp = thread_qp_man->GetRemoteDataQPWithNodeID(i);
+
+            //TODO- log records are without Acks.
+            //coro_sched->RDMALog(coro_id, tx_id, qp, (char*)written_log_buf, log_offset, log_size, true);
+          coro_sched->RDMAWrite(coro_id, qp, (char*)written_log_buf, log_offset, log_size);
+  }
+
+  #else
   // Write undo logs to all memory nodes. ibv send send the offset relative to the memory region.
   for (int i = 0; i < global_meta_man->remote_nodes.size(); i++) {
     offset_t log_offset = thread_remote_log_offset_alloc->GetNextLatchLogOffset(i, coro_id, log_size);
@@ -554,6 +571,8 @@ bool DTX::LatchLogDataQP() {
     //coro_sched->RDMALog(coro_id, tx_id, qp, (char*)written_log_buf, log_offset, log_size, true);
     coro_sched->RDMAWrite(coro_id, qp, (char*)written_log_buf, log_offset, log_size);
   }
+
+  #endif
 
    return true;
 

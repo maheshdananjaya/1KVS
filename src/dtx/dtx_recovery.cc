@@ -809,10 +809,9 @@ bool DTX::IssueLatchLogRecoveryReadForAllThreads(coro_yield_t& yield){
                 table_id_t logged_table_id =  rec[r].table_id_;
                 itemkey_t logged_key = rec[r].key_;
 
-                node_id_t remote_node_id = global_meta_man->GetPrimaryNodeID(logged_item->table_id);
-                            
+                node_id_t remote_node_id = global_meta_man->GetPrimaryNodeID(logged_table_id);                            
                 RCQP* qp = thread_qp_man->GetRemoteDataQPWithNodeID(remote_node_id);
-                auto offset = addr_cache->Search(remote_node_id, logged_item->table_id, logged_item->key);
+                auto offset = addr_cache->Search(remote_node_id, logged_table_id, logged_key);
 
                 char* cas_buf = thread_rdma_buffer_alloc->Alloc(sizeof(lock_t));
 

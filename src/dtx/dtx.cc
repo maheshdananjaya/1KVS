@@ -350,8 +350,8 @@ bool DTX::UndoLogWithoutInserts() {
 
       std::memcpy(written_log_buf + cur, &new_record, sizeof(UndoLogRecord));
       cur += sizeof(UndoLogRecord);
-
-      set_it.is_logged = true;   
+      set_it.is_logged = true; 
+      //RDMA_LOG(FATAL) << "Thread " << t_id << " , Transaction " << tx_id << " , Logged Key " <<  new_record.data_.key;  
 
     }
   }
@@ -420,6 +420,8 @@ bool DTX::UndoLogInsertsOnly() {
 
       set_it.is_logged = true; 
       lg_count++;  
+
+      //RDMA_LOG(FATAL) << "Thread " << t_id << " , Transaction " << tx_id << " , Logged Key " <<  new_record.data_.key;
 
     }
   }
@@ -547,7 +549,7 @@ bool DTX::LatchLogDataQP() {
   
   // This method is tricky when we have multiple primary nodes involves in a single transaction. becuase how can  i read logs. 
   //one cos - we dont know all priamries before taking log+locks. farm can do as it writes lock values at the same time. FORD cannot.
-  
+
   #ifdef LATCH_LOG_PRIMARY_ONLY
       //TODO - only primary node must be logged 
       for (int i = 0; i < global_meta_man->remote_nodes.size(); i++) {

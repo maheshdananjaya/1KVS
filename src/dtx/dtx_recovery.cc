@@ -1329,6 +1329,8 @@ bool DTX::UpdatedIssueUndoLogRecoveryForAllThreads(coro_yield_t& yield){
                     }else{
 
                         //do not care about the last flagged. do recovery regardles of last falgged. no harm here. a bit conservative.
+                        coro_agreed_tx_id = curr_agreed_tx_id; 
+
                         has_started_commit = true;
                         num_valid_logs = r;
                         //coro_agreed_tx_id is same as the last one.
@@ -1347,6 +1349,7 @@ bool DTX::UpdatedIssueUndoLogRecoveryForAllThreads(coro_yield_t& yield){
                     if(!last_flagged){
                         //continue with the next log record if if
                         assert((r+1) <= MAX_DATA_LOG_RECORDS);
+
                         continue;
                     }else{
     
@@ -1359,7 +1362,6 @@ bool DTX::UpdatedIssueUndoLogRecoveryForAllThreads(coro_yield_t& yield){
                         has_started_commit = true;
                         num_valid_logs = r+1; 
                         break;
-
     
                     }
     
@@ -1383,6 +1385,9 @@ bool DTX::UpdatedIssueUndoLogRecoveryForAllThreads(coro_yield_t& yield){
                 // TODO - check in-place updates 
                 coro_num_valid_logs[t][c] = (int)num_valid_logs;
                 coro_has_started_commit[t][c] = has_started_commit;
+
+                //remember. last flagged only workd in with inserts.
+                //RDMA_LOG(FATAL) << "Thread " << t << " , Coro " << c << " , has started commited Tx " << coro_agreed_tx_id; 
     
                 //Iterate through logs (table, key) and read in-place values.
     
@@ -1404,6 +1409,8 @@ bool DTX::UpdatedIssueUndoLogRecoveryForAllThreads(coro_yield_t& yield){
 
                         table_id_t logged_table_id = logged_item->table_id;
                         itemkey_t logged_key = logged_item->key;
+
+                        //RDMA_LOG(FATAL) << "Thread " << t << " , Coro " << c << " , has started commited Tx " <<  logged_key<< " of Table " << logged_table_id; 
 
                         node_id_t remote_node_id = global_meta_man->GetPrimaryNodeID(logged_item->table_id);
                                                 

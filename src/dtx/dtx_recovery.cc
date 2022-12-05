@@ -1276,6 +1276,8 @@ bool DTX::UpdatedIssueUndoLogRecoveryForAllThreads(coro_yield_t& yield){
                     UndoLogRecord* record =  (UndoLogRecord *)undo_logs [t][c][i];                  
                     //to check if the transaction has been commited or partioal log locks are held. still need to unlock. 
                     //Latch log will never be written out of order, assuing truncation
+
+                    //FIX- check if the curretn agrred tx id is.
                     if(record[r].tx_id_ <= 0){
                         if(r==0){
                             //not even started
@@ -1313,8 +1315,7 @@ bool DTX::UpdatedIssueUndoLogRecoveryForAllThreads(coro_yield_t& yield){
                     //if tx matched. if the last flag is set. tx has staretd commiting. 
                     last_flagged &= (bool)record[r].t_id_;  
 
-                }// NODES
-    
+                }// NODES    
     
                 if(!tx_id_agreed){
 
@@ -1329,7 +1330,10 @@ bool DTX::UpdatedIssueUndoLogRecoveryForAllThreads(coro_yield_t& yield){
                     }else{
 
                         //do not care about the last flagged. do recovery regardles of last falgged. no harm here. a bit conservative.
-                        coro_agreed_tx_id = curr_agreed_tx_id; 
+                        
+                        //TODO - This is wrong. 
+                        //coro_agreed_tx_id = curr_agreed_tx_id; 
+
 
                         has_started_commit = true;
                         num_valid_logs = r;
@@ -1343,7 +1347,15 @@ bool DTX::UpdatedIssueUndoLogRecoveryForAllThreads(coro_yield_t& yield){
                 }
                 //all last tx_ids agreed. 
                 else{
-    
+                
+                    if(curr_agreed_tx_id < coro_agreed_tx_id){
+                        //canot be larger. assert. we write logs in order. cannt get reordered.
+                        has_started_commit = true;
+                        num_valid_logs = r;  // remove the last log recored. which is old.
+                        break;
+                    }
+
+
                     coro_agreed_tx_id = curr_agreed_tx_id;                
     
                     if(!last_flagged){
@@ -1433,6 +1445,12 @@ bool DTX::UpdatedIssueUndoLogRecoveryForAllThreads(coro_yield_t& yield){
                         }          
 
 
+                        //NEW-getting the backup offset can be done using primary
+                        const HashMeta& primary_hash_meta = global_meta_man->GetPrimaryHashMetaWithTableID(logged_table_id);
+                        auto offset_in_backup_hash_store = offset - primary_hash_meta.base_off; //absolute value
+                        const std::vector<HashMeta>* backup_hash_metas = global_meta_man->GetBackupHashMetasWithTableID(logged_table_id);
+
+
                         auto* backup_node_ids = global_meta_man->GetBackupNodeID(logged_item->table_id);
                         if (!backup_node_ids) continue;  // There are no backups in the PM pool
 
@@ -1440,8 +1458,17 @@ bool DTX::UpdatedIssueUndoLogRecoveryForAllThreads(coro_yield_t& yield){
 
                         for (size_t i = 0; i < backup_node_ids->size(); i++) {
 
+                            //NEW
+                            auto remote_item_off = offset_in_backup_hash_store + (*backup_hash_metas)[i].base_off;
+                            //auto remote_lock_off = it->GetRemoteLockAddr(remote_item_off);
+
                             RCQP* qp = thread_qp_man->GetRemoteDataQPWithNodeID(backup_node_ids->at(i));
-                            auto offset = addr_cache->Search(backup_node_ids->at(i), logged_item->table_id, logged_item->key);
+
+                            if (!coro_sched->RDMARead(coro_id, qp, &inplace_updates [t][c][i+1][rc*DataItemSize], remote_item_off, DataItemSize)) {
+                                    return false;
+                            }
+                            
+                            /* NEW Deprecated auto offset = addr_cache->Search(backup_node_ids->at(i), logged_item->table_id, logged_item->key);
 
                             if (offset != NOT_FOUND) {
                                 if (!coro_sched->RDMARead(coro_id, qp, &inplace_updates [t][c][i+1][rc*DataItemSize], offset, DataItemSize)) {
@@ -1451,6 +1478,8 @@ bool DTX::UpdatedIssueUndoLogRecoveryForAllThreads(coro_yield_t& yield){
                                 RDMA_LOG(INFO) << "Error 0: Local Cache Miss"; 
                                 assert(false); // When the offset is not present in the cache, for recovery i assume that everything is in the cache.
                             }
+                            */
+
                         }
 
                         //+ we can read the undo logs at the same time. or do that later 
@@ -1491,7 +1520,9 @@ bool DTX::UpdatedIssueUndoLogRecoveryForAllThreads(coro_yield_t& yield){
     //Replacing yield with just a while loop.
     //Complexity if a upper bound of nuber of cncurrent transactions running on  single compute node. 
 
-    while(!coro_sched->CheckRecoveryDataAck(coro_id));
+    //coro_sched->Yield(yield, coro_id);
+    while(!coro_sched->CheckRecoveryDataAck(coro_id)) ;
+    //while(!coro_sched->CheckRecoveryDataAck(coro_id));
 
         for (int t=0; t<num_thread; t++){           
 
@@ -1499,7 +1530,7 @@ bool DTX::UpdatedIssueUndoLogRecoveryForAllThreads(coro_yield_t& yield){
                 RDMA_LOG(INFO) << "recovery coro  - " << c;  
                 
                 if(coro_has_started_commit[t][c]){
-                    RDMA_LOG(INFO) << " --> TX has started commit  - " << c;  
+                    RDMA_LOG(INFO) << " --> TX has started commit  - " << c << " with valid logs " <<  coro_num_valid_logs[t][c] ;  
 
                    UndoLogRecord* record_node_0 =  (UndoLogRecord *)undo_logs [t][c][0]; 
 
@@ -1519,6 +1550,8 @@ bool DTX::UpdatedIssueUndoLogRecoveryForAllThreads(coro_yield_t& yield){
                         for (int i = 0; i < global_meta_man->remote_nodes.size(); i++){                            
                                 
                                 DataItem * in_place_item =  (DataItem *) inplace_updates [t][c][i][j*DataItemSize];
+                                assert(in_place_item != NULL);
+
                                 if(logged_item->version <= in_place_item->version){
                                     is_updated_inplace= true;
                                     match_count++; 

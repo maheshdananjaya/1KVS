@@ -53,17 +53,16 @@ class LogOffsetAllocator {
     }
 
     num_coros_per_thread = num_coro;
-     num_threads_per_machine = num_thread;
+    num_threads_per_machine = num_thread;    
   }
 
   //DAM - For recovery
-
   offset_t GetStartLogOffset(node_id_t node_id, coro_id_t coro_id) {     
 
       return coro_start_log_offsets[node_id][coro_id];
   }
 
-   offset_t GetStartLatchLogOffset(node_id_t node_id, coro_id_t coro_id) {     
+  offset_t GetStartLatchLogOffset(node_id_t node_id, coro_id_t coro_id) {     
 
       return coro_latch_start_log_offsets[node_id][coro_id];
   }

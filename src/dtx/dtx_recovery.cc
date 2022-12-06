@@ -217,15 +217,15 @@ bool DTX::CheckLockRecoveryReadMultiple(std::vector<HashRead>& pending_hash_read
 
 #if defined(LATCH_RECOVERY) || defined(UNDO_RECOVERY)
 
-bool DTX::TxLatchRecovery(coro_yield_t& yield){
+bool DTX::TxLatchRecovery(coro_yield_t& yield, AddrCache ** addr_caches){
     //IssueUndoLogRecovery(yield);
     //IssueLatchLogRecoveryRead(yield);
-    IssueLatchLogRecoveryReadForAllThreads(yield);
+    IssueLatchLogRecoveryReadForAllThreads(yield, addr_caches);
 }
 
-bool DTX::TxUndoRecovery(coro_yield_t& yield){
+bool DTX::TxUndoRecovery(coro_yield_t& yield, AddrCache ** addr_caches){
     //IssueUndoLogRecovery(yield);
-    UpdatedIssueUndoLogRecoveryForAllThreads(yield);
+    UpdatedIssueUndoLogRecoveryForAllThreads(yield, addr_caches);
     //IssueLatchLogRecoveryRead(yield);
 }
 
@@ -421,7 +421,7 @@ bool DTX::IssueUndoLogRecovery(coro_yield_t& yield){
                char* undo_log = thread_rdma_buffer_alloc->Alloc(undo_log_size); // or 512 bytes
 
                undo_logs [c][i] = undo_log; //allocating space;
-               offset_t log_offset = thread_remote_log_offset_alloc->GetStartLogOffset(i, coro_id);
+               offset_t log_offset = thread_remote_log_offset_alloc->GetStartLogOffset(i, coro_id); // 
                RCQP* qp = thread_qp_man->GetRemoteLogQPWithNodeID(i);
        
                //RDMA Read
@@ -643,7 +643,7 @@ bool DTX::IssueUndoLogRecovery(coro_yield_t& yield){
 
 
 //DAM - For Latch recovery for all pending transactions.
-bool DTX::IssueLatchLogRecoveryReadForAllThreads(coro_yield_t& yield){
+bool DTX::IssueLatchLogRecoveryReadForAllThreads(coro_yield_t& yield, AddrCache  ** addr_caches){
 
     coro_id_t num_coro = thread_remote_log_offset_alloc->GetNumCoro();
     t_id_t num_thread = thread_remote_log_offset_alloc->GetNumThreadsPerMachine();
@@ -675,7 +675,9 @@ bool DTX::IssueLatchLogRecoveryReadForAllThreads(coro_yield_t& yield){
             char* latch_log = thread_rdma_buffer_alloc->Alloc(latch_log_size); // or 512 bytes
 
             latch_logs [t][c][i] = latch_log; //allocating space;
-            offset_t log_offset = thread_remote_log_offset_alloc->GetStartLatchLogOffsetForThread(i, coro_id,t);
+
+            //FIXED
+            offset_t log_offset = thread_remote_log_offset_alloc->GetStartLatchLogOffsetForThread(i, c, t); //error c not coro_id
             RCQP* qp = thread_qp_man->GetRemoteDataQPWithNodeID(i);
     
             //RDMA Read
@@ -787,6 +789,14 @@ bool DTX::IssueLatchLogRecoveryReadForAllThreads(coro_yield_t& yield){
 
             else{
 
+
+                 if(curr_agreed_tx_id < coro_agreed_tx_id){
+                        //canot be larger. assert. we write logs in order. cannt get reordered.
+                        has_started_commit = true;
+                        num_valid_logs = r;  // remove the last log recored. which is old.
+                        break;
+                 }
+
                 coro_agreed_tx_id = curr_agreed_tx_id;                
 
                 if(!last_flagged){
@@ -811,7 +821,10 @@ bool DTX::IssueLatchLogRecoveryReadForAllThreads(coro_yield_t& yield){
 
                 node_id_t remote_node_id = global_meta_man->GetPrimaryNodeID(logged_table_id);                            
                 RCQP* qp = thread_qp_man->GetRemoteDataQPWithNodeID(remote_node_id);
-                auto offset = addr_cache->Search(remote_node_id, logged_table_id, logged_key);
+                
+
+                //FIXED auto offset = addr_cache->Search(remote_node_id, logged_table_id, logged_key);
+                auto offset = addr_caches[t]->Search(remote_node_id, logged_table_id, logged_key);
 
                 char* cas_buf = thread_rdma_buffer_alloc->Alloc(sizeof(lock_t));
 
@@ -831,7 +844,9 @@ bool DTX::IssueLatchLogRecoveryReadForAllThreads(coro_yield_t& yield){
                     } 
                     else{
                        //TODO- report back to me
-                       assert(false);
+                       
+
+                       //assert(false);
                        //report  back issues.
                    }            
                 
@@ -855,9 +870,6 @@ bool DTX::IssueLatchLogRecoveryReadForAllThreads(coro_yield_t& yield){
             //send unlock operations for all log records. 
             
             //or we can send unlock aftr each record. its also fine.
-
-
-
         }
 
         //everything is ok;
@@ -869,7 +881,8 @@ bool DTX::IssueLatchLogRecoveryReadForAllThreads(coro_yield_t& yield){
     
     }// therads
 
-    
+    while(!coro_sched->CheckRecoveryDataAck(coro_id));
+
     /*  for (int t=0; t<num_thread; t++){           
 
             for (int c = 1 ; c < num_coro ; c++){ 
@@ -924,7 +937,9 @@ bool DTX::IssueUndoLogRecoveryForAllThreads(coro_yield_t& yield){
                 char* undo_log = thread_rdma_buffer_alloc->Alloc(undo_log_size); // or 512 bytes
     
                 undo_logs [t][c][i] = undo_log; //allocating space;
-                offset_t log_offset = thread_remote_log_offset_alloc->GetStartLogOffsetForThread(i, coro_id, t);
+
+                //FIXED 
+                offset_t log_offset = thread_remote_log_offset_alloc->GetStartLogOffsetForThread(i, c, t); // c not coro_id
                 RCQP* qp = thread_qp_man->GetRemoteLogQPWithNodeID(i);
         
                 //RDMA Read
@@ -1192,7 +1207,7 @@ bool DTX::IssueUndoLogRecoveryForAllThreads(coro_yield_t& yield){
 //Newwest one with reading data from all replicas. //
 //1. in our setup all machines are logging machine sand replicas. f+2 replicas.
 //2. 
-bool DTX::UpdatedIssueUndoLogRecoveryForAllThreads(coro_yield_t& yield){
+bool DTX::UpdatedIssueUndoLogRecoveryForAllThreads(coro_yield_t& yield, AddrCache ** addr_caches){
 
     coro_id_t num_coro = thread_remote_log_offset_alloc->GetNumCoro();
     t_id_t num_thread = thread_remote_log_offset_alloc->GetNumThreadsPerMachine();
@@ -1226,7 +1241,9 @@ bool DTX::UpdatedIssueUndoLogRecoveryForAllThreads(coro_yield_t& yield){
                 char* undo_log = thread_rdma_buffer_alloc->Alloc(undo_log_size); // or 512 bytes
     
                 undo_logs [t][c][i] = undo_log; //allocating space;
-                offset_t log_offset = thread_remote_log_offset_alloc->GetStartLogOffsetForThread(i, coro_id, t);
+                
+                //FIXED
+                offset_t log_offset = thread_remote_log_offset_alloc->GetStartLogOffsetForThread(i, c, t); // bit issue coro_id is wrong. c
                 RCQP* qp = thread_qp_man->GetRemoteLogQPWithNodeID(i);
         
                 //RDMA Read
@@ -1427,7 +1444,9 @@ bool DTX::UpdatedIssueUndoLogRecoveryForAllThreads(coro_yield_t& yield){
                         node_id_t remote_node_id = global_meta_man->GetPrimaryNodeID(logged_item->table_id);
                                                 
                         RCQP* qp = thread_qp_man->GetRemoteDataQPWithNodeID(remote_node_id);
-                        auto offset = addr_cache->Search(remote_node_id, logged_item->table_id, logged_item->key);
+
+                        //FIXED auto offset = addr_cache->Search(remote_node_id, logged_item->table_id, logged_item->key);
+                        auto offset = addr_caches[t]->Search(remote_node_id, logged_item->table_id, logged_item->key);
 
                         //assume all logs keys are a cache hit.
                         if (offset != NOT_FOUND) {
@@ -1440,7 +1459,7 @@ bool DTX::UpdatedIssueUndoLogRecoveryForAllThreads(coro_yield_t& yield){
                         } 
                         else{
                             //TODO- report back to me
-                            RDMA_LOG(INFO) << "Error 0- Local Cache Miss "; 
+                            RDMA_LOG(FATAL) << "Error 0- Local Cache Miss "; 
                             assert(false);
                         }          
 
@@ -1527,10 +1546,10 @@ bool DTX::UpdatedIssueUndoLogRecoveryForAllThreads(coro_yield_t& yield){
         for (int t=0; t<num_thread; t++){           
 
             for (int c = 1 ; c < num_coro ; c++){ 
-                RDMA_LOG(INFO) << "recovery coro  - " << c;  
+                //RDMA_LOG(INFO) << "recovery coro  - " << c;  
                 
                 if(coro_has_started_commit[t][c]){
-                    RDMA_LOG(INFO) << " --> TX has started commit  - " << c << " with valid logs " <<  coro_num_valid_logs[t][c] ;  
+                    //RDMA_LOG(INFO) << " --> TX has started commit  - " << c << " with valid logs " <<  coro_num_valid_logs[t][c] ;  
 
                    UndoLogRecord* record_node_0 =  (UndoLogRecord *)undo_logs [t][c][0]; 
 
@@ -1565,7 +1584,10 @@ bool DTX::UpdatedIssueUndoLogRecoveryForAllThreads(coro_yield_t& yield){
                             //apply all in-place updates.
                             node_id_t remote_node_id = global_meta_man->GetPrimaryNodeID(logged_item->table_id);                                                
                             RCQP* qp = thread_qp_man->GetRemoteDataQPWithNodeID(remote_node_id);
-                            auto offset = addr_cache->Search(remote_node_id, logged_item->table_id, logged_item->key);
+                            
+                            //FIXED auto offset = addr_cache->Search(remote_node_id, logged_item->table_id, logged_item->key);
+                            auto offset = addr_caches[t]->Search(remote_node_id, logged_item->table_id, logged_item->key);
+
                              if (offset != NOT_FOUND) {
 
                                if (!coro_sched->RDMAWrite(coro_id, qp, (char*)logged_item, offset, DataItemSize)) {
@@ -1573,7 +1595,7 @@ bool DTX::UpdatedIssueUndoLogRecoveryForAllThreads(coro_yield_t& yield){
                                 }    
                             }else{
 
-                                RDMA_LOG(INFO) << "Error 1 ";  
+                                RDMA_LOG(FATAL) << "Error 1 - no offset for primary";  
                                 assert(false);
                             }
 
@@ -1590,7 +1612,7 @@ bool DTX::UpdatedIssueUndoLogRecoveryForAllThreads(coro_yield_t& yield){
                                         return false;
                                     }
                                 }else{
-                                    RDMA_LOG(INFO) << "Error 2 ";  
+                                    RDMA_LOG(FATAL) << "Error 2- no cache for bkup ";  
                                     assert(false); // When the offset is not present in the cache, for recovery i assume that everything is in the cache.
                                 }
                             }
@@ -1607,7 +1629,7 @@ bool DTX::UpdatedIssueUndoLogRecoveryForAllThreads(coro_yield_t& yield){
             }
         }
 
-
+        while(!coro_sched->CheckRecoveryDataAck(coro_id));
 
 }
 #endif

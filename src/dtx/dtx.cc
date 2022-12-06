@@ -351,10 +351,12 @@ bool DTX::UndoLogWithoutInserts() {
       std::memcpy(written_log_buf + cur, &new_record, sizeof(UndoLogRecord));
       cur += sizeof(UndoLogRecord);
       set_it.is_logged = true; 
-      //RDMA_LOG(FATAL) << "Thread " << t_id << " , Transaction " << tx_id << " , Logged Key " <<  new_record.data_.key;  
+      //RDMA_LOG(INFO) << "Thread " << t_id << " , Transaction " << tx_id << " , Logged Key " <<  new_record.data_.key;  
 
     }
   }
+
+
 
   // Write undo logs to all memory nodes. ibv send send the offset relative to the memory region.
   for (int i = 0; i < global_meta_man->remote_nodes.size(); i++) {
@@ -421,7 +423,7 @@ bool DTX::UndoLogInsertsOnly() {
       set_it.is_logged = true; 
       lg_count++;  
 
-      //RDMA_LOG(FATAL) << "Thread " << t_id << " , Transaction " << tx_id << " , Logged Key " <<  new_record.data_.key;
+      //RDMA_LOG(INFO) << "Thread " << t_id << " , Transaction " << tx_id << " , Logged Key " <<  new_record.data_.key;
 
     }
   }

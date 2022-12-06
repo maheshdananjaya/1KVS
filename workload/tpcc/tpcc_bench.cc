@@ -29,6 +29,9 @@ extern std::vector<double> tp_vec;
 extern std::vector<double> medianlat_vec;
 extern std::vector<double> taillat_vec;
 
+extern AddrCache**  addr_caches;
+
+
 __thread uint64_t ATTEMPTED_NUM;
 __thread uint64_t seed;                        // Thread-global random seed
 __thread FastRandom* random_generator = NULL;  // per coroutine random generator
@@ -993,10 +996,11 @@ void RunTx(coro_yield_t& yield, coro_id_t coro_id) {
 #endif
 
     #ifdef UNDO_RECOVERY
+  
     if(thread_gid==0){
       printf("Starting Coordinator-Side Undo Recovery at gid=0.. \n");
       clock_gettime(CLOCK_REALTIME, &msr_start);
-      dtx->TxUndoRecovery(yield);
+      dtx->TxUndoRecovery(yield, addr_caches);
       clock_gettime(CLOCK_REALTIME, &msr_end);
       double rec_msr_sec = (msr_end.tv_sec - msr_start.tv_sec) + (double)(msr_end.tv_nsec - msr_start.tv_nsec) / 1000000000;
       printf("Recovery time - %f \n", rec_msr_sec);
@@ -1008,7 +1012,7 @@ void RunTx(coro_yield_t& yield, coro_id_t coro_id) {
     if(thread_gid==0){
       printf("Starting Coordinator-Side Latch Recovery at gid=0.. \n");
       clock_gettime(CLOCK_REALTIME, &msr_start);
-      dtx->TxLatchRecovery(yield);
+      dtx->TxLatchRecovery(yield, addr_caches);
       clock_gettime(CLOCK_REALTIME, &msr_end);
       double rec_msr_sec = (msr_end.tv_sec - msr_start.tv_sec) + (double)(msr_end.tv_nsec - msr_start.tv_nsec) / 1000000000;
       printf("Recovery time - %f \n", rec_msr_sec);
@@ -1034,7 +1038,10 @@ void run_thread(struct thread_params* params) {
   coro_num = (coro_id_t)params->coro_num;
   coro_sched = new CoroutineScheduler(thread_gid, coro_num);
   auto alloc_rdma_region_range = params->global_rdma_region->GetThreadLocalRegion(params->thread_local_id);
+
   addr_cache = new AddrCache();
+  addr_caches[params->thread_local_id] = addr_cache;
+
   rdma_buffer_allocator = new RDMABufferAllocator(alloc_rdma_region_range.first, alloc_rdma_region_range.second);
 
   //DAM - new log allaocator per coroutine
@@ -1088,7 +1095,7 @@ void run_thread(struct thread_params* params) {
   // Clean
   // delete latency;
   delete[] timer;
-  delete addr_cache;
+  //delete addr_cache;
   delete[] workgen_arr;
   delete coro_sched;
   delete[] random_generator;

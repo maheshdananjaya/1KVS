@@ -23,6 +23,15 @@ std::vector<double> lock_durations;
 
 bool crash_emu = false;
 
+//ToDO mutexes for accesses
+AddrCache**  addr_caches;
+
+
+//#ifdef UNDO_RECOVERY
+//  extern AddrCache* addr_cache;
+// extern std::mutex cache_mux; 
+//#else
+
 //For partial results.
 //uint64_t * tx_attempted;
 //uint64_t * tx_commited;
@@ -120,6 +129,7 @@ void InitCounters(node_id_t machine_num, node_id_t machine_id, t_id_t thread_num
   //window_curr_time = new double[thread_num_per_machine]();
 
   //std::fill_n( a, 100, 0 ); 
+  addr_caches = new AddrCache* [thread_num_per_machine];
 
   for(int i=0;i<thread_num_per_machine;i++){
     //initial values
@@ -130,10 +140,15 @@ void InitCounters(node_id_t machine_num, node_id_t machine_id, t_id_t thread_num
     window_curr_time [i] = 0.0;
 
     record_ptrs[i] = NULL;
+    addr_cache[i] = NULL;
 
   }
 
   crash_emu = false;
+
+  //#ifdef UNDO_RECOVERY
+  //  addr_cache = new AddrCache();
+  //#endif
   //std::fill_n( a, 100, 0 ); 
   //assert(!thread_done[0]);
 }

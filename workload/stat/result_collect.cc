@@ -140,7 +140,7 @@ void InitCounters(node_id_t machine_num, node_id_t machine_id, t_id_t thread_num
     window_curr_time [i] = 0.0;
 
     record_ptrs[i] = NULL;
-    addr_cache[i] = NULL;
+    addr_caches[i] = NULL;
 
   }
 

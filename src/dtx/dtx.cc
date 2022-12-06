@@ -18,6 +18,7 @@ DTX::DTX(MetaManager* meta_man,
   coro_id = coroid;
   coro_sched = sched;
   global_meta_man = meta_man;
+
   thread_qp_man = qp_man;
   thread_rdma_buffer_alloc = rdma_buffer_allocator;
   tx_status = TXStatus::TX_INIT;
@@ -306,6 +307,70 @@ bool DTX::UndoLog() {
 
 }
 
+
+//DAM - without inserts
+bool DTX::DAMUndoLog() {
+
+  // Write the old data from read write set
+  //DAM- t_id is unnecssary. it is used to flag the last log entry. and /or first log entry.
+  // if we can give the number of potential log entries at the beggining, size can be written to the first tid
+  
+  //size_t log_record_size = sizeof(tx_id_t)+sizeof(t_id_t)+DataItemSize;
+  size_t log_record_size = sizeof(UndoLogRecord);
+
+  // this does not include inserts as they get locked suring the validation phase. 
+  // This works with seperate locking as well.
+
+  size_t num_log_entries = 0;
+   //DAM- TODO craefull all the inserts are logged without locking. wait for the validation.
+  for (auto& set_it : read_write_set) { 
+
+    if (set_it.is_fetched && !set_it.is_logged) num_log_entries++;
+  }
+
+  if(num_log_entries == 0) return false;
+
+  size_t log_size = log_record_size*num_log_entries;
+  char* written_log_buf = thread_rdma_buffer_alloc->Alloc(log_size);
+  offset_t cur = 0;
+
+  for (auto& set_it : read_write_set) { 
+
+    if (set_it.is_fetched && !set_it.is_logged) {           
+      
+      UndoLogRecord new_record;
+      new_record.tx_id_ = tx_id;
+      new_record.t_id_=t_id;
+      new_record.data_ = *(set_it.item_ptr.get());
+
+      //std::memcpy(written_log_buf + cur, &tx_id, sizeof(tx_id_t));  
+      //cur += sizeof(tx_id_t);
+      //std::memcpy(written_log_buf + cur, &t_id, sizeof(t_id_t));
+      //cur += sizeof(t_id_t);
+      //std::memcpy(written_log_buf + cur, set_it.item_ptr.get(), DataItemSize);
+      //cur += DataItemSize;
+
+      std::memcpy(written_log_buf + cur, &new_record, sizeof(UndoLogRecord));
+      cur += sizeof(UndoLogRecord);
+      set_it.is_logged = true; 
+      //RDMA_LOG(INFO) << "Thread " << t_id << " , Transaction " << tx_id << " , Logged Key " <<  new_record.data_.key;  
+
+    }
+  }
+
+  // Write undo logs to all memory nodes. ibv send send the offset relative to the memory region.
+  for (int i = 0; i < global_meta_man->remote_nodes.size(); i++) {
+    offset_t log_offset = thread_remote_log_offset_alloc->GetNextLogOffset(i, coro_id, log_size);
+    RCQP* qp = thread_qp_man->GetRemoteLogQPWithNodeID(i);
+
+    //TODO- log records are without Acks.
+    coro_sched->RDMALog(coro_id, tx_id, qp, (char*)written_log_buf, log_offset, log_size);
+  }
+
+  return true;
+
+}
+
 //DAM - without inserts
 bool DTX::UndoLogWithoutInserts() {
 
@@ -323,7 +388,8 @@ bool DTX::UndoLogWithoutInserts() {
    //DAM- TODO craefull all the inserts are logged without locking. wait for the validation.
   for (auto& set_it : read_write_set) { 
 
-    if (!set_it.is_logged  && !set_it.item_ptr->user_insert ) num_log_entries++;
+    //if (!set_it.is_logged  && !set_it.item_ptr->user_insert ) num_log_entries++;
+    if (set_it.is_fetched && !set_it.is_logged) num_log_entries++;
   }
 
   if(num_log_entries == 0) return false;
@@ -334,7 +400,8 @@ bool DTX::UndoLogWithoutInserts() {
 
   for (auto& set_it : read_write_set) { 
 
-    if (!set_it.is_logged && !set_it.item_ptr->user_insert) {           
+    //if (!set_it.is_logged && !set_it.item_ptr->user_insert) { 
+    if (set_it.is_fetched && !set_it.is_logged) {           
       
       UndoLogRecord new_record;
       new_record.tx_id_ = tx_id;
@@ -388,7 +455,8 @@ bool DTX::UndoLogInsertsOnly() {
    //DAM- TODO craefull all the inserts are logged without locking. wait for the validation.
   for (auto& set_it : read_write_set) { 
 
-    if (!set_it.is_logged  && set_it.item_ptr->user_insert ) num_log_entries++;
+    //if (!set_it.is_logged  && set_it.item_ptr->user_insert ) num_log_entries++;
+    if (set_it.is_fetched && !set_it.is_logged) num_log_entries++;
   }
 
   if(num_log_entries == 0) return false;
@@ -403,7 +471,8 @@ bool DTX::UndoLogInsertsOnly() {
 
   for (auto& set_it : read_write_set) { 
 
-    if (!set_it.is_logged && set_it.item_ptr->user_insert) {  
+    //if (!set_it.is_logged && set_it.item_ptr->user_insert) { 
+    if (set_it.is_fetched && !set_it.is_logged) {  
 
       UndoLogRecord new_record;
       new_record.tx_id_ = tx_id;

@@ -339,7 +339,7 @@ class DTX {
     public: 
      
       bool TxLatchRecovery(coro_yield_t& yield, AddrCache ** addr_caches);
-      bool TxUndoRecovery(coro_yield_t& yield, , AddrCache ** addr_caches);
+      bool TxUndoRecovery(coro_yield_t& yield, AddrCache ** addr_caches);
       bool IssueLatchLogRecoveryRead(coro_yield_t& yield);
       bool IssueUndoLogRecovery(coro_yield_t& yield);
       bool IssueLatchLogRecoveryReadForAllThreads(coro_yield_t& yield, AddrCache ** addr_caches);

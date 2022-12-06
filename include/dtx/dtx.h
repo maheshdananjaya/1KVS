@@ -134,6 +134,8 @@ class DTX {
   void PruneLog();
   void Recovery();
 
+  bool DAMUndoLog();
+
 
   void Clean();  // Clean data sets after commit/abort
 

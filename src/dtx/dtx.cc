@@ -419,7 +419,7 @@ bool DTX::UndoLogWithoutInserts() {
       cur += sizeof(UndoLogRecord);
       set_it.is_logged = true; 
       //RDMA_LOG(INFO) << "Thread " << t_id << " , Transaction " << tx_id << " , Logged Key " <<  new_record.data_.key;  
-
+      //  RDMA_LOG(INFO) << "NORMAL Thread " << new_record.t_id_<< " coro " << coro_id << " , Transaction " << new_record.tx_id_ << " , Logged Key " <<  new_record.data_.key << "  Insert " <<  (set_it.item_ptr->user_insert)? "YES": "NO";
     }
   }
 
@@ -493,7 +493,7 @@ bool DTX::UndoLogInsertsOnly() {
       lg_count++;  
 
       //RDMA_LOG(INFO) << "Thread " << t_id << " , Transaction " << tx_id << " , Logged Key " <<  new_record.data_.key;
-
+      //  RDMA_LOG(INFO) << "NORMAL Thread " << new_record.t_id_<< " coro " << coro_id << " , Transaction " << new_record.tx_id_ << " , Logged Key " <<  new_record.data_.key << "  Insert " <<  (set_it.item_ptr->user_insert)? "YES": "NO";
     }
   }
 

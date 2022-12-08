@@ -1563,7 +1563,7 @@ bool DTX::UpdatedIssueUndoLogRecoveryForAllThreads(coro_yield_t& yield){
 				RDMA_LOG(INFO) << " inplce_item of node " << in_place_item.key << " with version " << in_place_item.version;
 
 
-				if(logged_item->version <= in_place_item.version){
+				        if(logged_item->version <= in_place_item.version){
                                     is_updated_inplace= true;
                                     match_count++; 
                                     //break;

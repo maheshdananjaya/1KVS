@@ -845,7 +845,7 @@ bool DTX::IssueLatchLogRecoveryReadForAllThreads(coro_yield_t& yield, AddrCache 
                     else{
                        //TODO- report back to me
                        
-
+                        //NEW - just keep continuing
                        //assert(false);
                        //report  back issues.
                    }            
@@ -1550,20 +1550,18 @@ bool DTX::UpdatedIssueUndoLogRecoveryForAllThreads(coro_yield_t& yield, AddrCach
                 
                 if(coro_has_started_commit[t][c]){
                     //RDMA_LOG(INFO) << " --> TX has started commit  - " << c << " with valid logs " <<  coro_num_valid_logs[t][c] ;  
-
+                    //RDMA_LOG(INFO) << " --> TX has started commit  - " << c << " with valid logs " << coro_num_valid_logs[t][c];
                    UndoLogRecord* record_node_0 =  (UndoLogRecord *)undo_logs [t][c][0]; 
 
                    bool  tx_completed = true;
+                   bool is_updated_inplace = true;
 
-                   for(int j=0; j < coro_num_valid_logs[t][c]; j++){
-                        
+                   for(int j=0; j < coro_num_valid_logs[t][c]; j++){                        
 
                         //TODO; assume thet it is equal to the number of replicas. 
                         //ideally relicas+1
-                        DataItem* logged_item = &record_node_0[j].data_ ;
-                        bool is_updated_inplace=true;
-                        int match_count=0;
-
+                        DataItem* logged_item = &record_node_0[j].data_ ;                        
+                        int match_count = 0;
                          //Check if all inplace updates matches for every transactions
                         //TODO: if amemory replic fails whatever present in the backup replicas will be used. 
                         for (int i = 0; i < global_meta_man->remote_nodes.size(); i++){                            
@@ -1573,60 +1571,85 @@ bool DTX::UpdatedIssueUndoLogRecoveryForAllThreads(coro_yield_t& yield, AddrCach
 
                                 //assert(in_place_item != NULL);
 
-                                if(logged_item->version <= in_place_item.version){
-                                    is_updated_inplace= true;
+                                //RDMA_LOG(INFO) << " logged_item " << logged_item->key << " with version " << logged_item->version;
+                                //RDMA_LOG(INFO) << " inplce_item of node " << in_place_item.key << " with version " << in_place_item.version;
+
+                                if(logged_item->version < in_place_item.version){
+                                    //is_updated_inplace &= true;
                                     match_count++; 
                                     //break;
+                                }
+                                else{
+                                    is_updated_inplace &= false;
                                 }
                         }
 
                         //APPLy UNDO Logs.
-                        if(match_count != global_meta_man->remote_nodes.size()) {
-                            tx_completed=false;
-                            //apply all in-place updates.
-                            node_id_t remote_node_id = global_meta_man->GetPrimaryNodeID(logged_item->table_id);                                                
-                            RCQP* qp = thread_qp_man->GetRemoteDataQPWithNodeID(remote_node_id);
-                            
-                            //FIXED auto offset = addr_cache->Search(remote_node_id, logged_item->table_id, logged_item->key);
-                            auto offset = addr_caches[t]->Search(remote_node_id, logged_item->table_id, logged_item->key);
-
-                             if (offset != NOT_FOUND) {
-
-                               if (!coro_sched->RDMAWrite(coro_id, qp, (char*)logged_item, offset, DataItemSize)) {
-                                       return false;
-                                }    
-                            }else{
-
-                                RDMA_LOG(FATAL) << "Error 1 - no offset for primary";  
-                                assert(false);
-                            }
-
-                            auto* backup_node_ids = global_meta_man->GetBackupNodeID(logged_item->table_id);
-                            if (!backup_node_ids) continue;  // There are no backups in the PM pool
-    
-                            for (size_t i = 0; i < backup_node_ids->size(); i++) {
-    
-                                RCQP* qp = thread_qp_man->GetRemoteDataQPWithNodeID(backup_node_ids->at(i));
-                                auto offset = addr_cache->Search(backup_node_ids->at(i), logged_item->table_id, logged_item->key);
-    
-                                if (offset != NOT_FOUND) {
-                                    if (!coro_sched->RDMAWrite(coro_id, qp, (char*)logged_item, offset, DataItemSize)) {
-                                        return false;
-                                    }
-                                }else{
-                                    RDMA_LOG(FATAL) << "Error 2- no cache for bkup ";  
-                                    assert(false); // When the offset is not present in the cache, for recovery i assume that everything is in the cache.
-                                }
-                            }
-
+                        if((match_count != global_meta_man->remote_nodes.size()) &&  (match_count != 0) ) {
+                            tx_completed &= false;    //partial   
                             break;
                         }
-                        
-                    }
 
-                    //come back anc undo all the changes.
+                        
+                    }//valida records
+
+
+                    //come back anc undo all the changes. pessimistic. apply all undos. not necessary. 
+                    //SUCC (tx_completed && is_updated_inplace asll (match))
+
+                    if((!tx_completed) || (!is_updated_inplace)) {
+                        for(int j=0; j < coro_num_valid_logs[t][c]; j++){
                     
-                }
+                            DataItem* logged_item = &record_node_0[j].data_ ;
+    
+                            //apply all in-place updates.
+                                node_id_t remote_node_id = global_meta_man->GetPrimaryNodeID(logged_item->table_id);                                                
+                                RCQP* qp = thread_qp_man->GetRemoteDataQPWithNodeID(remote_node_id);
+                                
+                                //FIXED auto offset = addr_cache->Search(remote_node_id, logged_item->table_id, logged_item->key);
+                                auto offset = addr_caches[t]->Search(remote_node_id, logged_item->table_id, logged_item->key);
+    
+                                 if (offset != NOT_FOUND) {
+    
+                                   if (!coro_sched->RDMAWrite(coro_id, qp, (char*)logged_item, offset, DataItemSize)) {
+                                           return false;
+                                    }    
+                                }else{
+    
+                                    RDMA_LOG(FATAL) << "Error 1 - no offset for primary";  
+                                    assert(false);
+                                }
+    
+                                //NEW-getting the backup offset can be done using primary
+                                const HashMeta& primary_hash_meta = global_meta_man->GetPrimaryHashMetaWithTableID(logged_item->table_id);
+                                auto offset_in_backup_hash_store = offset - primary_hash_meta.base_off; //absolute value
+                                const std::vector<HashMeta>* backup_hash_metas = global_meta_man->GetBackupHashMetasWithTableID(logged_item->table_id);
+    
+    
+                                auto* backup_node_ids = global_meta_man->GetBackupNodeID(logged_item->table_id);
+                                if (!backup_node_ids) continue;  // There are no backups in the PM pool
+    
+                                assert(backup_node_ids->size() <=  (global_meta_man->remote_nodes.size()-1));
+        
+                                for (size_t i = 0; i < backup_node_ids->size(); i++) {   
+                                    
+    
+                                    RCQP* qp = thread_qp_man->GetRemoteDataQPWithNodeID(backup_node_ids->at(i));
+                                    
+                                    //FIXED auto offset = addr_cache->Search(backup_node_ids->at(i), logged_item->table_id, logged_item->key);
+                                    auto remote_item_off = offset_in_backup_hash_store + (*backup_hash_metas)[i].base_off;
+    
+                                    
+                                    if (!coro_sched->RDMAWrite(coro_id, qp, (char*)logged_item, remote_item_off, DataItemSize)) {
+                                        return false;
+                                    }
+                                  
+                                }
+    
+                        }// UNdo apply finished
+                    }
+                    
+                } //has started commit
                 
             }
         }

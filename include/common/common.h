@@ -63,3 +63,6 @@ typedef struct atomic_record{
 
 //#define STATS
 #define WITH_UNDO_LOGGING
+#define WITH_LATCH_LOGGING
+#define UNDO_RECOVERY
+#define LATCH_RECOVERY

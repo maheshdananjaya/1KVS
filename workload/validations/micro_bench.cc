@@ -118,6 +118,7 @@ bool IncrementTest(coro_yield_t& yield, tx_id_t tx_id, DTX* dtx) {
   dtx->TxBegin(tx_id);
   bool is_write;
   DataItemPtr micro_objs;
+   micro_key_t micro_key;
 
 //DAM- do the same thing multiple times
 
@@ -157,7 +158,7 @@ bool DecrementTest(coro_yield_t& yield, tx_id_t tx_id, DTX* dtx) {
   dtx->TxBegin(tx_id);
   bool is_write;
   DataItemPtr micro_objs;
-
+  micro_key_t micro_key;
   //DAM- do the same thing multiple times
   
   //micro_key.item_key = (itemkey_t)FastRand(&seed) & (num_keys_global - 1);
@@ -537,7 +538,7 @@ void RunTx(coro_yield_t& yield, coro_id_t coro_id) {
 
     //Artificial injected faults. and recovery.
     //This could be tested with threads.
-    
+
     if(tx_committed){
       while(true){
           ///its not a performance thing

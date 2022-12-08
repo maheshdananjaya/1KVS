@@ -543,8 +543,8 @@ void RunTx(coro_yield_t& yield, coro_id_t coro_id) {
           
           printf("Crashed-Recovery \n");
           crash_emu = true;
-          dtx->TxUndoRecovery(yield);
-          dtx->TxLatchRecovery(yield);
+          dtx->TxUndoRecovery(yield, addr_caches);
+          dtx->TxLatchRecovery(yield, addr_caches);
            //usleep(500000);
           crash_emu = false;
           asm volatile("mfence" ::: "memory");

@@ -996,8 +996,9 @@ void RunTx(coro_yield_t& yield, coro_id_t coro_id) {
 #endif
 
     #ifdef UNDO_RECOVERY
-  
+    
     if(thread_gid==0){
+      usleep(5000000);
       printf("Starting Coordinator-Side Undo Recovery at gid=0.. \n");
       clock_gettime(CLOCK_REALTIME, &msr_start);
       dtx->TxUndoRecovery(yield, addr_caches);
@@ -1039,6 +1040,7 @@ void run_thread(struct thread_params* params) {
   coro_sched = new CoroutineScheduler(thread_gid, coro_num);
   auto alloc_rdma_region_range = params->global_rdma_region->GetThreadLocalRegion(params->thread_local_id);
 
+  
   addr_cache = new AddrCache();
   addr_caches[params->thread_local_id] = addr_cache;
 

@@ -611,6 +611,7 @@ void RunTx(coro_yield_t& yield, coro_id_t coro_id) {
   #ifdef UNDO_RECOVERY
   
     if(thread_gid==0){
+      usleep(5000000);
       printf("Starting Coordinator-Side Undo Recovery at gid=0.. \n");
       clock_gettime(CLOCK_REALTIME, &msr_start);
       dtx->TxUndoRecovery(yield, addr_caches);

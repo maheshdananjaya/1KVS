@@ -535,9 +535,24 @@ void RunTx(coro_yield_t& yield, coro_id_t coro_id) {
 
     tx_committed = IncrementTest(yield, iter, dtx);
 
-
     //Artificial injected faults. and recovery.
     //This could be tested with threads.
+
+    // ebale crash here.
+     #ifdef INTERMITTENT_CRASH
+      if( ( ((stat_attempted_tx_total % 1000) == 0) && (thread_gid==0)){
+          
+          printf("Crashed-Recovery \n");
+          crash_emu = true;
+          dtx->TxUndoRecovery(yield);
+          dtx->TxLatchRecovery(yield);
+           //usleep(500000);
+          crash_emu = false;
+          asm volatile("mfence" ::: "memory");
+
+      }
+      while(crash_emu){}; // stop all other threads from progressing. 
+    #endif
 
     if(tx_committed){
       while(true){
@@ -648,8 +663,8 @@ void RunTx(coro_yield_t& yield, coro_id_t coro_id) {
       while(crash_emu){}; // stop all other threads from progressing. 
 
     #endif
-
   }
+  
 
   std::string thread_num_coro_num;
   if (coro_num < 10) {

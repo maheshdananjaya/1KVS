@@ -532,7 +532,6 @@ void RunTx(coro_yield_t& yield, coro_id_t coro_id) {
     uint64_t iter = ++tx_id_generator;  // Global atomic transaction id
     stat_attempted_tx_total++;
     clock_gettime(CLOCK_REALTIME, &tx_start_time);
-
     tx_committed = IncrementTest(yield, iter, dtx);
 
     //Artificial injected faults. and recovery.
@@ -540,7 +539,7 @@ void RunTx(coro_yield_t& yield, coro_id_t coro_id) {
 
     // ebale crash here.
      #ifdef INTERMITTENT_CRASH
-      if( ( ((stat_attempted_tx_total % 1000) == 0) && (thread_gid==0)){
+      if( ( (stat_attempted_tx_total % 1000) == 0) && (thread_gid==0) ){
           
           printf("Crashed-Recovery \n");
           crash_emu = true;
@@ -551,6 +550,7 @@ void RunTx(coro_yield_t& yield, coro_id_t coro_id) {
           asm volatile("mfence" ::: "memory");
 
       }
+
       while(crash_emu){}; // stop all other threads from progressing. 
     #endif
 
@@ -755,6 +755,7 @@ void RunTx(coro_yield_t& yield, coro_id_t coro_id) {
   #endif
 
   delete dtx;
+
 }
 
 void run_thread(struct thread_params* params) {

@@ -544,7 +544,7 @@ void RunTx(coro_yield_t& yield, coro_id_t coro_id) {
           ///its not a performance thing
 
          tx_committed = DecrementTest(yield, iter, dtx);
-         if(tx_commited) break;
+         if(tx_committed) break;
 
       }
     }

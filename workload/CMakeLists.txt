@@ -27,6 +27,8 @@ add_subdirectory(smallbank)
 
 add_subdirectory(micro)
 
+add_subdirectory(validations)
+
 if(GRPC_FD) 
 	add_subdirectory(test_grpc)
 endif()

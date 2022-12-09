@@ -992,7 +992,7 @@ void RunTx(coro_yield_t& yield, coro_id_t coro_id) {
       break;
     }
 
-      #ifdef CRASH_ENABLE
+      #ifdef CRASH_ENABLE_TPCC
       if( (stat_attempted_tx_total == (ATTEMPTED_NUM/10)) && (thread_gid==0)){
           printf("Crashed-Recovery \n");
           crash_emu = true;

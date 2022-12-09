@@ -494,13 +494,20 @@ void RunTx(coro_yield_t& yield, coro_id_t coro_id) {
       // stat_committed_tx_total++;
 
 
-      //adding to the 
-      #ifdef STATS
+    #ifdef STATS
         tx_attempted[local_thread_id] = stat_attempted_tx_total;
         tx_commited[local_thread_id] = stat_committed_tx_total;
-        window_curr_time[local_thread_id] = (tx_end_time.tv_sec) * 1000000 + (double)(tx_end_time.tv_nsec) / 1000;  // in miro seconds   
+        double usec = (tx_end_time.tv_sec) * 1000000 + (double)(tx_end_time.tv_nsec) / 1000;  // in miro seconds ;
+        window_curr_time[local_thread_id] =   usec;
+      
+        REC atomic_record;
+        atomic_record.txs = stat_committed_tx_total;
+        atomic_record.usecs = usec;
+
+        record_ptrs[local_thread_id] = &atomic_record; // pointer change. 
 
       #endif
+
     }
 
     //

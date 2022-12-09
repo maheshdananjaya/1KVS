@@ -621,6 +621,25 @@ void RunTx(coro_yield_t& yield, coro_id_t coro_id) {
       mux.unlock();
 
       break;
+
+    #ifdef CRASH_ENABLE
+      if( (stat_attempted_tx_total == (ATTEMPTED_NUM/10)) && (thread_gid==0)){
+          printf("Crashed-Recovery \n");
+          crash_emu = true;
+
+          //send a crash signal to failure detector.         
+          // send a signal and get the ack back
+          usleep(6000);
+          dtx->TxUndoRecovery(yield, addr_caches);
+          dtx->TxLatchRecovery(yield, addr_caches);
+          //printf("Wait starts \n");
+          
+          //printf("Wait Ends \n");
+          crash_emu = false;
+      }
+      //while(crash_emu); // stop all other threads from progressing. 
+    #endif
+
     }
     /********************************** Stat end *****************************************/
   }

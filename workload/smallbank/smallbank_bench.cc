@@ -537,14 +537,15 @@ void RunTx(coro_yield_t& yield, coro_id_t coro_id) {
 
           //send a crash signal to failure detector.         
           // send a signal and get the ack back
-
-          dtx->TxUndoRecovery(yield);
+          usleep(6000);
+          dtx->TxUndoRecovery(yield, addr_caches);
+          dtx->TxLatchRecovery(yield, addr_caches);
           //printf("Wait starts \n");
-          usleep(500000);
+          
           //printf("Wait Ends \n");
           crash_emu = false;
       }
-      while(crash_emu); // stop all other threads from progressing. 
+      //while(crash_emu); // stop all other threads from progressing. 
 
     #endif
 

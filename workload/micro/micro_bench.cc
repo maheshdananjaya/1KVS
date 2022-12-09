@@ -520,26 +520,22 @@ void RunTx(coro_yield_t& yield, coro_id_t coro_id) {
     }
 
 
-    // ebale crash here.
      #ifdef CRASH_ENABLE
-      if( (stat_attempted_tx_total == (ATTEMPED_NUM/10)) && (thread_gid==0)){
-          
+      if( (stat_attempted_tx_total == (ATTEMPTED_NUM/10)) && (thread_gid==0)){
           printf("Crashed-Recovery \n");
           crash_emu = true;
 
-          //send gRPC failed. get the ack back. we sue the same machine for the recovery. we do not run the recovery on FD as its notnecessary.
-          //100micro seconds. --> machine id and failed ids. 
-
-          dtx->TxUndoRecovery(yield);
-          
+          //send a crash signal to failure detector.         
+          // send a signal and get the ack back
+          usleep(6000);
+          dtx->TxUndoRecovery(yield, addr_caches);
+          dtx->TxLatchRecovery(yield, addr_caches);
           //printf("Wait starts \n");
-          //usleep(500000);
+          
           //printf("Wait Ends \n");
           crash_emu = false;
-          asm volatile("mfence" ::: "memory");
-
       }
-      while(crash_emu){}; // stop all other threads from progressing. 
+      //while(crash_emu); // stop all other threads from progressing. 
 
     #endif
 

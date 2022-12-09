@@ -500,11 +500,11 @@ void RunTx(coro_yield_t& yield, coro_id_t coro_id) {
         double usec = (tx_end_time.tv_sec) * 1000000 + (double)(tx_end_time.tv_nsec) / 1000;  // in miro seconds ;
         window_curr_time[local_thread_id] =   usec;
       
-        REC atomic_record;
-        atomic_record.txs = stat_committed_tx_total;
-        atomic_record.usecs = usec;
+        REC * atomic_record = new REC(); // dynamic allocations within stacks
+        atomic_record->txs = stat_committed_tx_total;
+        atomic_record->usecs = usec;
 
-        record_ptrs[local_thread_id] = &atomic_record; // pointer change. 
+        record_ptrs[local_thread_id] = atomic_record; // pointer change. 
 
       #endif
 

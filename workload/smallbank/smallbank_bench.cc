@@ -16,19 +16,20 @@
 // #include "util/latency.h"
 //#define CRASH_TPUT
 using namespace std::placeholders;
-
+#define STAT_NUM_MAX_THREADS 128
 // All the functions are executed in each thread
 
 //For Crash TPUT
 #ifdef STATS
-  extern uint64_t * tx_attempted;
-  extern uint64_t * tx_commited;
-  extern bool * thread_done;
-  extern double * window_start_time;
-  extern double * window_curr_time;
-  extern node_id_t machine_num_;
-  extern node_id_t machine_id_;
-  extern t_id_t thread_num_per_machine_;
+ extern uint64_t tx_attempted alignas(8)[STAT_NUM_MAX_THREADS];
+ extern uint64_t tx_commited alignas(8) [STAT_NUM_MAX_THREADS];
+ extern bool thread_done [STAT_NUM_MAX_THREADS];
+ extern double window_start_time alignas(8) [STAT_NUM_MAX_THREADS];
+ extern double window_curr_time alignas (8) [STAT_NUM_MAX_THREADS];
+ extern REC* record_ptrs [STAT_NUM_MAX_THREADS];
+ extern node_id_t machine_num_;
+ extern node_id_t machine_id_;
+ extern t_id_t thread_num_per_machine_;
 #endif
 
 __thread t_id_t local_thread_id;

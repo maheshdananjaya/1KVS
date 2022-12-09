@@ -48,8 +48,10 @@ t_id_t thread_num_per_machine_;
  uint64_t tx_attempted alignas(8)[STAT_NUM_MAX_THREADS];
  uint64_t tx_commited alignas(8) [STAT_NUM_MAX_THREADS];
  bool thread_done [STAT_NUM_MAX_THREADS];
+ 
  double window_start_time alignas(8) [STAT_NUM_MAX_THREADS];
  double window_curr_time alignas (8) [STAT_NUM_MAX_THREADS];
+
 
  REC* record_ptrs [STAT_NUM_MAX_THREADS];
 

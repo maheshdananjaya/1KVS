@@ -145,7 +145,6 @@ bool IncrementTest(coro_yield_t& yield, tx_id_t tx_id, DTX* dtx) {
 
   micro_val->magic[1] = ((signed int)(micro_val->magic[1]) + 1); //increament by 1.
 
-
   bool commit_status = dtx->TxCommit(yield);
 
   return commit_status;

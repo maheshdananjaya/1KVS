@@ -616,12 +616,6 @@ void PollCompletion(coro_yield_t& yield) {
   }
 }
 
-
-void RunTx(coro_yield_t& yield, coro_id_t coro_id, bool test){
-
-
-}
-
 // Run actual transactions
 void RunTx(coro_yield_t& yield, coro_id_t coro_id) {
   double total_msr_us = 0;

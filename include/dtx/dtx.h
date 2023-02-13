@@ -79,7 +79,7 @@ class DTX {
 
   bool TxCommit(coro_yield_t& yield);
 
-  void AssertAbort(); //used only in litmus assertions.
+  void AssertAbort(coro_yield_t& yield); //used only in litmus assertions.
 
   /*****************************************************/
 

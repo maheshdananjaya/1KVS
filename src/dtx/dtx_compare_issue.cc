@@ -123,7 +123,7 @@ bool DTX::CompareIssueUnlocking() {
   for (auto& index : locked_rw_set) {
 
     char* unlock_buf = thread_rdma_buffer_alloc->Alloc(sizeof(lock_t));
-    *(lock_t*)unlock_buf = 0xdeadbeaf;
+    *(lock_t*)unlock_buf = 0xdeadbeaf; //this must be zero
 
     auto& it = read_write_set[index].item_ptr;
 

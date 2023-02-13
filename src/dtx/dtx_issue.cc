@@ -218,7 +218,7 @@ bool DTX::IssueUnlocking() {
   for (auto& index : locked_rw_set) {
 
     char* unlock_buf = thread_rdma_buffer_alloc->Alloc(sizeof(lock_t));
-    *(lock_t*)unlock_buf = 0xdeadbeaf;
+    *(lock_t*)unlock_buf = 0xdeadbeaf; // this must be zero as it s write
 
     auto& it = read_write_set[index].item_ptr;
 
@@ -274,6 +274,7 @@ bool DTX::IssueCommitAll(std::vector<CommitWrite>& pending_commit_write, char* c
 
     // Get all the backup queue pairs and hash metas for this table
     auto* backup_node_ids = global_meta_man->GetBackupNodeID(it->table_id);
+    
     if (!backup_node_ids) continue;  // There are no backups in the PM pool
     const std::vector<HashMeta>* backup_hash_metas = global_meta_man->GetBackupHashMetasWithTableID(it->table_id);
     // backup_node_ids guarantees that the order of remote machine is the same in backup_hash_metas and backup_qps

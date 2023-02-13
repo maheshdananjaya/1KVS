@@ -149,8 +149,11 @@ bool DTX::CheckValidate(std::vector<ValidateRead>& pending_validate) {
         return false;
       }else{
           //check the lock value. if its set. abort the transactions. only for read-only set
-          char * lock_start = re.version_buf + sizeof(version_t);
-          if( (*(lock_t*)lock_start) != STATE_CLEAN ) return false;
+          #ifdef FIX_VALIDATE_ERROR
+            //without the read lock part in the issue function locks always return clean. thats why it was not failing.  
+            char * lock_start = re.version_buf + sizeof(version_t);
+            if( (*(lock_t*)lock_start) != STATE_CLEAN ) return false;
+          #endif
             //*((lock_t*)re.cas_buf) != STATE_CLEAN
             
       }

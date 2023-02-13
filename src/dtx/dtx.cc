@@ -677,6 +677,12 @@ void DTX:: Recovery(){
   
 }
 
+void DTX::AssertAbort(){
+    //We use this only for asssertions
+    Abort();
+
+}
+
 
 void DTX::Abort(coro_yield_t& yield) {
   // When failures occur, transactions need to be aborted.

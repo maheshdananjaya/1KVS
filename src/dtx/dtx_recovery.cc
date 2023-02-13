@@ -1210,6 +1210,8 @@ bool DTX::IssueUndoLogRecoveryForAllThreads(coro_yield_t& yield){
 bool DTX::UpdatedIssueUndoLogRecoveryForAllThreads(coro_yield_t& yield, AddrCache ** addr_caches){
 
     coro_id_t num_coro = thread_remote_log_offset_alloc->GetNumCoro();
+
+    //TODO- fix this. only the failed process threads. otherwise caches overflowing. 
     t_id_t num_thread = thread_remote_log_offset_alloc->GetNumThreadsPerMachine();
 
     const int MAX_DATA_LOG_RECORDS = 16;

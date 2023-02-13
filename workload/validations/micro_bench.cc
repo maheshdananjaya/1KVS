@@ -205,7 +205,7 @@ bool Assert1(coro_yield_t& yield, tx_id_t tx_id, DTX* dtx) {
     //bool commit_status = dtx->TxCommit(yield); // We also need to emulate crashes within commit. use interrupts.
     //Unlock should be there. 
 
-    dtx->AssertAbort(yield);
+    bool commit_status = dtx->AssertAbort(yield);
 
 
   return commit_status;

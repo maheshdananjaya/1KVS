@@ -847,6 +847,13 @@ node_id_t DTX::ReadWhichNode(table_id_t table_id, node_id_t& backup_idx) {
   return remote_node_id;
 }
 
+
+void DTX::AssertAbort(coro_yield_t& yield){
+    //We use this only for asssertions
+    Abort(yield);
+
+}
+
 ALWAYS_INLINE
 void DTX::Clean() {
   read_only_set.clear();

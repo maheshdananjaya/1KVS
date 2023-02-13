@@ -188,6 +188,7 @@ bool Assert1(coro_yield_t& yield, tx_id_t tx_id, DTX* dtx) {
     //Lock and Read
     if (!dtx->TxExe(yield)) {
       // TLOG(DBG, thread_gid) << "tx " << tx_id << " aborts after exe";
+         //dtx->AssertAbort();
       return false;
     } 
    
@@ -198,11 +199,12 @@ bool Assert1(coro_yield_t& yield, tx_id_t tx_id, DTX* dtx) {
       if(i==0)
         value_v= micro_val->magic[1]; // new version value for all writes.
       else
-        assert(micro_val->magic[1] == value_v);
+        assert(micro_val->magic[1] == value_v); //local asserts
     }
 
     //bool commit_status = dtx->TxCommit(yield); // We also need to emulate crashes within commit. use interrupts.
     //Unlock should be there. 
+
     dtx->AssertAbort();
 
 
@@ -614,6 +616,12 @@ void PollCompletion(coro_yield_t& yield) {
   }
 }
 
+
+void RunTx(coro_yield_t& yield, coro_id_t coro_id, bool test){
+
+
+}
+
 // Run actual transactions
 void RunTx(coro_yield_t& yield, coro_id_t coro_id) {
   double total_msr_us = 0;
@@ -645,36 +653,67 @@ void RunTx(coro_yield_t& yield, coro_id_t coro_id) {
     uint64_t iter = ++tx_id_generator;  // Global atomic transaction id
     stat_attempted_tx_total++;
     clock_gettime(CLOCK_REALTIME, &tx_start_time);
-    tx_committed = IncrementTest(yield, iter, dtx);
 
-    //Artificial injected faults. and recovery.
-    //This could be tested with threads.
+   
 
-    // ebale crash here.
-     #ifdef INTERMITTENT_CRASH
-      if( ( (stat_attempted_tx_total % 1000) == 0) && (thread_gid==0) ){
+    //litmus 4. 
+
+    switch(litmus){
+      case 4:{
+    
+              tx_committed = IncrementTest(yield, iter, dtx);
           
-          printf("Crashed-Recovery \n");
-          crash_emu = true;
-          dtx->TxUndoRecovery(yield, addr_caches);
-          dtx->TxLatchRecovery(yield, addr_caches);
-           //usleep(500000);
-          crash_emu = false;
-          asm volatile("mfence" ::: "memory");
+              //Artificial injected faults. and recovery.
+              //This could be tested with threads.
+          
+              // ebale crash here.
+               #ifdef EMULATED_CRASH
+                if( ( (stat_attempted_tx_total % 1000) == 0) && (thread_gid==0) ){
+                    
+                    printf("Crashed-Recovery \n");
+                    crash_emu = true;
+                    dtx->TxUndoRecovery(yield, addr_caches);
+                    dtx->TxLatchRecovery(yield, addr_caches);
+                     //usleep(500000);
+                    crash_emu = false;
+                    asm volatile("mfence" ::: "memory");
+          
+                }
+          
+                while(crash_emu){}; // stop all other threads from progressing. 
+              #endif
+          
+              if(tx_committed){
+                while(true){
+                    ///its not a performance thing
+          
+                   tx_committed = DecrementTest(yield, iter, dtx);
+                   if(tx_committed) break;
+          
+                }
+              }
+        break;
+      }
+      case 1:{
 
+          tx_committed = Litmus1(yield, iter, dtx);
+          //assert
+          Assert1(yield, iter, dtx);
       }
 
-      while(crash_emu){}; // stop all other threads from progressing. 
-    #endif
-
-    if(tx_committed){
-      while(true){
-          ///its not a performance thing
-
-         tx_committed = DecrementTest(yield, iter, dtx);
-         if(tx_committed) break;
-
+      case 2:{
+          tx_committed = Litmus2(yield, iter, dtx);
+          //assert
+          Assert1(yield, iter, dtx);
       }
+      case 3:{
+          tx_committed = Litmus3(yield, iter, dtx);
+          //assert
+          Assert1(yield, iter, dtx);
+      }
+      default:
+      break;
+
     }
     
     /********************************** Stat begin *****************************************/

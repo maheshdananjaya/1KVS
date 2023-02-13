@@ -87,6 +87,8 @@ __thread uint64_t stat_attempted_tx_total = 0;  // Issued transaction number
 __thread uint64_t stat_committed_tx_total = 0;  // Committed transaction number
 const coro_id_t POLL_ROUTINE_ID = 0;            // The poll coroutine ID
 
+__thread int litmus=1;
+
 
 extern bool crash_emu;
 
@@ -205,10 +207,10 @@ bool Assert1(coro_yield_t& yield, tx_id_t tx_id, DTX* dtx) {
     //bool commit_status = dtx->TxCommit(yield); // We also need to emulate crashes within commit. use interrupts.
     //Unlock should be there. 
 
-    bool commit_status = dtx->AssertAbort(yield);
+   dtx->AssertAbort(yield);
 
 
-  return commit_status;
+  return true;
 
 }
 

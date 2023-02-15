@@ -80,6 +80,48 @@ bool DTX::CompareIssueReadRW(std::vector<DirectRead>& pending_direct_read,
   return true;
 }
 
+
+
+//For litmus - Refetch regarldless of is-fetched for litmus tesring.
+bool DTX::CompareIssueReadRWLitmus(std::vector<DirectRead>& pending_direct_read,
+                             std::vector<HashRead>& pending_hash_read,
+                             std::vector<InsertOffRead>& pending_insert_off_read) {
+  // Read read-write data
+  for (size_t i = 0; i < read_write_set.size(); i++) {
+     //if (read_write_set[i].is_fetched) continue;
+    //not_eager_locked_rw_set.emplace_back(i);
+    auto it = read_write_set[i].item_ptr;
+    auto remote_node_id = global_meta_man->GetPrimaryNodeID(it->table_id);
+    RCQP* qp = thread_qp_man->GetRemoteDataQPWithNodeID(remote_node_id);
+
+#if 1 //original 0
+      // DrTM+H leverages local address cache
+      auto offset = addr_cache->Search(remote_node_id, it->table_id, it->key);
+      if (offset != NOT_FOUND) {
+        it->remote_offset = offset;
+        char* data_buf = thread_rdma_buffer_alloc->Alloc(DataItemSize);
+        pending_direct_read.emplace_back(DirectRead{.qp = qp, .item = &read_write_set[i], .buf = data_buf, .remote_node = remote_node_id});
+        if (!coro_sched->RDMARead(coro_id, qp, data_buf, offset, DataItemSize)) {
+          return false;
+        }
+        continue;
+      }
+#endif
+
+    const HashMeta& meta = global_meta_man->GetPrimaryHashMetaWithTableID(it->table_id);
+    uint64_t idx = MurmurHash64A(it->key, 0xdeadbeef) % meta.bucket_num;
+    offset_t node_off = idx * meta.node_size + meta.base_off;
+    char* local_hash_node = thread_rdma_buffer_alloc->Alloc(sizeof(HashNode));
+    if (it->user_insert) {
+      pending_insert_off_read.emplace_back(InsertOffRead{.qp = qp, .item = &read_write_set[i], .buf = local_hash_node, .remote_node = remote_node_id, .meta = meta, .node_off = node_off});
+    } else {
+      pending_hash_read.emplace_back(HashRead{.qp = qp, .item = &read_write_set[i], .buf = local_hash_node, .remote_node = remote_node_id, .meta = meta});
+    }
+    if (!coro_sched->RDMARead(coro_id, qp, local_hash_node, node_off, sizeof(HashNode))) return false;
+  }
+  return true;
+}
+
 bool DTX::CompareIssueLocking(std::vector<Lock>& pending_lock) {
   for (auto& index : not_eager_locked_rw_set) {
     locked_rw_set.emplace_back(index);

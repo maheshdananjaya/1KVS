@@ -239,6 +239,7 @@ class DTX {
   bool CompareExeRO(coro_yield_t& yield);
 
   bool CompareExeRW(coro_yield_t& yield);
+  bool CompareExeRWLitmus(coro_yield_t& yield);
 
   bool CompareLocking(coro_yield_t& yield);
 
@@ -256,6 +257,10 @@ class DTX {
                           std::vector<HashRead>& pending_hash_read);
 
   bool CompareIssueReadRW(std::vector<DirectRead>& pending_direct_read,
+                          std::vector<HashRead>& pending_hash_read,
+                          std::vector<InsertOffRead>& pending_insert_off_read);
+
+  bool CompareIssueReadRWLitmus(std::vector<DirectRead>& pending_direct_read,
                           std::vector<HashRead>& pending_hash_read,
                           std::vector<InsertOffRead>& pending_insert_off_read);
 
@@ -772,6 +777,9 @@ ABORT:
 
 #endif
 
+
+
+
 ALWAYS_INLINE
 void DTX::TxAbortReadOnly(coro_yield_t& yield) {
   // Application actively aborts the tx
@@ -854,6 +862,40 @@ void DTX::AssertAbort(coro_yield_t& yield){
     Abort(yield);
 
 }
+
+ALWAYS_INLINE
+bool DTX::TxExeLitmus(coro_yield_t& yield){
+  //2PL like read-only transactions for litmus tests.
+  if(!CompareExeRW()){
+    return false;
+  }
+
+  if (!CompareLocking(yield)) {
+      // TLOG(DBG, t_id) << "Validate false";
+      AssertAbort(yield);
+      return false;
+  }
+
+  //validate all reads
+  if (!CompareValidation(yield)) {
+    // TLOG(DBG, t_id) << "Validate false";
+     
+     //we have locks. just   reread,
+      if(CompareExeRWLitmus(yield)){
+        return true;
+      }
+      else{
+        //error,
+        RDMA_LOG(INFO) << "Critcal Assert Bug: 889 dtx";
+        return false;
+      }
+
+     //AssertAbort(yield);    
+  }
+  return true;
+
+}
+
 
 ALWAYS_INLINE
 void DTX::Clean() {

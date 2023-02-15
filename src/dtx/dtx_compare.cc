@@ -47,6 +47,28 @@ bool DTX::CompareExeRW(coro_yield_t& yield) {
   return res;
 }
 
+//Litmus testing. read-only with locks. 
+bool DTX::CompareExeRWLitmus(coro_yield_t& yield) {
+  is_ro_tx = false;
+  std::vector<DirectRead> pending_direct_read;
+  std::vector<HashRead> pending_hash_read;
+  std::vector<InsertOffRead> pending_insert_off_read;
+
+  std::list<HashRead> pending_next_hash_read;
+  std::list<InsertOffRead> pending_next_off_read;
+
+  //if (!CompareIssueReadRO(pending_direct_read, pending_hash_read)) return false;
+  if (!CompareIssueReadRWLitmus(pending_direct_read, pending_hash_read, pending_insert_off_read)) return false;
+
+  // Yield to other coroutines when waiting for network replies
+  coro_sched->Yield(yield, coro_id);
+
+  auto res = CompareCheckReadRORW(pending_direct_read, pending_hash_read, pending_insert_off_read, pending_next_hash_read, pending_next_off_read,
+                                  yield);
+
+  return res;
+}
+
 bool DTX::CompareLocking(coro_yield_t& yield) {
   std::vector<Lock> pending_lock;
   if (!CompareIssueLocking(pending_lock)) return false;

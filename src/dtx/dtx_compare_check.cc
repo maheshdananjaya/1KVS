@@ -29,7 +29,8 @@ bool DTX::CompareCheckDirectRead(std::vector<DirectRead>& pending_direct_read, s
       // Local cache does not have. We have to re-read via hash
       node_id_t remote_node_id = global_meta_man->GetPrimaryNodeID(it->table_id);
       const HashMeta& meta = global_meta_man->GetPrimaryHashMetaWithTableID(it->table_id);
-      uint64_t idx = MurmurHash64A(it->key, 0xdeadbeef) % meta.bucket_num;
+      uint64_t idx = MurmurHash64A(it->key, 0xdeadbee
+        f) % meta.bucket_num;
       offset_t node_off = idx * meta.node_size + meta.base_off;
       auto* local_hash_node = (HashNode*)thread_rdma_buffer_alloc->Alloc(sizeof(HashNode));
       if (it->user_insert) {

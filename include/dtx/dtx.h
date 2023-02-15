@@ -864,10 +864,11 @@ void DTX::AssertAbort(coro_yield_t& yield){
 
 }
 
+
 ALWAYS_INLINE
 bool DTX::TxExeLitmus(coro_yield_t& yield){
-  //2PL like read-only transactions for litmus tests.
-  if(!CompareExeRW()){
+  //2PL like read-only transactions for litmus tests. these are
+  if(!CompareExeRW(yield)){
     return false;
   }
 

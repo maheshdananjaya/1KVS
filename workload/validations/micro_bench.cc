@@ -983,12 +983,12 @@ void RunTx(coro_yield_t& yield, coro_id_t coro_id) {
       }
 
       case 2:{
-          tx_committed = Litmus2(yield, iter, dtx);
+          tx_committed = Litmus1(yield, iter, dtx);
           //assert
           Assert1(yield, iter, dtx);
       }
       case 3:{
-          tx_committed = Litmus3(yield, iter, dtx);
+          tx_committed = Litmus1(yield, iter, dtx);
           //assert
           Assert1(yield, iter, dtx);
       }

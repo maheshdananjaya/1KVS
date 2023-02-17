@@ -62,6 +62,9 @@ typedef struct atomic_record{
 } REC;
 
 //#define STATS
+#define FIX_VALIDATE_ERROR
+#define FIX_RO_READ
+
 #define WITH_UNDO_LOGGING
 #define WITH_LATCH_LOGGING
 #define UNDO_RECOVERY

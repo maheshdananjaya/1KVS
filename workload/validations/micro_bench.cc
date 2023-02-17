@@ -279,7 +279,7 @@ bool Litmus2_T1(coro_yield_t& yield, tx_id_t tx_id, DTX* dtx) {
 
     micro_val_t* micro_val_y = (micro_val_t*) micro_objs[1]->value; // while x value
 
-    RDMA_LOG(INFO) << "X= " <<  micro_val_x->magic[1] << " , Y= " <<   micro_val_y->magic[1];
+    //RDMA_LOG(INFO) << "X= " <<  micro_val_x->magic[1] << " , Y= " <<   micro_val_y->magic[1];
 
     micro_val_y->magic[1] = (micro_val_x->magic[1] + 1); // new version value for all writes.
 
@@ -348,7 +348,7 @@ bool Litmus2_T2(coro_yield_t& yield, tx_id_t tx_id, DTX* dtx) {
 
 
     micro_val_t* micro_val_x = (micro_val_t*) micro_objs[1]->value; // while x value
-    RDMA_LOG(INFO) << "X= " <<  micro_val_x->magic[1] << " , Y= " <<   micro_val_y->magic[1];
+   //RDMA_LOG(INFO) << "X= " <<  micro_val_x->magic[1] << " , Y= " <<   micro_val_y->magic[1];
     micro_val_x->magic[1] = (micro_val_y->magic[1]+1); // new version value for all writes.
 
    //CRASH points 2
@@ -402,8 +402,9 @@ bool Assert2(coro_yield_t& yield, tx_id_t tx_id, DTX* dtx) {
         value_v= micro_val->magic[1]; // new version value for all writes.
       }
       else{
+          
+          assert( ((value_v == 99) && (micro_val->magic[1] ==99)) || (micro_val->magic[1] != value_v)); //local asserts
           RDMA_LOG(INFO) << "X= " <<  value_v << " , Y= " <<  micro_val->magic[1];
-          assert( ((value_v == 0) && (micro_val->magic[1] ==0)) || (micro_val->magic[1] != value_v)); //local asserts
           
       }    
     }

@@ -87,7 +87,7 @@ __thread uint64_t stat_attempted_tx_total = 0;  // Issued transaction number
 __thread uint64_t stat_committed_tx_total = 0;  // Committed transaction number
 const coro_id_t POLL_ROUTINE_ID = 0;            // The poll coroutine ID
 
-__thread int litmus=1;
+__thread int litmus=2; //1 2 3 4
 
 
 extern bool crash_emu;
@@ -1048,6 +1048,7 @@ void RunTx(coro_yield_t& yield, coro_id_t coro_id) {
           tx_committed = Litmus1(yield, iter, dtx);
           //assert
           Assert1(yield, iter, dtx);
+          break;
       }
 
       case 2:{
@@ -1056,17 +1057,23 @@ void RunTx(coro_yield_t& yield, coro_id_t coro_id) {
             tx_committed = Litmus2_T1(yield, iter, dtx);
           else
              tx_committed = Litmus2_T2(yield, iter, dtx);
-          //assert
-          Assert2(yield, iter, dtx);
+            //assert
+           //some delay here
+           Assert2(yield, iter, dtx);
+           break;
       }
       case 3:{
-          tx_committed = Litmus1(yield, iter, dtx);
-          //assert
-          Assert1(yield, iter, dtx);
-      }
-      default:
-      break;
-
+           if(coro_id%2 == 0)
+            tx_committed = Litmus3_T1(yield, iter, dtx);
+          else
+             tx_committed = Litmus3_T2(yield, iter, dtx);
+            //assert
+           //some delay here
+           Assert3(yield, iter, dtx);
+           break;
+     }
+    default:
+          break;
     }
     
     /********************************** Stat begin *****************************************/

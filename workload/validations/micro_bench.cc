@@ -241,10 +241,10 @@ bool Litmus2_T1(coro_yield_t& yield, tx_id_t tx_id, DTX* dtx) {
     //CRASH points
   
     
-      micro_key_t micro_key;
-      micro_key.item_key = (itemkey_t) 1; //X
-      assert(micro_key.item_key >= 0 && micro_key.item_key < num_keys_global);
-      micro_objs[0] = std::make_shared<DataItem>((table_id_t)MicroTableType::kMicroTable, micro_key.item_key);
+      micro_key_t micro_key_x;
+      micro_key_x.item_key = (itemkey_t) 1; //X
+      assert(micro_key_x.item_key >= 0 && micro_key_x.item_key < num_keys_global);
+      micro_objs[0] = std::make_shared<DataItem>((table_id_t)MicroTableType::kMicroTable, micro_key_x.item_key);
       dtx->AddToReadOnlySet(micro_objs[0]);
       is_write[0] = false;
 
@@ -260,10 +260,10 @@ bool Litmus2_T1(coro_yield_t& yield, tx_id_t tx_id, DTX* dtx) {
     micro_val_t* micro_val_x = (micro_val_t*) micro_objs[0]->value; // while x value
 
 
-      micro_key_t micro_key;
-      micro_key.item_key = (itemkey_t) 2; //X
-      assert(micro_key.item_key >= 0 && micro_key.item_key < num_keys_global);
-      micro_objs[1] = std::make_shared<DataItem>((table_id_t)MicroTableType::kMicroTable, micro_key.item_key);
+      micro_key_t micro_key_y;
+      micro_key_y.item_key = (itemkey_t) 2; //X
+      assert(micro_key_y.item_key >= 0 && micro_key_y.item_key < num_keys_global);
+      micro_objs[1] = std::make_shared<DataItem>((table_id_t)MicroTableType::kMicroTable, micro_key_y.item_key);
       dtx->AddToReadWriteSet(micro_objs[1]);
       is_write[1] = true;
 
@@ -278,7 +278,7 @@ bool Litmus2_T1(coro_yield_t& yield, tx_id_t tx_id, DTX* dtx) {
 
 
     micro_val_t* micro_val_y = (micro_val_t*) micro_objs[1]->value; // while x value
-    micro_val_y->magic[1] = micro_val_x[1]+1; // new version value for all writes.
+    micro_val_y->magic[1] = (micro_val_x->magic[1] + 1); // new version value for all writes.
 
    //CRASH points 2
 
@@ -308,10 +308,10 @@ bool Litmus2_T2(coro_yield_t& yield, tx_id_t tx_id, DTX* dtx) {
     //CRASH points
   
     
-      micro_key_t micro_key;
-      micro_key.item_key = (itemkey_t) 2; //Y
-      assert(micro_key.item_key >= 0 && micro_key.item_key < num_keys_global);
-      micro_objs[0] = std::make_shared<DataItem>((table_id_t)MicroTableType::kMicroTable, micro_key.item_key);
+      micro_key_t micro_key_y;
+      micro_key_y.item_key = (itemkey_t) 2; //Y
+      assert(micro_key_y.item_key >= 0 && micro_key_y.item_key < num_keys_global);
+      micro_objs[0] = std::make_shared<DataItem>((table_id_t)MicroTableType::kMicroTable, micro_key_y.item_key);
       dtx->AddToReadOnlySet(micro_objs[0]);
       is_write[0] = false;
 
@@ -324,13 +324,13 @@ bool Litmus2_T2(coro_yield_t& yield, tx_id_t tx_id, DTX* dtx) {
       return false;
     }
 
-    micro_val_t* micro_val_x = (micro_val_t*) micro_objs[0]->value; // while x value
+    micro_val_t* micro_val_y = (micro_val_t*) micro_objs[0]->value; // while x value
 
 
-      micro_key_t micro_key;
-      micro_key.item_key = (itemkey_t) 1; //X
-      assert(micro_key.item_key >= 0 && micro_key.item_key < num_keys_global);
-      micro_objs[1] = std::make_shared<DataItem>((table_id_t)MicroTableType::kMicroTable, micro_key.item_key);
+      micro_key_t micro_key_x;
+      micro_key_x.item_key = (itemkey_t) 1; //X
+      assert(micro_key_x.item_key >= 0 && micro_key_x.item_key < num_keys_global);
+      micro_objs[1] = std::make_shared<DataItem>((table_id_t)MicroTableType::kMicroTable, micro_key_x.item_key);
       dtx->AddToReadWriteSet(micro_objs[1]);
       is_write[1] = true;
 
@@ -344,8 +344,8 @@ bool Litmus2_T2(coro_yield_t& yield, tx_id_t tx_id, DTX* dtx) {
     }
 
 
-    micro_val_t* micro_val_y = (micro_val_t*) micro_objs[1]->value; // while x value
-    micro_val_y->magic[1] = micro_val_x[1]+1; // new version value for all writes.
+    micro_val_t* micro_val_x = (micro_val_t*) micro_objs[1]->value; // while x value
+    micro_val_x->magic[1] = (micro_val_y->magic[1]+1); // new version value for all writes.
 
    //CRASH points 2
 
@@ -473,7 +473,7 @@ bool Litmus3_T2(coro_yield_t& yield, tx_id_t tx_id, DTX* dtx) {
 
    //No more random writes. pick any combinations. 
   //micro_key.item_key = (itemkey_t)FastRand(&seed) & (num_keys_global - 1);
-  //
+  
   dtx->TxBegin(tx_id);
   bool is_write[data_set_size-1]; 
   DataItemPtr micro_objs[data_set_size-1];
@@ -503,7 +503,6 @@ bool Litmus3_T2(coro_yield_t& yield, tx_id_t tx_id, DTX* dtx) {
     }
  
     //CRASH points 2
-
 
     uint64_t value_v = (uint64_t)FastRand(&seed) & (num_keys_global - 1); /// same value for everyone
   

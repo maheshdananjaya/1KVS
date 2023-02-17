@@ -394,10 +394,11 @@ bool Assert2(coro_yield_t& yield, tx_id_t tx_id, DTX* dtx) {
     uint64_t value_v=0;
     for (uint64_t i = 0; i < 2; i++) {
       micro_val_t* micro_val = (micro_val_t*) micro_objs[i]->value;
-      if(i==0)
+      if(i==0){
         value_v= micro_val->magic[1]; // new version value for all writes.
+      }
       else{
-          //RDAM_LOG(INFO) << "X= " <<  value_v << " , Y= " <<  micro_val->magic[1];
+          RDAM_LOG(INFO) << "X= " <<  value_v << " , Y= " <<  micro_val->magic[1];
           assert( ((value_v == 0) && (micro_val->magic[1] ==0)) || (micro_val->magic[1] != value_v)); //local asserts
       }    
     }

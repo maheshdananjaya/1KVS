@@ -404,7 +404,7 @@ bool Assert2(coro_yield_t& yield, tx_id_t tx_id, DTX* dtx) {
       else{
           
           RDMA_LOG(INFO) << "Before Litmus2_Assert -  X= " <<  value_v << " , Y= " <<  micro_val->magic[1];
-          assert( ((value_v == 99) && (micro_val->magic[1] == 99)) || (micro_val->magic[1] != value_v)); //local asserts
+          assert( ((value_v == 98) && (micro_val->magic[1] == 98)) || (micro_val->magic[1] != value_v)); //local asserts
           RDMA_LOG(INFO) << "After Litmus2_Assert -  X= " <<  value_v << " , Y= " <<  micro_val->magic[1];
           
       }    

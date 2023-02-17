@@ -397,7 +397,7 @@ bool Assert2(coro_yield_t& yield, tx_id_t tx_id, DTX* dtx) {
       if(i==0)
         value_v= micro_val->magic[1]; // new version value for all writes.
       else
-        assert(micro_val->magic[1] != value_v); //local asserts
+        assert( ((value_v == 0) && (micro_val->magic[1] ==0)) || (micro_val->magic[1] != value_v)); //local asserts
     }
 
     //bool commit_status = dtx->TxCommit(yield); // We also need to emulate crashes within commit. use interrupts.

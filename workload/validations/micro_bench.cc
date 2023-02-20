@@ -704,8 +704,7 @@ bool Litmus3Alt_T2(coro_yield_t& yield, tx_id_t tx_id, DTX* dtx) {
     }
  
     //CRASH points 2
-
-    
+ 
 
       //randomly insert/delete all objects.
       micro_val_t* micro_val_x = (micro_val_t*) micro_objs[0]->value;
@@ -771,6 +770,8 @@ bool Assert3Alt_T2(coro_yield_t& yield, tx_id_t tx_id, DTX* dtx) {
           //randomly insert/delete all objects.
       micro_val_t* micro_val_x = (micro_val_t*) micro_objs[0]->value;
       micro_val_t* micro_val_z = (micro_val_t*) micro_objs[2]->value;
+
+      RDMA_LOG(INFO) << "Before Litmus3Alt_Assert -  X= " << micro_val_x->magic[1] << " , Y= " <<  micro_val_z->magic[1];
 
       assert(micro_val_z->magic[1] <= micro_val_x->magic[1]);
 

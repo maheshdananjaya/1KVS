@@ -224,6 +224,8 @@ bool Assert1(coro_yield_t& yield, tx_id_t tx_id, DTX* dtx) {
 
 }
 
+//Litmus 1 Cleaning function
+
 
 //Reall litmus two has two transactions. T1 and T2.
 
@@ -421,6 +423,7 @@ bool Assert2(coro_yield_t& yield, tx_id_t tx_id, DTX* dtx) {
 }
 
 
+//Litmus 2 Cleaning function. ;clear all variables
 
 //Reall litmus two has two transactions. T1 and T2.
 bool Litmus3_T1(coro_yield_t& yield, tx_id_t tx_id, DTX* dtx) {  
@@ -467,7 +470,8 @@ bool Litmus3_T1(coro_yield_t& yield, tx_id_t tx_id, DTX* dtx) {
       micro_val->magic[1] = value_v; // new version value for all writes.
     }
 
-    //CRASH points 3
+    //EMULATED CRASH points 3
+
 
     bool commit_status = dtx->TxCommit(yield); // We also need to emulate crashes within commit. use interrupts.
 
@@ -587,8 +591,197 @@ bool Assert3(coro_yield_t& yield, tx_id_t tx_id, DTX* dtx) {
 
 }
 
+//Litmus 3 ;cleaning functions.
 
 
+
+
+//Litmus 2 Cleaning function. ;clear all variables
+
+//Reall litmus two has two transactions. T1 and T2.
+bool Litmus3Alt_T1(coro_yield_t& yield, tx_id_t tx_id, DTX* dtx) {  
+ //No more random writes. pick any combinations. 
+  //micro_key.item_key = (itemkey_t)FastRand(&seed) & (num_keys_global - 1);
+  //
+  dtx->TxBegin(tx_id);
+  bool is_write[data_set_size]; 
+  DataItemPtr micro_objs[data_set_size];
+
+    //CRASH points
+
+   //DelayRandom();
+  
+      
+      micro_key_t micro_key_x;
+      micro_key_x.item_key = (itemkey_t) 0;
+      assert(micro_key_x.item_key >= 0 && micro_key_x.item_key < num_keys_global);
+      micro_objs[0] = std::make_shared<DataItem>((table_id_t)MicroTableType::kMicroTable, micro_key_x.item_key);
+      //do this with deletes and inserts radomly.
+      dtx->AddToReadWriteSet(micro_objs[0]);
+      is_write[0] = true;
+
+      micro_key_t micro_key_y;
+      micro_key_y.item_key = (itemkey_t) 1;
+      assert(micro_key_y.item_key >= 0 && micro_key_y.item_key < num_keys_global);
+      micro_objs[1] = std::make_shared<DataItem>((table_id_t)MicroTableType::kMicroTable, micro_key_y.item_key);
+      //do this with deletes and inserts radomly.
+      dtx->AddToReadWriteSet(micro_objs[1]);
+      is_write[1] = true;
+
+    
+  
+      //CRASH points 1: CRASH must happen in the background rather thanhere.
+
+    if (!dtx->TxExe(yield)) {
+      // TLOG(DBG, thread_gid) << "tx " << tx_id << " aborts after exe";
+      return false;
+    }
+ 
+    //CRASH points 2  
+  
+    
+
+      //randomly insert/delete all objects.
+      micro_val_t* micro_val_x = (micro_val_t*) micro_objs[0]->value;
+      micro_val_t* micro_val_y = (micro_val_t*) micro_objs[1]->value;
+
+
+      uint64_t value_v = micro_val_x->magic[1];
+      
+
+      micro_val_x->magic[1] = value_v+1; // new version value for all writes.
+      micro_val_y->magic[1] = value_v+1; // new version value for all writes.
+    
+
+    //EMULATED CRASH points 3
+
+
+    bool commit_status = dtx->TxCommit(yield); // We also need to emulate crashes within commit. use interrupts.
+
+    //CRASH points 4
+
+    //CRASH points 5
+
+    return commit_status;
+
+}
+
+bool Litmus3Alt_T2(coro_yield_t& yield, tx_id_t tx_id, DTX* dtx) {
+
+   //No more random writes. pick any combinations. 
+  //micro_key.item_key = (itemkey_t)FastRand(&seed) & (num_keys_global - 1);
+  
+  dtx->TxBegin(tx_id);
+  bool is_write[data_set_size]; 
+  DataItemPtr micro_objs[data_set_size];
+
+    //CRASH points
+
+   //DelayRandom();
+  
+      micro_key_t micro_key_x;
+      micro_key_x.item_key = (itemkey_t) 0;
+      assert(micro_key_x.item_key >= 0 && micro_key_x.item_key < num_keys_global);
+      micro_objs[0] = std::make_shared<DataItem>((table_id_t)MicroTableType::kMicroTable, micro_key_x.item_key);
+      //do this with deletes and inserts radomly.
+      dtx->AddToReadWriteSet(micro_objs[0]);
+      is_write[0] = true;
+
+      micro_key_t micro_key_z;
+      micro_key_z.item_key = (itemkey_t) 2; //Z
+      assert(micro_key_z.item_key >= 0 && micro_key_z.item_key < num_keys_global);
+      micro_objs[2] = std::make_shared<DataItem>((table_id_t)MicroTableType::kMicroTable, micro_key_z.item_key);
+      //do this with deletes and inserts radomly.
+      dtx->AddToReadWriteSet(micro_objs[2]);
+      is_write[2] = true;
+
+  
+      //CRASH points 1: CRASH must happen in the background rather thanhere.
+
+    if (!dtx->TxExe(yield)) {
+      // TLOG(DBG, thread_gid) << "tx " << tx_id << " aborts after exe";
+      return false;
+    }
+ 
+    //CRASH points 2
+
+    
+
+      //randomly insert/delete all objects.
+      micro_val_t* micro_val_x = (micro_val_t*) micro_objs[0]->value;
+      micro_val_t* micro_val_z = (micro_val_t*) micro_objs[2]->value;
+
+
+      uint64_t value_v = micro_val_x->magic[1];
+      
+
+      micro_val_x->magic[1] = value_v+1; // new version value for all writes.
+      micro_val_z->magic[1] = value_v+1; // new version value for all writes.
+    
+
+    //EMULATED CRASH points 3
+
+    //CRASH points 3
+
+    bool commit_status = dtx->TxCommit(yield); // We also need to emulate crashes within commit. use interrupts.
+
+    //CRASH points 4
+
+    //CRASH points 5
+
+    return commit_status;
+
+}
+
+
+//Assertion for the litmus 2
+bool Assert3Alt_T2(coro_yield_t& yield, tx_id_t tx_id, DTX* dtx) {
+
+  //assertion function for the mitmus testing
+  //trick: either stop the world or lock all read only objects.
+  
+  dtx->TxBegin(tx_id);
+  bool is_write[data_set_size]; 
+  DataItemPtr micro_objs[data_set_size];
+ 
+      micro_key_t micro_key_x;
+      micro_key_x.item_key = (itemkey_t) 0;
+      assert(micro_key_x.item_key >= 0 && micro_key_x.item_key < num_keys_global);
+      micro_objs[0] = std::make_shared<DataItem>((table_id_t)MicroTableType::kMicroTable, micro_key_x.item_key);
+      //do this with deletes and inserts radomly.
+      dtx->AddToReadWriteSet(micro_objs[0]);
+      is_write[0] = true;
+
+      micro_key_t micro_key_z;
+      micro_key_z.item_key = (itemkey_t) 2; //Z
+      assert(micro_key_z.item_key >= 0 && micro_key_z.item_key < num_keys_global);
+      micro_objs[2] = std::make_shared<DataItem>((table_id_t)MicroTableType::kMicroTable, micro_key_z.item_key);
+      //do this with deletes and inserts radomly.
+      dtx->AddToReadWriteSet(micro_objs[2]);
+      is_write[2] = true;
+
+  
+    //Lock and Read
+    if (!dtx->TxExeLitmus(yield)) {
+      // TLOG(DBG, thread_gid) << "tx " << tx_id << " aborts after exe";
+         //dtx->AssertAbort();
+      return false;
+    } 
+   
+          //randomly insert/delete all objects.
+      micro_val_t* micro_val_x = (micro_val_t*) micro_objs[0]->value;
+      micro_val_t* micro_val_z = (micro_val_t*) micro_objs[2]->value;
+
+      assert(micro_val_z->magic[1] <= micro_val_x->magic[1]);
+
+    //bool commit_status = dtx->TxCommit(yield); // We also need to emulate crashes within commit. use interrupts.
+    //Unlock should be there. 
+
+   dtx->AssertAbort(yield);
+
+  return true;
+
+}
 
 //Validation tests
 
@@ -1063,7 +1256,7 @@ void RunTx(coro_yield_t& yield, coro_id_t coro_id) {
 
       case 2:{
 
-          if(coro_id%2 == 0)
+          if ( (thread_gid%2==0 && coro_id%2 == 0) || (thread_gid%2==1 && coro_id%2 == 1)) //change this. 
             tx_committed = Litmus2_T1(yield, iter, dtx);
           else
              tx_committed = Litmus2_T2(yield, iter, dtx);
@@ -1072,16 +1265,50 @@ void RunTx(coro_yield_t& yield, coro_id_t coro_id) {
            Assert2(yield, iter, dtx);
            break;
       }
-      case 3:{
-           if(coro_id%2 == 0)
+      case 3:{ //Inverse atomic
+
+           //if(coro_id%2 == 0){
+          if ((thread_gid%2==0 && coro_id%2 == 0) || (thread_gid%2==1 && coro_id%2 == 1)){ 
+                       
             tx_committed = Litmus3_T1(yield, iter, dtx);
-          else
+            //unsucessful. fail-recover. only this thread. delay.
+            //FAIL-RECOVERY
+            //Asumption- only two threads running parallel
+            if(!tx_committed){ //UNSUCCESSFUL
+                usleep(500); //allowing t2 to run before the recovery. leaving y behind. 
+                crash_emu = true;
+                dtx->TxUndoRecovery(yield, addr_caches, thread_gid, coro_id); //NEW recovery with global coordinator id. 
+                dtx->TxLatchRecovery(yield, addr_caches, thread_gid, coro_id); //NEW recovery with global coordinator id.    
+                RDMA_LOG(INFO) << " Recovery done thread_id= " << thread_gid << " coro_id=" << coro_id;        
+            } 
+            //DELAY
+            usleep(5000);
+          }
+
+          else{
              tx_committed = Litmus3_T2(yield, iter, dtx);
+             Assert3(yield, iter, dtx);
+           }
             //assert
-           //some delay here
-           Assert3(yield, iter, dtx);
+           //some delay here                                     
+           
            break;
      }
+
+     case 5:{ //Alternative litmus to 3
+
+          if ( (thread_gid%2==0 && coro_id%2 == 0) || (thread_gid%2==1 && coro_id%2 == 1)){ //change this. 
+            tx_committed = Litmus3Alt_T1(yield, iter, dtx);
+          }
+          else{
+             tx_committed = Litmus3Alt_T2(yield, iter, dtx);
+            //assert
+           //some delay here
+             
+           Assert3Alt_T2(yield, iter, dtx);
+         }
+           break;
+      }
     default:
           break;
     }

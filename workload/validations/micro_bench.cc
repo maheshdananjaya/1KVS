@@ -87,7 +87,7 @@ __thread uint64_t stat_attempted_tx_total = 0;  // Issued transaction number
 __thread uint64_t stat_committed_tx_total = 0;  // Committed transaction number
 const coro_id_t POLL_ROUTINE_ID = 0;            // The poll coroutine ID
 
-__thread int litmus=2; //1 2 3 4
+__thread int litmus=5; //1 2 3 4
 
 
 extern bool crash_emu;
@@ -1304,7 +1304,7 @@ void RunTx(coro_yield_t& yield, coro_id_t coro_id) {
              tx_committed = Litmus3Alt_T2(yield, iter, dtx);
             //assert
            //some delay here
-             
+
            Assert3Alt_T2(yield, iter, dtx);
          }
            break;

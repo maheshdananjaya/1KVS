@@ -360,7 +360,7 @@ class DTX {
       bool TxUndoRecovery(coro_yield_t& yield, AddrCache ** addr_caches, t_id_t failed_thread_id, coro_id_t failed_coro_id);
       bool IssueLatchLogRecoveryRead(coro_yield_t& yield, t_id_t failed_thread_id, coro_id_t failed_coro_id);
       bool IssueUndoLogRecovery(coro_yield_t& yield, t_id_t failed_thread_id, coro_id_t failed_coro_id);
-      bool IssueLatchLogRecoveryReadForAllThreads(coro_yield_t& yield, AddrCache ** addr_caches);
+      bool IssueLatchLogRecoveryReadForAllThreads(coro_yield_t& yield, AddrCache ** addr_caches, t_id_t failed_thread_id, coro_id_t failed_coro_id);
       bool IssueUndoLogRecoveryForAllThreads(coro_yield_t& yield, t_id_t failed_thread_id, coro_id_t failed_coro_id);
       bool UpdatedIssueUndoLogRecoveryForAllThreads(coro_yield_t& yield, AddrCache ** addr_caches, t_id_t failed_thread_id, coro_id_t failed_coro_id);
 

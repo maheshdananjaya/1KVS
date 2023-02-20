@@ -234,12 +234,12 @@ bool DTX::TxUndoRecovery(coro_yield_t& yield, AddrCache ** addr_caches){
 bool DTX::TxLatchRecovery(coro_yield_t& yield, AddrCache ** addr_caches, t_id_t failed_thread_id, coro_id_t failed_coro_id){
     //IssueUndoLogRecovery(yield);
     //IssueLatchLogRecoveryRead(yield);
-    IssueLatchLogRecoveryReadForAllThreads(yield, addr_caches, t_id_t failed_thread_id, coro_id_t failed_coro_id);
+    IssueLatchLogRecoveryReadForAllThreads(yield, addr_caches, failed_thread_id, failed_coro_id);
 }
 
 bool DTX::TxUndoRecovery(coro_yield_t& yield, AddrCache ** addr_caches, t_id_t failed_thread_id, coro_id_t failed_coro_id){
     //IssueUndoLogRecovery(yield);
-    UpdatedIssueUndoLogRecoveryForAllThreads(yield, addr_caches, t_id_t failed_thread_id, coro_id_t failed_coro_id);
+    UpdatedIssueUndoLogRecoveryForAllThreads(yield, addr_caches, failed_thread_id, failed_coro_id);
     //IssueLatchLogRecoveryRead(yield);
 }
 
@@ -977,7 +977,7 @@ bool DTX::IssueLatchLogRecoveryReadForAllThreads(coro_yield_t& yield, AddrCache 
         if(t != failed_thread_id) continue;
 
     for (int c = 1 ; c < num_coro ; c++){   
-        
+
           if(c != failed_coro_id) continue;
         //every node //see first two logs and check if they are not negative. //check all logs.
         bool has_started_commit = false; //not useful here.

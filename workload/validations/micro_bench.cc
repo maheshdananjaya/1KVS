@@ -771,9 +771,60 @@ bool Assert3Alt_T2(coro_yield_t& yield, tx_id_t tx_id, DTX* dtx) {
       micro_val_t* micro_val_x = (micro_val_t*) micro_objs[0]->value;
       micro_val_t* micro_val_z = (micro_val_t*) micro_objs[2]->value;
 
-      RDMA_LOG(INFO) << "Before Litmus3Alt_Assert -  X= " << micro_val_x->magic[1] << " , Y= " <<  micro_val_z->magic[1];
+      RDMA_LOG(INFO) << "Before Litmus3Alt_Assert -  X= " << micro_val_x->magic[1] << " , Y = " <<  micro_val_z->magic[1];
 
       assert(micro_val_z->magic[1] <= micro_val_x->magic[1]);
+
+    //bool commit_status = dtx->TxCommit(yield); // We also need to emulate crashes within commit. use interrupts.
+    //Unlock should be there. 
+
+   dtx->AssertAbort(yield);
+
+  return true;
+
+}
+
+//Assertion for the litmus 2
+bool Assert3Alt_T1(coro_yield_t& yield, tx_id_t tx_id, DTX* dtx) {
+
+  //assertion function for the mitmus testing
+  //trick: either stop the world or lock all read only objects.
+  
+  dtx->TxBegin(tx_id);
+  bool is_write[data_set_size]; 
+  DataItemPtr micro_objs[data_set_size];
+ 
+      micro_key_t micro_key_x;
+      micro_key_x.item_key = (itemkey_t) 0;
+      assert(micro_key_x.item_key >= 0 && micro_key_x.item_key < num_keys_global);
+      micro_objs[0] = std::make_shared<DataItem>((table_id_t)MicroTableType::kMicroTable, micro_key_x.item_key);
+      //do this with deletes and inserts radomly.
+      dtx->AddToReadWriteSet(micro_objs[0]);
+      is_write[0] = true;
+
+      micro_key_t micro_key_y;
+      micro_key_y.item_key = (itemkey_t) 1; //Z
+      assert(micro_key_y.item_key >= 0 && micro_key_y.item_key < num_keys_global);
+      micro_objs[1] = std::make_shared<DataItem>((table_id_t)MicroTableType::kMicroTable, micro_key_y.item_key);
+      //do this with deletes and inserts radomly.
+      dtx->AddToReadWriteSet(micro_objs[1]);
+      is_write[1] = true;
+
+  
+    //Lock and Read
+    if (!dtx->TxExeLitmus(yield)) {
+      // TLOG(DBG, thread_gid) << "tx " << tx_id << " aborts after exe";
+         //dtx->AssertAbort();
+      return false;
+    } 
+   
+          //randomly insert/delete all objects.
+      micro_val_t* micro_val_x = (micro_val_t*) micro_objs[0]->value;
+      micro_val_t* micro_val_y = (micro_val_t*) micro_objs[1]->value;
+
+      RDMA_LOG(INFO) << "Before Litmus3AltT2_Assert -  X= " << micro_val_x->magic[1] << " , Y = " <<  micro_val_y->magic[1];
+
+      assert(micro_val_y->magic[1] <= micro_val_x->magic[1]);
 
     //bool commit_status = dtx->TxCommit(yield); // We also need to emulate crashes within commit. use interrupts.
     //Unlock should be there. 
@@ -1299,14 +1350,12 @@ void RunTx(coro_yield_t& yield, coro_id_t coro_id) {
      case 5:{ //Alternative litmus to 3
 
           if ( (thread_gid%2==0 && coro_id%2 == 0) || (thread_gid%2==1 && coro_id%2 == 1)){ //change this. 
-            tx_committed = Litmus3Alt_T1(yield, iter, dtx);
+             tx_committed = Litmus3Alt_T1(yield, iter, dtx);
+             Assert3Alt_T1(yield, iter, dtx);
           }
           else{
              tx_committed = Litmus3Alt_T2(yield, iter, dtx);
-            //assert
-           //some delay here
-
-           Assert3Alt_T2(yield, iter, dtx);
+             Assert3Alt_T2(yield, iter, dtx);
          }
            break;
       }

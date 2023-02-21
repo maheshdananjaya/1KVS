@@ -86,8 +86,8 @@ __thread uint64_t write_ratio;
 __thread uint64_t stat_attempted_tx_total = 0;  // Issued transaction number
 __thread uint64_t stat_committed_tx_total = 0;  // Committed transaction number
 const coro_id_t POLL_ROUTINE_ID = 0;            // The poll coroutine ID
-
-__thread int litmus=5; //1 2 3 4
+ 
+__thread int litmus=5; //1 2 3 4 5 is the 3_lat
 
 
 extern bool crash_emu;
@@ -1356,10 +1356,22 @@ void RunTx(coro_yield_t& yield, coro_id_t coro_id) {
 
           if ( (thread_gid%2==0 && coro_id%2 == 0) || (thread_gid%2==1 && coro_id%2 == 1)){ //change this. 
              tx_committed = Litmus3Alt_T1(yield, iter, dtx);
-             Assert3Alt_T1(yield, iter, dtx);
+             //Assert3Alt_T1(yield, iter, dtx);
+            if(!tx_commited){
+
+                //STOP. crash. recover.
+                usleep(20);
+                dtx->TxUndoRecovery(yield, addr_caches, thread_gid, coro_id); //NEW recovery with global coordinator id. 
+                dtx->TxLatchRecovery(yield, addr_caches, thread_gid, coro_id); //NEW recovery with global coordinator id.    
+                RDMA_LOG(INFO) << " Recovery done thread_id= " << thread_gid << " coro_id=" << coro_id; 
+                usleep(1000);       
+
+             }
           }
           else{
+
              tx_committed = Litmus3Alt_T2(yield, iter, dtx);
+             usleep(1000);
              Assert3Alt_T2(yield, iter, dtx);
          }
            break;

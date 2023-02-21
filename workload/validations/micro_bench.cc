@@ -655,16 +655,16 @@ bool Litmus3Alt_T1(coro_yield_t& yield, tx_id_t tx_id, DTX* dtx) {
       //EMULATED crashes   
     int rand_num= ((uint64_t)rand() )% 10; //random number
     if(rand_num==1){
-      usleep(10000); 
+       usleep(4200); 
 
-      RDMA_LOG(INFO) << "Litmus3Alt_T1 -  X= " << micro_val_x->magic[1] << " , Y= " <<  micro_val_y->magic[1];
+      RDMA_LOG(INFO) << "VALUES before abort/fail Litmus3Alt_T1 -  X= " << micro_val_x->magic[1] << " , Y= " <<  micro_val_y->magic[1];
       RDMA_LOG(INFO) << " Litmus 3 alt t1: Recovery start thread_id= " << thread_gid << " coro_id=" << dtx->coro_id;
       dtx->TxUndoRecovery(yield, addr_caches, thread_gid, dtx->coro_id); //NEW recovery with global coordinator id. 
       RDMA_LOG(INFO) << " Litmus 3 alt t1: Lock Recovery start thread_id= " << thread_gid << " coro_id=" << dtx->coro_id;
       dtx->TxLatchRecovery(yield, addr_caches,
        thread_gid, dtx->coro_id); //NEW recovery with global coordinator id.    
       RDMA_LOG(INFO) << " Litmus 3 alt t1: Recovery done thread_id= " << thread_gid << " coro_id=" << dtx->coro_id; 
-      usleep(10000); 
+      usleep(1000); 
       return false;
 
     }    
@@ -1394,9 +1394,10 @@ void RunTx(coro_yield_t& yield, coro_id_t coro_id) {
              }
           }
           else{
-              
+             
+             usleep(1); 
              tx_committed = Litmus3Alt_T2(yield, iter, dtx);
-             usleep(1);
+             usleep(1000);
              Assert3Alt_T2(yield, iter, dtx);
          }
            break;

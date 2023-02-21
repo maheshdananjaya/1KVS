@@ -1371,7 +1371,7 @@ void RunTx(coro_yield_t& yield, coro_id_t coro_id) {
              
 
             //Emulating cache misses
-             addr_cache[thread_local_id] = new AddrCache(); //emulating cache misses
+             addr_cache[thread_local_id] = (AddrCache*) new AddrCache(); //emulating cache misses
 
              tx_committed = Litmus3Alt_T1(yield, iter, dtx);
              //Assert3Alt_T1(yield, iter, dtx);

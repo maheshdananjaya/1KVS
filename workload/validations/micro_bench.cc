@@ -1396,7 +1396,7 @@ void RunTx(coro_yield_t& yield, coro_id_t coro_id) {
           else{
               
              tx_committed = Litmus3Alt_T2(yield, iter, dtx);
-             usleep(30000);
+             usleep(1);
              Assert3Alt_T2(yield, iter, dtx);
          }
            break;

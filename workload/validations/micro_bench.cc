@@ -1363,7 +1363,7 @@ void RunTx(coro_yield_t& yield, coro_id_t coro_id) {
                 usleep(20);
                 dtx->TxUndoRecovery(yield, addr_caches, thread_gid, coro_id); //NEW recovery with global coordinator id. 
                 dtx->TxLatchRecovery(yield, addr_caches, thread_gid, coro_id); //NEW recovery with global coordinator id.    
-                RDMA_LOG(INFO) << " Recovery done thread_id= " << thread_gid << " coro_id=" << coro_id; 
+                RDMA_LOG(INFO) << " Litmus 3 alt assert 2: Recovery done thread_id= " << thread_gid << " coro_id=" << coro_id; 
                 usleep(1000);       
 
              }

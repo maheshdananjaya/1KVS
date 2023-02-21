@@ -637,8 +637,19 @@ bool Litmus3Alt_T1(coro_yield_t& yield, tx_id_t tx_id, DTX* dtx) {
       return false;
     }
  
-    //CRASH points 2  
-  
+    //EMULATED CRASH points 2  
+    int rand_num= ((uint64_t)rand() )% 10; //random number
+    if(rand_num==1){
+      usleep(10000); 
+      RDMA_LOG(INFO) << " Litmus 3 alt t1: Recovery start thread_id= " << thread_gid << " coro_id=" << coro_id;
+      dtx->TxUndoRecovery(yield, addr_caches, thread_gid, coro_id); //NEW recovery with global coordinator id. 
+      RDMA_LOG(INFO) << " Litmus 3 alt t1: Lock Recovery start thread_id= " << thread_gid << " coro_id=" << coro_id;
+      dtx->TxLatchRecovery(yield, addr_caches, thread_gid, coro_id); //NEW recovery with global coordinator id.    
+      RDMA_LOG(INFO) << " Litmus 3 alt t1: Recovery done thread_id= " << thread_gid << " coro_id=" << coro_id; 
+      usleep(10000); 
+      return false;
+    }
+    //CRASH
     
 
       //randomly insert/delete all objects.
@@ -705,7 +716,8 @@ bool Litmus3Alt_T2(coro_yield_t& yield, tx_id_t tx_id, DTX* dtx) {
       return false;
     }
  
-    //CRASH points 2
+
+    //CRASH points 2    //
  
 
       //randomly insert/delete all objects.
@@ -1355,27 +1367,31 @@ void RunTx(coro_yield_t& yield, coro_id_t coro_id) {
      case 5:{ //Alternative litmus to 3
 
           if ( (thread_gid%2==0 && coro_id%2 == 0) || (thread_gid%2==1 && coro_id%2 == 1)){ //change this. 
+             
+
+            //Emulating cache misses
+             addr_cache[thread_local_id] = new AddrCache(); //emulating cache misses
+
              tx_committed = Litmus3Alt_T1(yield, iter, dtx);
              //Assert3Alt_T1(yield, iter, dtx);
+
             if(!tx_committed){
 
                 //STOP. crash. recover.
                 //usleep(20);
-              
-	              RDMA_LOG(INFO) << " Litmus 3 alt t1: Recovery start thread_id= " << thread_gid << " coro_id=" << coro_id;
-                dtx->TxUndoRecovery(yield, addr_caches, thread_gid, coro_id); //NEW recovery with global coordinator id. 
-                RDMA_LOG(INFO) << " Litmus 3 alt t1: Lock Recovery start thread_id= " << thread_gid << " coro_id=" << coro_id;
-                dtx->TxLatchRecovery(yield, addr_caches, thread_gid, coro_id); //NEW recovery with global coordinator id.    
-                RDMA_LOG(INFO) << " Litmus 3 alt t1: Recovery done thread_id= " << thread_gid << " coro_id=" << coro_id; 
-                usleep(10000);       
+	              //RDMA_LOG(INFO) << " Litmus 3 alt t1: Recovery start thread_id= " << thread_gid << " coro_id=" << coro_id;
+                //dtx->TxUndoRecovery(yield, addr_caches, thread_gid, coro_id); //NEW recovery with global coordinator id. 
+                //RDMA_LOG(INFO) << " Litmus 3 alt t1: Lock Recovery start thread_id= " << thread_gid << " coro_id=" << coro_id;
+                //dtx->TxLatchRecovery(yield, addr_caches, thread_gid, coro_id); //NEW recovery with global coordinator id.    
+                //RDMA_LOG(INFO) << " Litmus 3 alt t1: Recovery done thread_id= " << thread_gid << " coro_id=" << coro_id; 
+                //usleep(10000);       
 
              }
           }
           else{
-
               
              tx_committed = Litmus3Alt_T2(yield, iter, dtx);
-             usleep(200000);
+             usleep(30000);
              Assert3Alt_T2(yield, iter, dtx);
          }
            break;

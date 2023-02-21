@@ -693,8 +693,7 @@ bool Litmus3Alt_T2(coro_yield_t& yield, tx_id_t tx_id, DTX* dtx) {
   DataItemPtr micro_objs[data_set_size];
 
     //CRASH points
-
-   //DelayRandom();
+    //DelayRandom();
   
       micro_key_t micro_key_x;
       micro_key_x.item_key = (itemkey_t) 0;
@@ -743,7 +742,7 @@ bool Litmus3Alt_T2(coro_yield_t& yield, tx_id_t tx_id, DTX* dtx) {
     bool commit_status = dtx->TxCommit(yield); // We also need to emulate crashes within commit. use interrupts.
 
     if(commit_status)
-      RDMA_LOG(INFO) << "Litmus3Alt_T2 -  X= " << value_v+1 << " , Z= " <<  value_v+1;
+      RDMA_LOG(INFO) << "Litmus3Alt_T2 Committed - thread id= "<< thread_gid << " coro= " << dtx->coro_id << ".. X= " << value_v+1 << " , Z= " <<  value_v+1;
 
     //CRASH points 4
 
@@ -792,9 +791,10 @@ bool Assert3Alt_T2(coro_yield_t& yield, tx_id_t tx_id, DTX* dtx) {
       micro_val_t* micro_val_x = (micro_val_t*) micro_objs[0]->value;
       micro_val_t* micro_val_z = (micro_val_t*) micro_objs[2]->value;
 
-      RDMA_LOG(INFO) << "Before Litmus3AltT1_Assert -  X= " << micro_val_x->magic[1] << " , Z = " <<  micro_val_z->magic[1];
-
-      assert(micro_val_z->magic[1] <= micro_val_x->magic[1]);
+      //RDMA_LOG(INFO) << "Before Litmus3AltT1_Assert -  X= " << micro_val_x->magic[1] << " , Z = " <<  micro_val_z->magic[1];
+       RDMA_LOG(INFO) << "Before Litmus3AltT1_Assert - thread id= "<< thread_gid << " coro= " << dtx->coro_id <<   " X= " << micro_val_x->magic[1] << " , Z = " <<  micro_val_z->magic[1];
+    
+     assert(micro_val_z->magic[1] <= micro_val_x->magic[1]);
 
     //bool commit_status = dtx->TxCommit(yield); // We also need to emulate crashes within commit. use interrupts.
     //Unlock should be there. 

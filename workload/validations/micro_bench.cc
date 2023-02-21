@@ -642,11 +642,11 @@ bool Litmus3Alt_T1(coro_yield_t& yield, tx_id_t tx_id, DTX* dtx) {
     if(rand_num==1){
       usleep(10000); 
 
-      RDMA_LOG(INFO) << " Litmus 3 alt t1: Recovery start thread_id= " << thread_gid << " coro_id=" << coro_id;
+      RDMA_LOG(INFO) << " Litmus 3 alt t1: Recovery start thread_id= " << thread_gid << " coro_id=" << dtx->coro_id;
       dtx->TxUndoRecovery(yield, addr_caches, thread_gid, dtx->coro_id); //NEW recovery with global coordinator id. 
-      RDMA_LOG(INFO) << " Litmus 3 alt t1: Lock Recovery start thread_id= " << thread_gid << " coro_id=" << coro_id;
+      RDMA_LOG(INFO) << " Litmus 3 alt t1: Lock Recovery start thread_id= " << thread_gid << " coro_id=" << dtx->coro_id;
       dtx->TxLatchRecovery(yield, addr_caches, thread_gid, dtx->coro_id); //NEW recovery with global coordinator id.    
-      RDMA_LOG(INFO) << " Litmus 3 alt t1: Recovery done thread_id= " << thread_gid << " coro_id=" << coro_id; 
+      RDMA_LOG(INFO) << " Litmus 3 alt t1: Recovery done thread_id= " << thread_gid << " coro_id=" << dtx->coro_id; 
       usleep(10000); 
       return false;
     }

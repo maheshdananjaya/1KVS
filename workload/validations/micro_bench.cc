@@ -638,20 +638,7 @@ bool Litmus3Alt_T1(coro_yield_t& yield, tx_id_t tx_id, DTX* dtx) {
     }
  
     //EMULATED CRASH points 2  
-    int rand_num= ((uint64_t)rand() )% 10; //random number
-    if(rand_num==1){
-      usleep(10000); 
-
-      RDMA_LOG(INFO) << " Litmus 3 alt t1: Recovery start thread_id= " << thread_gid << " coro_id=" << dtx->coro_id;
-      dtx->TxUndoRecovery(yield, addr_caches, thread_gid, dtx->coro_id); //NEW recovery with global coordinator id. 
-      RDMA_LOG(INFO) << " Litmus 3 alt t1: Lock Recovery start thread_id= " << thread_gid << " coro_id=" << dtx->coro_id;
-      dtx->TxLatchRecovery(yield, addr_caches, thread_gid, dtx->coro_id); //NEW recovery with global coordinator id.    
-      RDMA_LOG(INFO) << " Litmus 3 alt t1: Recovery done thread_id= " << thread_gid << " coro_id=" << dtx->coro_id; 
-      usleep(10000); 
-      return false;
-    }
-    //CRASH
-    
+    //CRASH    
 
       //randomly insert/delete all objects.
       micro_val_t* micro_val_x = (micro_val_t*) micro_objs[0]->value;
@@ -663,10 +650,26 @@ bool Litmus3Alt_T1(coro_yield_t& yield, tx_id_t tx_id, DTX* dtx) {
 
       micro_val_x->magic[1] = value_v+1; // new version value for all writes.
       micro_val_y->magic[1] = value_v+1; // new version value for all writes.
-    
+
+
+      //EMULATED crashes   
+    int rand_num= ((uint64_t)rand() )% 10; //random number
+    if(rand_num==1){
+      usleep(10000); 
+
+      RDMA_LOG(INFO) << "Litmus3Alt_T1 -  X= " << micro_val_x->magic[1];<< " , Y= " <<  micro_val_y->magic[1];
+      RDMA_LOG(INFO) << " Litmus 3 alt t1: Recovery start thread_id= " << thread_gid << " coro_id=" << dtx->coro_id;
+      dtx->TxUndoRecovery(yield, addr_caches, thread_gid, dtx->coro_id); //NEW recovery with global coordinator id. 
+      RDMA_LOG(INFO) << " Litmus 3 alt t1: Lock Recovery start thread_id= " << thread_gid << " coro_id=" << dtx->coro_id;
+      dtx->TxLatchRecovery(yield, addr_caches,
+       thread_gid, dtx->coro_id); //NEW recovery with global coordinator id.    
+      RDMA_LOG(INFO) << " Litmus 3 alt t1: Recovery done thread_id= " << thread_gid << " coro_id=" << dtx->coro_id; 
+      usleep(10000); 
+      return false;
+
+    }    
 
     //EMULATED CRASH points 3
-
 
     bool commit_status = dtx->TxCommit(yield); // We also need to emulate crashes within commit. use interrupts.
 
@@ -1374,6 +1377,7 @@ void RunTx(coro_yield_t& yield, coro_id_t coro_id) {
              addr_caches[thread_local_id] = new AddrCache(); //emulating cache misses
 
              tx_committed = Litmus3Alt_T1(yield, iter, dtx);
+
              //Assert3Alt_T1(yield, iter, dtx);
 
             if(!tx_committed){

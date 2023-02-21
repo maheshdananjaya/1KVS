@@ -1357,7 +1357,7 @@ void RunTx(coro_yield_t& yield, coro_id_t coro_id) {
           if ( (thread_gid%2==0 && coro_id%2 == 0) || (thread_gid%2==1 && coro_id%2 == 1)){ //change this. 
              tx_committed = Litmus3Alt_T1(yield, iter, dtx);
              //Assert3Alt_T1(yield, iter, dtx);
-            if(!tx_commited){
+            if(!tx_committed){
 
                 //STOP. crash. recover.
                 usleep(20);

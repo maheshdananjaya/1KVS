@@ -116,13 +116,22 @@ bool DTX::IssueReadLock(std::vector<CasRead>& pending_cas_rw,
     if (offset != NOT_FOUND) {
       // hit_local_cache_times++;
       it->remote_offset = offset;
+
+      //BUG. This release unset locks in aborts.
+
       locked_rw_set.emplace_back(i);
       // After getting address, use doorbell CAS + READ
       char* cas_buf = thread_rdma_buffer_alloc->Alloc(sizeof(lock_t));
       char* data_buf = thread_rdma_buffer_alloc->Alloc(DataItemSize);
       pending_cas_rw.emplace_back(CasRead{.qp = qp, .item = &read_write_set[i], .cas_buf = cas_buf, .data_buf = data_buf, .primary_node_id = remote_node_id});
       std::shared_ptr<LockReadBatch> doorbell = std::make_shared<LockReadBatch>();
-      doorbell->SetLockReq(cas_buf, it->GetRemoteLockAddr(offset), STATE_CLEAN, STATE_LOCKED); 
+
+      #ifdef ELOG //eplciti logging
+        doorbell->SetLockReq(cas_buf, it->GetRemoteLockAddr(offset), STATE_CLEAN, t_id+1);
+      #else
+        doorbell->SetLockReq(cas_buf, it->GetRemoteLockAddr(offset), STATE_CLEAN, STATE_LOCKED); 
+      #endif
+
       doorbell->SetReadReq(data_buf, offset, DataItemSize);  // Read a DataItem
       if (!doorbell->SendReqs(coro_sched, qp, coro_id)) {
         return false;
@@ -163,7 +172,13 @@ bool DTX::IssueValidate(std::vector<ValidateRead>& pending_validate) {
     pending_validate.push_back(ValidateRead{.qp = qp, .item = &read_write_set[index], .cas_buf = cas_buf, .version_buf = version_buf, .has_lock_in_validate = true});
 
     std::shared_ptr<LockReadBatch> doorbell = std::make_shared<LockReadBatch>();
-    doorbell->SetLockReq(cas_buf, it->GetRemoteLockAddr(), STATE_CLEAN, STATE_LOCKED);
+
+    #ifdef ELOG
+      doorbell->SetLockReq(cas_buf, it->GetRemoteLockAddr(), STATE_CLEAN, t_id+1);
+    #else
+      doorbell->SetLockReq(cas_buf, it->GetRemoteLockAddr(), STATE_CLEAN, STATE_LOCKED);
+    #endif
+
     doorbell->SetReadReq(version_buf, it->GetRemoteVersionAddr(), sizeof(version_t));  // Read a version
     if (!doorbell->SendReqs(coro_sched, qp, coro_id)) {
       return false;
@@ -251,6 +266,7 @@ bool DTX::IssueCommitAll(std::vector<CommitWrite>& pending_commit_write, char* c
     if (!it->user_insert) {
       it->version++;
     }
+
     it->lock = STATE_LOCKED | STATE_INVISIBLE;
     memcpy(data_buf, (char*)it.get(), DataItemSize);
 
@@ -317,7 +333,12 @@ bool DTX::IssueCommitAllFullFlush(std::vector<CommitWrite>& pending_commit_write
     if (!it->user_insert) {
       it->version++;
     }
-    it->lock = STATE_LOCKED | STATE_INVISIBLE;
+
+    #ifdef ELOG
+      it->lock = (it->lock | STATE_INVISIBLE);
+    #else
+        it->lock = STATE_LOCKED | STATE_INVISIBLE;
+    #endif
     memcpy(data_buf, (char*)it.get(), DataItemSize);
 
     // Commit primary
@@ -408,7 +429,15 @@ bool DTX::IssueCommitAllSelectFlush(std::vector<CommitWrite>& pending_commit_wri
     if (!it->user_insert) {
       it->version++;
     }
-    it->lock = STATE_LOCKED | STATE_INVISIBLE;
+
+
+     #ifdef ELOG
+      it->lock = (it->lock | STATE_INVISIBLE);
+    #else
+        it->lock = STATE_LOCKED | STATE_INVISIBLE;
+    #endif
+
+
     memcpy(data_buf, (char*)it.get(), DataItemSize);
 
     // Commit primary
@@ -487,7 +516,13 @@ bool DTX::IssueCommitAllBatchSelectFlush(std::vector<CommitWrite>& pending_commi
     if (!it->user_insert) {
       it->version++;
     }
-    it->lock = STATE_LOCKED | STATE_INVISIBLE;
+    
+     #ifdef ELOG
+      it->lock = (it->lock | STATE_INVISIBLE);
+    #else
+        it->lock = STATE_LOCKED | STATE_INVISIBLE;
+    #endif
+        
     memcpy(data_buf, (char*)it.get(), DataItemSize);
 
     // Commit primary

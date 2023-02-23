@@ -132,7 +132,12 @@ bool DTX::CompareIssueLocking(std::vector<Lock>& pending_lock) {
     node_id_t primary_node_id = global_meta_man->GetPrimaryNodeID(it->table_id);
     RCQP* qp = thread_qp_man->GetRemoteDataQPWithNodeID(primary_node_id);
     pending_lock.push_back(Lock{.qp = qp, .item = &read_write_set[index], .cas_buf = cas_buf, .lock_off = it->GetRemoteLockAddr()});
-    if (!coro_sched->RDMACAS(coro_id, qp, cas_buf, it->GetRemoteLockAddr(), STATE_CLEAN, STATE_LOCKED)) return false;
+
+    #ifdef ELOG
+     if (!coro_sched->RDMACAS(coro_id, qp, cas_buf, it->GetRemoteLockAddr(), STATE_CLEAN, (t+1) )) return false;
+    #else
+     if (!coro_sched->RDMACAS(coro_id, qp, cas_buf, it->GetRemoteLockAddr(), STATE_CLEAN, STATE_LOCKED)) return false;
+    #endif
   }
   return true;
 }
@@ -190,7 +195,12 @@ bool DTX::CompareIssueLockValidation(std::vector<ValidateRead>& pending_validate
     pending_validate.push_back(ValidateRead{.qp = qp, .item = &read_write_set[index], .cas_buf = cas_buf, .version_buf = version_buf, .has_lock_in_validate = true});
 
     std::shared_ptr<LockReadBatch> doorbell = std::make_shared<LockReadBatch>();
+
+    #ifdef ELOG
+    doorbell->SetLockReq(cas_buf, it->GetRemoteLockAddr(), STATE_CLEAN, (t+1) );
+    #else
     doorbell->SetLockReq(cas_buf, it->GetRemoteLockAddr(), STATE_CLEAN, STATE_LOCKED);
+    #endif
     doorbell->SetReadReq(version_buf, it->GetRemoteVersionAddr(), sizeof(version_t));  // Read a version
     if (!doorbell->SendReqs(coro_sched, qp, coro_id)) {
       return false;
@@ -382,7 +392,12 @@ bool DTX::CompareIssueCommitBackupBatchSelectFlush() {
 bool DTX::CompareIssueCommitPrimary(std::vector<Unlock>& pending_unlock) {
   for (auto& set_it : read_write_set) {
     auto it = set_it.item_ptr;
+
+    #ifdef ELOG
+    it->lock = (t_id+1);  // version has been added during commit backup
+    #else
     it->lock = STATE_LOCKED;  // version has been added during commit backup
+    #endif
 
     char* data_buf = thread_rdma_buffer_alloc->Alloc(DataItemSize);
     memcpy(data_buf, (char*)it.get(), DataItemSize);
@@ -395,7 +410,13 @@ bool DTX::CompareIssueCommitPrimary(std::vector<Unlock>& pending_unlock) {
 
     std::shared_ptr<WriteUnlockBatch> doorbell = std::make_shared<WriteUnlockBatch>();
     doorbell->SetWritePrimaryReq(data_buf, it->remote_offset, DataItemSize);
-    doorbell->SetUnlockReq(cas_buf, it->GetRemoteLockAddr(), STATE_LOCKED, STATE_CLEAN);
+
+    #ifdef ELOG
+      doorbell->SetUnlockReq(cas_buf, it->GetRemoteLockAddr(), (t_id+1), STATE_CLEAN);
+    #else
+      doorbell->SetUnlockReq(cas_buf, it->GetRemoteLockAddr(), STATE_LOCKED, STATE_CLEAN);
+    #endif
+
     pending_unlock.push_back(Unlock{.qp = qp, .cas_buf = cas_buf, .item_off = it->remote_offset});
     if (!doorbell->SendReqs(coro_sched, qp, coro_id)) return false;
 

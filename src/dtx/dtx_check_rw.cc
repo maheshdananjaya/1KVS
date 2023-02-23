@@ -22,7 +22,12 @@ bool DTX::CheckCasRW(std::vector<CasRead>& pending_cas_rw, std::list<HashRead>& 
         Timer timer;
         timer.Start();
 
-        auto rc = re.qp->post_cas(re.cas_buf, remote_lock_addr, STATE_CLEAN, STATE_LOCKED, IBV_SEND_SIGNALED);
+        #ifdef ELOG
+          auto rc = re.qp->post_cas(re.cas_buf, remote_lock_addr, STATE_CLEAN, (t_id+1), IBV_SEND_SIGNALED);
+        #else
+          auto rc = re.qp->post_cas(re.cas_buf, remote_lock_addr, STATE_CLEAN, STATE_LOCKED, IBV_SEND_SIGNALED);
+        #endif
+
         if (rc != SUCC) {
           TLOG(ERROR, t_id) << "client: post cas fail. rc=" << rc;
           exit(-1);
@@ -60,6 +65,8 @@ bool DTX::CheckCasRW(std::vector<CasRead>& pending_cas_rw, std::list<HashRead>& 
     }
 #endif
 
+
+    //There seems to be aproblem somehere here. litmus 3 alt fails. 
     auto it = re.item->item_ptr;
     auto* fetched_item = (DataItem*)(re.data_buf);
     if (likely(fetched_item->key == it->key && fetched_item->table_id == it->table_id)) {

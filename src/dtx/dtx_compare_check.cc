@@ -218,7 +218,12 @@ bool DTX::CompareCheckLocking(std::vector<Lock>& pending_lock) {
       Timer timer;
       timer.Start();
 
-      auto rc = re.qp->post_cas(re.cas_buf, re.lock_off, STATE_CLEAN, STATE_LOCKED, IBV_SEND_SIGNALED);
+      #ifdef ELOG
+        auto rc = re.qp->post_cas(re.cas_buf, re.lock_off, STATE_CLEAN, (t_id+1), IBV_SEND_SIGNALED);
+      #else
+        auto rc = re.qp->post_cas(re.cas_buf, re.lock_off, STATE_CLEAN, STATE_LOCKED, IBV_SEND_SIGNALED);
+      #endif
+
       if (rc != SUCC) {
         TLOG(ERROR, t_id) << "client: post cas fail. rc=" << rc;
         exit(-1);
@@ -286,7 +291,13 @@ bool DTX::CompareCheckValidation(std::vector<Version>& pending_version_read) {
 
 bool DTX::CompareCheckCommitPrimary(std::vector<Unlock>& pending_unlock) {
   for (auto& re : pending_unlock) {
-    if (*((lock_t*)re.cas_buf) != STATE_LOCKED) {
+
+    #ifdef ELOG
+      if (*((lock_t*)re.cas_buf) != (t_id+1)) {
+    #else
+        if (*((lock_t*)re.cas_buf) != STATE_LOCKED) {
+    #endif
+
       return false;
     }
   }

@@ -134,7 +134,7 @@ bool DTX::CompareIssueLocking(std::vector<Lock>& pending_lock) {
     pending_lock.push_back(Lock{.qp = qp, .item = &read_write_set[index], .cas_buf = cas_buf, .lock_off = it->GetRemoteLockAddr()});
 
     #ifdef ELOG
-     if (!coro_sched->RDMACAS(coro_id, qp, cas_buf, it->GetRemoteLockAddr(), STATE_CLEAN, (t+1) )) return false;
+     if (!coro_sched->RDMACAS(coro_id, qp, cas_buf, it->GetRemoteLockAddr(), STATE_CLEAN, (t_id+1) )) return false;
     #else
      if (!coro_sched->RDMACAS(coro_id, qp, cas_buf, it->GetRemoteLockAddr(), STATE_CLEAN, STATE_LOCKED)) return false;
     #endif
@@ -197,7 +197,7 @@ bool DTX::CompareIssueLockValidation(std::vector<ValidateRead>& pending_validate
     std::shared_ptr<LockReadBatch> doorbell = std::make_shared<LockReadBatch>();
 
     #ifdef ELOG
-    doorbell->SetLockReq(cas_buf, it->GetRemoteLockAddr(), STATE_CLEAN, (t+1) );
+    doorbell->SetLockReq(cas_buf, it->GetRemoteLockAddr(), STATE_CLEAN, (t_id+1) );
     #else
     doorbell->SetLockReq(cas_buf, it->GetRemoteLockAddr(), STATE_CLEAN, STATE_LOCKED);
     #endif

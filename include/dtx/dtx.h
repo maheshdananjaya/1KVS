@@ -81,6 +81,7 @@ class DTX {
 
   void AssertAbort(coro_yield_t& yield); // used only in litmus assertions.
   bool TxExeLitmus(coro_yield_t& yield); // Litmus tests.
+  bool ClearIndexCache(coro_yield_t& yield);
 
   /*****************************************************/
 
@@ -908,6 +909,11 @@ bool DTX::TxExeLitmus(coro_yield_t& yield){
 
 }
 
+
+ALWAYS_INLINE
+bool DTX::ClearIndexCache(coro_yield_t& yield){
+  addr_cache->ClearAll();
+}
 
 ALWAYS_INLINE
 void DTX::Clean() {

@@ -818,7 +818,9 @@ bool DTX::IssueLatchLogRecoveryReadForAllThreads(coro_yield_t& yield, AddrCache 
                 if(!last_flagged){
                     //continue with the next log record if if
                     assert((r+1) <= MAX_LATCH_LOG_RECORDS);
-                    continue;
+                    
+                    //Critical Bug. avoid unlocking
+                     //continue;
                 }else{
 
                     //then only we need to read undo
@@ -849,11 +851,15 @@ bool DTX::IssueLatchLogRecoveryReadForAllThreads(coro_yield_t& yield, AddrCache 
                             //assume all logs keys are a cache hit.
                    if (offset != NOT_FOUND) {
                        //TODO - pointers are 
-                    offset += sizeof(table_id_t)+sizeof(size_t) + sizeof(itemkey_t)+ sizeof(offset_t)+sizeof(version_t)+sizeof(lock_t); 
+                    offset += sizeof(table_id_t)+sizeof(size_t) + sizeof(itemkey_t)+ sizeof(offset_t)+sizeof(version_t); //FIXED CRITICAl BUG +sizeof(lock_t); 
 
                     //RDMACAS(coro_id_t coro_id, RCQP* qp, char* local_buf, uint64_t remote_offset, uint64_t compare, uint64_t swap)
                     //TODO - STATE_LOCKED must be s
-                    if (!coro_sched->RDMACAS(coro_id, qp, cas_buf, offset, STATE_LOCKED, STATE_CLEAN)) {
+                    #ifdef ELOG
+                        if (!coro_sched->RDMACAS(coro_id, qp, cas_buf, offset, (t+1), STATE_CLEAN)) {
+                    #else
+                        if (!coro_sched->RDMACAS(coro_id, qp, cas_buf, offset, STATE_LOCKED, STATE_CLEAN)) {
+                    #endif
                        //if (!coro_sched->RDMARead(coro_id, qp, &inplace_update[rc], offset, DataItemSize)) {
                            return false;
                        }
@@ -1089,7 +1095,9 @@ bool DTX::IssueLatchLogRecoveryReadForAllThreads(coro_yield_t& yield, AddrCache 
                 if(!last_flagged){
                     //continue with the next log record if if
                     assert((r+1) <= MAX_LATCH_LOG_RECORDS);
-                    continue;
+
+                    //FiXED: Bug
+                    //continue;
                 }else{
 
                     //then only we need to read undo
@@ -1120,11 +1128,16 @@ bool DTX::IssueLatchLogRecoveryReadForAllThreads(coro_yield_t& yield, AddrCache 
                             //assume all logs keys are a cache hit.
                    if (offset != NOT_FOUND) {
                        //TODO - pointers are 
-                    offset += sizeof(table_id_t)+sizeof(size_t) + sizeof(itemkey_t)+ sizeof(offset_t)+sizeof(version_t)+sizeof(lock_t); 
+                    offset += sizeof(table_id_t)+sizeof(size_t) + sizeof(itemkey_t)+ sizeof(offset_t)+sizeof(version_t) ; // FIXED Critical BUG +sizeof(lock_t); 
 
                     //RDMACAS(coro_id_t coro_id, RCQP* qp, char* local_buf, uint64_t remote_offset, uint64_t compare, uint64_t swap)
                     //TODO - STATE_LOCKED must be s
-                    if (!coro_sched->RDMACAS(coro_id, qp, cas_buf, offset, STATE_LOCKED, STATE_CLEAN)) {
+
+                    #ifdef ELOG
+                        if (!coro_sched->RDMACAS(coro_id, qp, cas_buf, offset, STATE_LOCKED, STATE_CLEAN)) {
+                    #else
+                        if (!coro_sched->RDMACAS(coro_id, qp, cas_buf, offset, (t+1), STATE_CLEAN)) {
+                    #endif
                        //if (!coro_sched->RDMARead(coro_id, qp, &inplace_update[rc], offset, DataItemSize)) {
                            return false;
                        }

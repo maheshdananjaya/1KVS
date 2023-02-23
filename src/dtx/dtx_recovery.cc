@@ -728,7 +728,9 @@ bool DTX::IssueLatchLogRecoveryReadForAllThreads(coro_yield_t& yield, AddrCache 
             bool log_received=true;             
             bool tx_id_agreed=true; //same as log_received
             uint64_t curr_agreed_tx_id = 0; // largest of all agreed id. 
-            bool last_flagged=true; //in this log record. 
+            
+            //FIX LAST FLAG
+                bool last_flagged=false; //in this log record. 
             bool curr_log_matched=true;
 
             //Each machine.
@@ -997,7 +999,9 @@ bool DTX::IssueLatchLogRecoveryReadForAllThreads(coro_yield_t& yield, AddrCache 
             bool log_received=true;             
             bool tx_id_agreed=true; //same as log_received
             uint64_t curr_agreed_tx_id = 0; // largest of all agreed id. 
-            bool last_flagged=true; //in this log record. 
+            
+            //FIX LAST FLAG
+                bool last_flagged=false; //in this log record. 
             bool curr_log_matched=true;
 
             //Each machine.
@@ -1570,7 +1574,9 @@ bool DTX::UpdatedIssueUndoLogRecoveryForAllThreads(coro_yield_t& yield, AddrCach
                 bool log_received=true;             
                 bool tx_id_agreed=true; //same as log_received
                 uint64_t curr_agreed_tx_id = 0; // largest of all agreed id. 
-                bool last_flagged=true; //in this log record. 
+               
+                //FIX LAST FLAG
+                bool last_flagged=false; //in this log record. 
                 bool curr_log_matched=true;
     
                 //Each machine
@@ -2039,7 +2045,9 @@ bool DTX::UpdatedIssueUndoLogRecoveryForAllThreads(coro_yield_t& yield, AddrCach
                 bool log_received=true;             
                 bool tx_id_agreed=true; //same as log_received
                 uint64_t curr_agreed_tx_id = 0; // largest of all agreed id. 
-                bool last_flagged=true; //in this log record. 
+
+                //FIX LAST FLAG
+                bool last_flagged=false; //in this log record. 
                 bool curr_log_matched=true;
     
                 //Each machine

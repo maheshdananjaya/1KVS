@@ -154,7 +154,14 @@ bool DTX::Validate(coro_yield_t& yield) {
 bool DTX::CoalescentCommit(coro_yield_t& yield) {
   tx_status = TXStatus::TX_COMMIT;
   char* cas_buf = thread_rdma_buffer_alloc->Alloc(sizeof(lock_t));
-  *(lock_t*)cas_buf = STATE_LOCKED | STATE_INVISIBLE;
+
+
+  
+   #ifdef ELOG
+       *(lock_t*)cas_buf = (t_id+1) | STATE_INVISIBLE;
+    #else
+        *(lock_t*)cas_buf = STATE_LOCKED | STATE_INVISIBLE;
+    #endif
 
   std::vector<CommitWrite> pending_commit_write;
 
@@ -685,6 +692,10 @@ void DTX::Abort(coro_yield_t& yield) {
   *((lock_t*)unlock_buf) = 0;
   for (auto& index : locked_rw_set) {
     auto& it = read_write_set[index].item_ptr;
+
+    //FIX BUG-11
+    if(!read_write_set[index].is_fetched)continue;
+
     node_id_t primary_node_id = global_meta_man->GetPrimaryNodeID(it->table_id);
     RCQP* primary_qp = thread_qp_man->GetRemoteDataQPWithNodeID(primary_node_id);
     auto rc = primary_qp->post_send(IBV_WR_RDMA_WRITE, unlock_buf, sizeof(lock_t), it->GetRemoteLockAddr(), 0);

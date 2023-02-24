@@ -693,12 +693,20 @@ void DTX::Abort(coro_yield_t& yield) {
   for (auto& index : locked_rw_set) {
     auto& it = read_write_set[index].item_ptr;
 
-    //FIX BUG-11
+    //#ifdef BUG-11
     if(!read_write_set[index].is_fetched)continue;
+    //#endif
 
     node_id_t primary_node_id = global_meta_man->GetPrimaryNodeID(it->table_id);
     RCQP* primary_qp = thread_qp_man->GetRemoteDataQPWithNodeID(primary_node_id);
+
+    //FIX - this does not work with multiple coruotines.
+     //auto rc = primary_qp->post_cas(unlock_buf, it->GetRemoteLockAddr(), (t_id+1), STATE_CLEAN, IBV_SEND_SIGNALED);
+
+    //No fix.
     auto rc = primary_qp->post_send(IBV_WR_RDMA_WRITE, unlock_buf, sizeof(lock_t), it->GetRemoteLockAddr(), 0);
+
+
     if (rc != SUCC) {
       RDMA_LOG(FATAL) << "Thread " << t_id << " , Coroutine " << coro_id << " unlock fails during abortion";
     }

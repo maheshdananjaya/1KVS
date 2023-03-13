@@ -22,6 +22,7 @@ struct DataSetItem {
   bool is_fetched;
   bool is_logged;
   bool is_latch_logged;
+  bool is_locked_flag; //new, not used. for comlciti aborts.
   node_id_t read_which_node;  // From which node this data item is read. This is a node id, e.g., 0, 1, 2...
 };
 

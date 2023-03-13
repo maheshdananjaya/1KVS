@@ -159,6 +159,13 @@ bool DTX::IssueReadLock(std::vector<CasRead>& pending_cas_rw,
   return true;
 }
 
+
+
+
+//FIX w Pre-Committ. or lock values. lock values have to be written. 
+//Add extra pre-commit to "b
+//
+
 bool DTX::IssueValidate(std::vector<ValidateRead>& pending_validate) {
   // For those are not locked during exe phase, we lock and read their versions in a batch
   for (auto& index : not_eager_locked_rw_set) {
@@ -522,7 +529,7 @@ bool DTX::IssueCommitAllBatchSelectFlush(std::vector<CommitWrite>& pending_commi
     #else
         it->lock = STATE_LOCKED | STATE_INVISIBLE;
     #endif
-        
+
     memcpy(data_buf, (char*)it.get(), DataItemSize);
 
     // Commit primary

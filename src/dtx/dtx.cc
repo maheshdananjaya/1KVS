@@ -412,7 +412,7 @@ bool DTX::UndoLogWithoutInserts() {
       
       UndoLogRecord new_record;
       new_record.tx_id_ = tx_id;
-      new_record.t_id_=t_id;
+      new_record.t_id_= 0 ; // initially t_id; but last falg is set to 0
       new_record.data_ = *(set_it.item_ptr.get());
 
       //std::memcpy(written_log_buf + cur, &tx_id, sizeof(tx_id_t));  
@@ -473,8 +473,8 @@ bool DTX::UndoLogInsertsOnly() {
   offset_t cur = 0;
 
   //set the last flag for inserts.
-  int lg_count=0;
-  t_id_t last_flag=0xffffffff;
+  int lg_count = 0;
+  t_id_t last_flag = 0xffffffff;
 
   for (auto& set_it : read_write_set) { 
 
@@ -483,7 +483,12 @@ bool DTX::UndoLogInsertsOnly() {
 
       UndoLogRecord new_record;
       new_record.tx_id_ = tx_id;
-      new_record.t_id_=((lg_count==num_log_entries-1)? last_flag: t_id);
+      
+      // FIXED this new_record.t_id_=((lg_count==num_log_entries-1)? last_flag: t_id);
+      new_record.t_id_=((lg_count==num_log_entries-1)? 1: 0); //Fixed for last flag
+
+      if(new_record.t_id_== 1) is_last_set=true; //Pre-Commit FIX
+
       new_record.data_ = *(set_it.item_ptr.get());
 
       //std::memcpy(written_log_buf + cur, &tx_id, sizeof(tx_id_t));
@@ -680,10 +685,56 @@ void DTX:: Recovery(){
 
   //1. call for latch log
   //2. sequentially search for keys. 
-  
-  
+    
 }
 
+
+
+//FIX pre commit. or lock values. lock values have to be written. 
+bool DTX::PreCommit(coro_yield_t& yield){
+
+  //CHECK. This is only needed if the last log happens after the lock. otherwise we can simply set the last flagged of the last lock. 
+  if(is_last_set) return true;
+  
+  size_t log_size = sizeof(t_id_t);
+  char* written_log_buf = thread_rdma_buffer_alloc->Alloc(log_size);
+  t_id_t t_id = 1; //last flagged
+  std::memcpy(written_log_buf, &t_id, sizeof(t_id_t));
+
+  for (int i = 0; i < global_meta_man->remote_nodes.size(); i++) {
+
+    offset_t last_log_offset = thread_remote_log_offset_alloc->GetNextLogOffset(i, coro_id, 0);
+    last_log_offset -= sizeof(UndoLogRecord);
+    last_log_offset += sizeof(tx_id_t);
+    //last log offset is set to. 
+    RCQP* qp = thread_qp_man->GetRemoteLogQPWithNodeID(i);
+
+   if(!coro_sched->RDMALog(coro_id, tx_id, qp, (char*)written_log_buf, last_log_offset, log_size, true)) return false;
+  
+  }
+
+   return true;
+}
+
+
+
+//FIX - Log truncation after aborts. only for aborts
+bool DTX::LogTruncation(coro_yield_t& yield){
+
+  size_t log_size = sizeof(t_id_t);
+  char* written_log_buf = thread_rdma_buffer_alloc->Alloc(log_size);
+  tx_id_t tx_id = 0; //truncation signal. 
+  std::memcpy(written_log_buf, &tx_id, sizeof(tx_id_t));
+
+  for (int i = 0; i < global_meta_man->remote_nodes.size(); i++) {
+    offset_t start_log_offset = thread_remote_log_offset_alloc->GetStartLogOffset(i, coro_id);
+    RCQP* qp = thread_qp_man->GetRemoteLogQPWithNodeID(i);
+
+   if(!coro_sched->RDMALog(coro_id, tx_id, qp, (char*)written_log_buf, start_log_offset, log_size, true)) return false;
+  }
+
+   return true;
+}
 
 void DTX::Abort(coro_yield_t& yield) {
   // When failures occur, transactions need to be aborted.

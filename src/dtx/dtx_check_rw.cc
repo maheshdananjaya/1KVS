@@ -61,6 +61,17 @@ bool DTX::CheckCasRW(std::vector<CasRead>& pending_cas_rw, std::list<HashRead>& 
     }
 #else
     if (*((lock_t*)re.cas_buf) != STATE_CLEAN) {
+
+      //Start Lock recovery times
+      #ifdef EEL //Eplicit Epoch Logging
+          bool failed_id_list[65000];
+          if(failed_id_list[*((lock_t*)re.cas_buf)] == true){
+            //lock recovery.
+
+          }
+      #endif
+          //End lock recovery time
+
       return false;
     }
 #endif

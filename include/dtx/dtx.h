@@ -137,11 +137,13 @@ class DTX {
   bool LatchLogDataQP();
   void PruneLog();
   void Recovery();
-
   bool DAMUndoLog();
 
+  bool LogTruncation(coro_yield_t& yield); // truncation.
+  bool PreCommit(coro_yield_t& yield); // truncation.
 
-  void Clean();  // Clean data sets after commit/abort
+
+  void Clean();  // Clean data sets after commit/abort.
 
   void DebugFetchDataItem(RCQP* qp, uint64_t remote_offset) {
     char* buf = thread_rdma_buffer_alloc->Alloc(DataItemSize);
@@ -375,6 +377,8 @@ class DTX {
   t_id_t t_id;  // Thread ID
 
   coro_id_t coro_id;  // Coroutine ID
+
+  bool is_last_set; //pre-commit
 
  public:
   // For statistics
@@ -924,7 +928,7 @@ void DTX::Clean() {
   old_version_for_insert.clear();
   inserted_pos.clear();
 
-
+  is_last_set = false; //precommit is not done. 
   // DAM log prune temporary
   PruneLog();
 }

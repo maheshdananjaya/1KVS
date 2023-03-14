@@ -695,7 +695,7 @@ bool DTX::PreCommit(coro_yield_t& yield){
 
   //CHECK. This is only needed if the last log happens after the lock. otherwise we can simply set the last flagged of the last lock. 
   if(is_last_set) return true;
-  
+
   size_t log_size = sizeof(t_id_t);
   char* written_log_buf = thread_rdma_buffer_alloc->Alloc(log_size);
   t_id_t t_id = 1; //last flagged
@@ -713,9 +713,16 @@ bool DTX::PreCommit(coro_yield_t& yield){
   
   }
 
+    //This will stop the entire coruotune pipeline
+    while (!coro_sched->CheckLogAck(coro_id)) {
+        ;
+    }
+
    return true;
 }
 
+
+//NOTE- To run trncation and precommit I cannot use coroutines as log qp are not part of the scheduling. 
 
 
 //FIX - Log truncation after aborts. only for aborts
@@ -737,6 +744,11 @@ bool DTX::LogTruncation(coro_yield_t& yield){
 }
 
 void DTX::Abort(coro_yield_t& yield) {
+
+  #ifdef FIX_TRUNCATE
+      //LogTruncation(yield);
+  #endif
+
   // When failures occur, transactions need to be aborted.
   // In general, the transaction will not abort during committing replicas if no hardware failure occurs
   char* unlock_buf = thread_rdma_buffer_alloc->Alloc(sizeof(lock_t));

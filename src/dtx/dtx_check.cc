@@ -120,6 +120,10 @@ bool DTX::CheckValidate(std::vector<ValidateRead>& pending_validate) {
         return false;
       }
 #endif
+
+      //Fixing complict abort bug
+      re.item->is_locked_flag = true;
+
       version_t my_version = it->version;
       if (it->user_insert) {
         // If it is an insertion, we need to compare the the fetched version with

@@ -752,12 +752,17 @@ void DTX::Abort(coro_yield_t& yield) {
   // When failures occur, transactions need to be aborted.
   // In general, the transaction will not abort during committing replicas if no hardware failure occurs
   char* unlock_buf = thread_rdma_buffer_alloc->Alloc(sizeof(lock_t));
-  *((lock_t*)unlock_buf) = 0;
+  
+  *((lock_t*)unlock_buf) = STATE_CLEAN;
+
   for (auto& index : locked_rw_set) {
+
     auto& it = read_write_set[index].item_ptr;
 
     //#ifdef BUG-11
     if(!read_write_set[index].is_fetched)continue;
+    //if(it->lock == STATE_CLEAN) continue; /// to void concurrency bug. I am adding it->lock = STATE_LOCKED to lock checks. this also wound work. becuase reads for read-write may have failed becuase someone else has the lock. 
+    if(!read_write_set[index].is_locked_flag) continue;
     //#endif
 
     node_id_t primary_node_id = global_meta_man->GetPrimaryNodeID(it->table_id);

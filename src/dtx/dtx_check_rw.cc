@@ -96,6 +96,7 @@ bool DTX::CheckCasRW(std::vector<CasRead>& pending_cas_rw, std::list<HashRead>& 
         }
       }
       re.item->is_fetched = true;
+      re.item->is_locked_flag = true;
     } else {
       // The cached address is stale
 

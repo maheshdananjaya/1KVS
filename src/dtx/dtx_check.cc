@@ -64,6 +64,7 @@ bool DTX::CheckReadRORW(std::vector<DirectRead>& pending_direct_ro,
 
 bool DTX::CheckValidate(std::vector<ValidateRead>& pending_validate) {
   // Check version
+  bool decision= true;
   for (auto& re : pending_validate) {
     auto it = re.item->item_ptr;
     if (re.has_lock_in_validate) {
@@ -81,7 +82,19 @@ bool DTX::CheckValidate(std::vector<ValidateRead>& pending_validate) {
           Timer timer;
           timer.Start();
 
-          auto rc = re.qp->post_cas(re.cas_buf, remote_lock_addr, STATE_CLEAN, STATE_LOCKED, IBV_SEND_SIGNALED);
+          //if(!is_print){
+          //      auto it = re.item->item_ptr;
+          //     RDMA_LOG(WARNING) << "Lock is held waiting Thread " << t_id << "  coro " << coro_id << " curr value of" << it->key <<" is "<< *((lock_t*)re.cas_buf);
+          //      is_print=true;
+          //} 
+
+          //ELOG must be here.
+          #ifdef ELOG
+            auto rc = re.qp->post_cas(re.cas_buf, remote_lock_addr, STATE_CLEAN, (t_id+1), IBV_SEND_SIGNALED);
+          #else
+            auto rc = re.qp->post_cas(re.cas_buf, remote_lock_addr, STATE_CLEAN, STATE_LOCKED, IBV_SEND_SIGNALED);
+          #endif
+
           if (rc != SUCC) {
             TLOG(ERROR, t_id) << "client: post cas fail. rc=" << rc;
             exit(-1);
@@ -117,7 +130,12 @@ bool DTX::CheckValidate(std::vector<ValidateRead>& pending_validate) {
       if (*((lock_t*)re.cas_buf) != STATE_CLEAN) {
         // it->Debug();
         // RDMA_LOG(DBG) << "remote lock not clean " << std::hex << *((lock_t*)re.cas_buf);
-        return false;
+        #ifdef FIX_ABORT_ISSUE
+          decision = false;
+          continue;
+        #else
+          return false;
+        #endif
       }
 #endif
 
@@ -141,7 +159,12 @@ bool DTX::CheckValidate(std::vector<ValidateRead>& pending_validate) {
 
         // RDMA_LOG(DBG) << "MY VERSION " << it->version;
         // RDMA_LOG(DBG) << "version_buf " << *((version_t*)re.version_buf);
-        return false;
+          #ifdef FIX_ABORT_ISSUE
+            decision = false;
+            continue;
+          #else
+            return false;
+          #endif
       }
 
     } else {
@@ -150,20 +173,40 @@ bool DTX::CheckValidate(std::vector<ValidateRead>& pending_validate) {
         // it->Debug();
         // RDMA_LOG(DBG) << "MY VERSION " << it->version;
         // RDMA_LOG(DBG) << "version_buf " << *((version_t*)re.version_buf);
-        return false;
+        #ifdef FIX_ABORT_ISSUE
+            decision = false;
+            continue;
+        #else
+            return false;
+        #endif
       }else{
           //check the lock value. if its set. abort the transactions. only for read-only set
           #ifdef FIX_VALIDATE_ERROR
             //without the read lock part in the issue function locks always return clean. thats why it was not failing.  
             char * lock_start = re.version_buf + sizeof(version_t);
-            if( (*(lock_t*)lock_start) != STATE_CLEAN ) return false;
+            if( (*(lock_t*)lock_start) != STATE_CLEAN ) {
+
+              #ifdef FIX_ABORT_ISSUE
+                decision = false;
+                continue;
+              #else
+                return false;
+              #endif
+            }
+
+            //LOCK RECOVERY reads must come here.
           #endif
             //*((lock_t*)re.cas_buf) != STATE_CLEAN
             
       }
     }
   }
-  return true;
+
+  #ifdef FIX_ABORT_ISSUE
+      return decision;
+  #else
+    return true;
+  #endif
 }
 
 bool DTX::CheckCommitAll(std::vector<CommitWrite>& pending_commit_write, char* cas_buf) {

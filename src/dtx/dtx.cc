@@ -606,7 +606,7 @@ bool DTX::LatchLogDataQP() {
       
       LatchLogRecord new_record;
       new_record.tx_id_ = tx_id;
-      new_record.t_id_=t_id;
+      new_record.t_id_=0; //t_id
       new_record.table_id_ =  ((set_it.item_ptr.get())->table_id);
       new_record.key_ = ((set_it.item_ptr.get())->key);
 

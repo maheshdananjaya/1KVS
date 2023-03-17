@@ -274,7 +274,12 @@ bool DTX::IssueCommitAll(std::vector<CommitWrite>& pending_commit_write, char* c
       it->version++;
     }
 
-    it->lock = STATE_LOCKED | STATE_INVISIBLE;
+    #ifdef ELOG
+      it->lock = (t_id+1) | STATE_INVISIBLE;
+    #else
+      it->lock = STATE_LOCKED | STATE_INVISIBLE;
+    #endif
+
     memcpy(data_buf, (char*)it.get(), DataItemSize);
 
     // Commit primary

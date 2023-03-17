@@ -7,6 +7,9 @@
 /*-------------------------------------------------------------------------------------------*/
 
 bool DTX::CheckCasRW(std::vector<CasRead>& pending_cas_rw, std::list<HashRead>& pending_next_hash_rw, std::list<InsertOffRead>& pending_next_off_rw) {
+  
+  bool decision=true;
+
   for (auto& re : pending_cas_rw) {
 #if LOCK_WAIT
     if (*((lock_t*)re.cas_buf) != STATE_CLEAN) {
@@ -21,6 +24,12 @@ bool DTX::CheckCasRW(std::vector<CasRead>& pending_cas_rw, std::list<HashRead>& 
         // timing
         Timer timer;
         timer.Start();
+
+        //if(!is_print){
+        //        auto it = re.item->item_ptr;
+        //        RDMA_LOG(WARNING) << "Lock is held waiting Thread " << t_id << "  coro " << coro_id << " curr value of" << it->key <<" is "<< *((lock_t*)re.cas_buf);
+        //        is_print=true;
+        //}
 
         #ifdef ELOG
           auto rc = re.qp->post_cas(re.cas_buf, remote_lock_addr, STATE_CLEAN, (t_id+1), IBV_SEND_SIGNALED);
@@ -71,8 +80,12 @@ bool DTX::CheckCasRW(std::vector<CasRead>& pending_cas_rw, std::list<HashRead>& 
           }
       #endif
           //End lock recovery time
-
-      return false;
+      #ifdef FIX_ABORT_ISSUE
+          decision=false;
+          continue;
+      #else
+        return false; //Immediately returns. 
+      #endif
     }
 #endif
 
@@ -117,7 +130,12 @@ bool DTX::CheckCasRW(std::vector<CasRead>& pending_cas_rw, std::list<HashRead>& 
       if (!coro_sched->RDMARead(coro_id, re.qp, (char*)local_hash_node, node_off, sizeof(HashNode))) return false;
     }
   }
-  return true;
+
+  #ifdef FIX_ABORT_ISSUE
+      return decision;
+  #else
+    return true;
+  #endif
 }
 
 /*----------------------------------------------------------------------------------*/

@@ -65,6 +65,7 @@ typedef struct atomic_record{
 
 //POtential Fixes.
 #define FIX_VALIDATE_ERROR
+#define FIX_ABORT_ISSUE
 //#define FIX_RO_READ
 #define ELOG
 

@@ -760,10 +760,12 @@ void DTX::Abort(coro_yield_t& yield) {
     auto& it = read_write_set[index].item_ptr;
 
     //#ifdef BUG-11
-    if(!read_write_set[index].is_fetched)continue;
-    //if(it->lock == STATE_CLEAN) continue; /// to void concurrency bug. I am adding it->lock = STATE_LOCKED to lock checks. this also wound work. becuase reads for read-write may have failed becuase someone else has the lock. 
-    if(!read_write_set[index].is_locked_flag) continue;
-    //#endif
+    #ifdef FIX_ABORT_ISSUE
+      if(!read_write_set[index].is_fetched)continue;
+      //if(it->lock == STATE_CLEAN) continue; /// to void concurrency bug. I am adding it->lock = STATE_LOCKED to lock checks. this also wound work. becuase reads for read-write may have failed becuase someone else has the lock. 
+      if(!read_write_set[index].is_locked_flag) continue;
+      //#endif
+    #endif
 
     node_id_t primary_node_id = global_meta_man->GetPrimaryNodeID(it->table_id);
     RCQP* primary_qp = thread_qp_man->GetRemoteDataQPWithNodeID(primary_node_id);
@@ -781,3 +783,6 @@ void DTX::Abort(coro_yield_t& yield) {
   }
   tx_status = TXStatus::TX_ABORT;
 }
+
+//We can fix the abort with CAS. but nwe need coodinator IDS as lock values. 
+//define ELOG_COORD //e log with cooridnator ids. but this cannot be used with recovery.

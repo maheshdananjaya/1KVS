@@ -64,9 +64,12 @@ typedef struct atomic_record{
 //#define STATS
 
 //POtential Fixes.
+
 #define FIX_VALIDATE_ERROR
 #define FIX_ABORT_ISSUE
+
 //#define FIX_RO_READ
+
 #define ELOG
 
 
@@ -74,3 +77,6 @@ typedef struct atomic_record{
 #define WITH_LATCH_LOGGING
 #define UNDO_RECOVERY
 #define LATCH_RECOVERY
+
+//#define UNDO_RECOVERY_BENCH
+//#define LATCH_RECOVERY_BENCH

@@ -75,6 +75,7 @@ class CoroutineScheduler {
   void PollLogCompletionForRecovery();
   void PollRegularCompletionForRecovery();
   void PollRegularCompletionForRecovery(coro_id_t calling_recovery_coro); //overriding function.
+  bool ClearAllPendingQPs();
 
   // Link coroutines in a loop manner
   void LoopLinkCoroutine(coro_id_t coro_num);

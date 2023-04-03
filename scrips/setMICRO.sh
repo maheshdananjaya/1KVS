@@ -1,0 +1,1 @@
+sed -i '11c "workload": "MICRO"' ~/1KVS/config/memory_node_config.json

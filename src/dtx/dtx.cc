@@ -170,6 +170,12 @@ bool DTX::CoalescentCommit(coro_yield_t& yield) {
     ;
   }
 
+    #ifdef ENABLE_PRECOMMIT
+        PreCommit(yield);
+        while (!coro_sched->CheckLogAck(coro_id));
+    #endif
+
+
   if (!IssueCommitAll(pending_commit_write, cas_buf)) return false;
 
   coro_sched->Yield(yield, coro_id);
@@ -706,6 +712,7 @@ bool DTX::PreCommit(coro_yield_t& yield){
     offset_t last_log_offset = thread_remote_log_offset_alloc->GetNextLogOffset(i, coro_id, 0);
     last_log_offset -= sizeof(UndoLogRecord);
     last_log_offset += sizeof(tx_id_t);
+
     //last log offset is set to. 
     RCQP* qp = thread_qp_man->GetRemoteLogQPWithNodeID(i);
 
@@ -714,9 +721,7 @@ bool DTX::PreCommit(coro_yield_t& yield){
   }
 
     //This will stop the entire coruotune pipeline
-    while (!coro_sched->CheckLogAck(coro_id)) {
-        ;
-    }
+    while (!coro_sched->CheckLogAck(coro_id));
 
    return true;
 }
@@ -730,8 +735,8 @@ bool DTX::LogTruncation(coro_yield_t& yield){
 
   size_t log_size = sizeof(t_id_t);
   char* written_log_buf = thread_rdma_buffer_alloc->Alloc(log_size);
-  tx_id_t tx_id = 0; //truncation signal. 
-  std::memcpy(written_log_buf, &tx_id, sizeof(tx_id_t));
+  tx_id_t tx_id_cut = 0; //truncation signal. 
+  std::memcpy(written_log_buf, &tx_id_cut, sizeof(tx_id_t));
 
   for (int i = 0; i < global_meta_man->remote_nodes.size(); i++) {
     offset_t start_log_offset = thread_remote_log_offset_alloc->GetStartLogOffset(i, coro_id);
@@ -746,7 +751,8 @@ bool DTX::LogTruncation(coro_yield_t& yield){
 void DTX::Abort(coro_yield_t& yield) {
 
   #ifdef FIX_TRUNCATE
-      //LogTruncation(yield);
+      LogTruncation(yield);
+      while (!coro_sched->CheckLogAck(coro_id));
   #endif
 
   // When failures occur, transactions need to be aborted.

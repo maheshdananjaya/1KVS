@@ -40,7 +40,9 @@ const size_t MAX_ITEM_SIZE = 664;
 #define MAX_REMOTE_NODE_NUM 100  // Max remote memory node number
 
 // Data state
-#define STATE_INVISIBLE 0x8000000000000000  // Data cannot be read
+//#define STATE_INVISIBLE 0x8000000000000000  // Data cannot be read
+#define STATE_INVISIBLE 0x0000000000000000  // Data cannot be read. CHange this visibility to zero.
+
 #define STATE_LOCKED 1                      // Data cannot be written. Used for serializing transactions
 #define STATE_CLEAN 0
 
@@ -71,12 +73,18 @@ typedef struct atomic_record{
 //#define FIX_RO_READ
 
 #define ELOG
-
+//NOTE of I want to run with ELOG. chnage the visibility flag to zero and then remove all flushes from the config file.
+//Note last- add pre commit and truncation 
+//also fix the schedulaer poll for recovery. 
 
 #define WITH_UNDO_LOGGING
 #define WITH_LATCH_LOGGING
 #define UNDO_RECOVERY
+
 #define LATCH_RECOVERY
 
 //#define UNDO_RECOVERY_BENCH
 //#define LATCH_RECOVERY_BENCH
+
+#define ENABLE_TRUNCATE
+#define ENABLE_PRECOMMIT

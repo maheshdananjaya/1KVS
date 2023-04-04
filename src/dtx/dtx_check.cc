@@ -228,7 +228,7 @@ bool DTX::CheckValidate(std::vector<ValidateRead>& pending_validate) {
               #ifdef EEL //Eplicit Epoch Logging
                   //bool failed_id_list[65000];
                   auto remote_data_addr_ro = re.item->item_ptr->remote_offset;
-                  auto remote_lock_addr_ro = re.item->item_ptr->GetRemoteLockAddr(remote_data_addr);
+                  auto remote_lock_addr_ro = re.item->item_ptr->GetRemoteLockAddr(remote_data_addr_ro);
               
                   t_id_t failed_id = *((lock_t*)re.cas_buf);
 

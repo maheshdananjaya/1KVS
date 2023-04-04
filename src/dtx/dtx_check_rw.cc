@@ -75,7 +75,7 @@ bool DTX::CheckCasRW(std::vector<CasRead>& pending_cas_rw, std::list<HashRead>& 
       #ifdef EEL //Eplicit Epoch Logging
           //bool failed_id_list[65000];
           t_id_t failed_id = *((lock_t*)re.cas_buf);
-          if(FindFailedID(failed_id)){
+          if(FindFailedId(failed_id)){
             //lock recovery.
             //Release lock or update it from this side using a CAS operation. 
             auto rc = re.qp->post_cas(re.cas_buf, remote_lock_addr, failed_id, (t_id+1), IBV_SEND_SIGNALED);

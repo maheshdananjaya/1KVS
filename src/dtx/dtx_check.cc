@@ -130,11 +130,48 @@ bool DTX::CheckValidate(std::vector<ValidateRead>& pending_validate) {
       if (*((lock_t*)re.cas_buf) != STATE_CLEAN) {
         // it->Debug();
         // RDMA_LOG(DBG) << "remote lock not clean " << std::hex << *((lock_t*)re.cas_buf);
-        #ifdef FIX_ABORT_ISSUE
-          decision = false;
-          continue;
+         //EEL lock recovery. 
+        //Start Lock recovery times
+        #ifdef EEL //Eplicit Epoch Logging
+          //bool failed_id_list[65000];
+          auto remote_data_addr = re.item->item_ptr->remote_offset;
+          auto remote_lock_addr = re.item->item_ptr->GetRemoteLockAddr(remote_data_addr);
+          
+          t_id_t failed_id = *((lock_t*)re.cas_buf);
+          if(FindFailedId(failed_id)){
+            //lock recovery.
+            //Release lock or update it from this side using a CAS operation. . FOR reads write zero.
+            auto rc = re.qp->post_cas(re.cas_buf, remote_lock_addr, failed_id, (t_id+1), IBV_SEND_SIGNALED);
+            if (rc != SUCC) {
+              TLOG(ERROR, t_id) << "client: post cas fail. rc=" << rc;
+              exit(-1);
+            }
+
+            ibv_wc wc{};
+            rc = re.qp->poll_till_completion(wc, no_timeout);
+            if (rc != SUCC) {
+              TLOG(ERROR, t_id) << "client: poll cas fail. rc=" << rc;
+              exit(-1);
+            }
+
+            //Check the lock value. TODO - put this in a while loop. someone active has the lock. 
+            if (*((lock_t*)re.cas_buf) != failed_id){
+                #ifdef FIX_ABORT_ISSUE
+                  decision=false;
+                  continue;
+                #else
+                  return false; //Immediately returns. 
+                #endif
+            } 
+
+          }
         #else
-          return false;
+            #ifdef FIX_ABORT_ISSUE
+              decision = false;
+              continue;
+            #else
+              return false;
+            #endif
         #endif
       }
 #endif
@@ -184,18 +221,62 @@ bool DTX::CheckValidate(std::vector<ValidateRead>& pending_validate) {
           #ifdef FIX_VALIDATE_ERROR
             //without the read lock part in the issue function locks always return clean. thats why it was not failing.  
             char * lock_start = re.version_buf + sizeof(version_t);
+
             if( (*(lock_t*)lock_start) != STATE_CLEAN ) {
 
-              #ifdef FIX_ABORT_ISSUE
-                decision = false;
-                continue;
+              //TODO. we need lock recovery here. however. lock check should come first. liv locks. 
+              #ifdef EEL //Eplicit Epoch Logging
+                  //bool failed_id_list[65000];
+                  auto remote_data_addr_ro = re.item->item_ptr->remote_offset;
+                  auto remote_lock_addr_ro = re.item->item_ptr->GetRemoteLockAddr(remote_data_addr);
+              
+                  t_id_t failed_id = *((lock_t*)re.cas_buf);
+
+                  if(FindFailedId(failed_id)){
+                      //lock recovery.
+                      //Release lock or update it from this side using a CAS operation. 
+                    auto rc = re.qp->post_cas(re.lock_start, remote_lock_addr_ro, failed_id, STATE_CLEAN, IBV_SEND_SIGNALED);
+                    if (rc != SUCC) {
+                      TLOG(ERROR, t_id) << "client: post cas fail. rc=" << rc;
+                      exit(-1);
+                    }
+        
+                    ibv_wc wc{};
+                    rc = re.qp->poll_till_completion(wc, no_timeout);
+                    if (rc != SUCC) {
+                      TLOG(ERROR, t_id) << "client: poll cas fail. rc=" << rc;
+                      exit(-1);
+                    }
+      
+                    //Check the lock value. TODO - put this in a while loop.
+                    if (*((lock_t*)lock_start) != failed_id){
+                        #ifdef FIX_ABORT_ISSUE
+                          decision=false;
+                          continue;
+                        #else
+                          return false; //Immediately returns. 
+                        #endif
+                    } 
+
+                    //successful.
+    
+                  }
+          
               #else
-                return false;
+
+                  #ifdef FIX_ABORT_ISSUE
+                    decision = false;
+                    continue;
+                  #else
+                    return false;
+                  #endif
               #endif
+
+
             }
 
             //LOCK RECOVERY reads must come here.
-          #endif
+          #endif //end of FIX_VALIDATE_ERROR 
             //*((lock_t*)re.cas_buf) != STATE_CLEAN
             
       }

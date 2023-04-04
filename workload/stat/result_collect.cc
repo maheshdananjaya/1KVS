@@ -26,6 +26,8 @@ bool crash_emu = false;
 //ToDO mutexes for accesses
 AddrCache**  addr_caches;
 
+bool * failed_id_list;
+
 
 //#ifdef UNDO_RECOVERY
 //  extern AddrCache* addr_cache;
@@ -132,6 +134,7 @@ void InitCounters(node_id_t machine_num, node_id_t machine_id, t_id_t thread_num
 
   //std::fill_n( a, 100, 0 ); 
   addr_caches = new AddrCache* [thread_num_per_machine];
+  failed_id_list = new bool[65525]();
 
   for(int i=0;i<thread_num_per_machine;i++){
     //initial values

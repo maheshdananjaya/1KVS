@@ -30,7 +30,7 @@ extern std::vector<double> medianlat_vec;
 extern std::vector<double> taillat_vec;
 
 extern AddrCache**  addr_caches;
-
+extern bool * failed_id_list;
 
 __thread uint64_t ATTEMPTED_NUM;
 __thread uint64_t seed;                        // Thread-global random seed
@@ -860,6 +860,9 @@ void RunTx(coro_yield_t& yield, coro_id_t coro_id) {
   // Each coroutine has a dtx: Each coroutine is a coordinator
   DTX* dtx = new DTX(meta_man, qp_man, thread_gid, coro_id, coro_sched, rdma_buffer_allocator,
                      log_offset_allocator, addr_cache);
+
+  dtx->InitFailedList(failed_id_list);
+  
   struct timespec tx_start_time, tx_end_time;
   bool tx_committed = false;
 #if 0

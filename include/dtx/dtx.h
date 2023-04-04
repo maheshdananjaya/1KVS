@@ -370,12 +370,12 @@ class DTX {
 
 #endif
 
- #ifdef EEL //ONLY for explicit epoch logging.
+//Only for EEL
     public:
       bool InitFailedList(bool * failed_list);
       bool AddToFailedList(t_id_t failed_process_id); // < MAX_FAILED_LIST_SIZE
       bool FindFailedId(t_id_t failed_process_id);  //thread or process ids
- #endif
+
 
  public:
   tx_id_t tx_id;  // Transaction ID

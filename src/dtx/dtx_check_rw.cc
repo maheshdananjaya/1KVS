@@ -74,6 +74,9 @@ bool DTX::CheckCasRW(std::vector<CasRead>& pending_cas_rw, std::list<HashRead>& 
       //Start Lock recovery times
       #ifdef EEL //Eplicit Epoch Logging
           //bool failed_id_list[65000];
+          auto remote_data_addr = re.item->item_ptr->remote_offset;
+          auto remote_lock_addr = re.item->item_ptr->GetRemoteLockAddr(remote_data_addr);
+          
           t_id_t failed_id = *((lock_t*)re.cas_buf);
           if(FindFailedId(failed_id)){
             //lock recovery.

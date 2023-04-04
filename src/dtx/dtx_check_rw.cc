@@ -73,18 +73,43 @@ bool DTX::CheckCasRW(std::vector<CasRead>& pending_cas_rw, std::list<HashRead>& 
 
       //Start Lock recovery times
       #ifdef EEL //Eplicit Epoch Logging
-          bool failed_id_list[65000];
-          if(failed_id_list[*((lock_t*)re.cas_buf)] == true){
+          //bool failed_id_list[65000];
+          t_id_t failed_id = *((lock_t*)re.cas_buf);
+          if(FindFailedID(failed_id)){
             //lock recovery.
+            //Release lock or update it from this side using a CAS operation. 
+            auto rc = re.qp->post_cas(re.cas_buf, remote_lock_addr, failed_id, (t_id+1), IBV_SEND_SIGNALED);
+            if (rc != SUCC) {
+              TLOG(ERROR, t_id) << "client: post cas fail. rc=" << rc;
+              exit(-1);
+            }
+
+            ibv_wc wc{};
+            rc = re.qp->poll_till_completion(wc, no_timeout);
+            if (rc != SUCC) {
+              TLOG(ERROR, t_id) << "client: poll cas fail. rc=" << rc;
+              exit(-1);
+            }
+
+            //Check the lock value. TODO - put this in a while loop.
+            if (*((lock_t*)re.cas_buf) != failed_id){
+                #ifdef FIX_ABORT_ISSUE
+                  decision=false;
+                  continue;
+                #else
+                  return false; //Immediately returns. 
+                #endif
+            } 
 
           }
-      #endif
-          //End lock recovery time
-      #ifdef FIX_ABORT_ISSUE
-          decision=false;
-          continue;
       #else
-        return false; //Immediately returns. 
+          //End lock recovery time
+          #ifdef FIX_ABORT_ISSUE
+              decision=false;
+              continue;
+          #else
+            return false; //Immediately returns. 
+          #endif
       #endif
     }
 #endif
@@ -236,6 +261,9 @@ int DTX::FindInsertOff(InsertOffRead& res, std::list<InvisibleRead>& pending_inv
       break;
     }
   }
+
+  //Error: FIX_RO_READ is needed. reads and writes with covert locks.
+
   // After searching the available insert offsets
   if (possible_insert_position != OFFSET_NOT_FOUND) {
     // There is no need to back up the old data for the first time insertion.
@@ -244,6 +272,7 @@ int DTX::FindInsertOff(InsertOffRead& res, std::list<InvisibleRead>& pending_inv
     it->remote_offset = possible_insert_position;
     addr_cache->Insert(res.remote_node, it->table_id, it->key, possible_insert_position);
     old_version_for_insert.push_back(OldVersionForInsert{.table_id = it->table_id, .key = it->key, .version = old_version});
+
     if (unlikely((it->lock & STATE_INVISIBLE))) {
       // This item is invisible, we need re-read
       char* cas_buf = thread_rdma_buffer_alloc->Alloc(sizeof(lock_t));

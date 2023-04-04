@@ -168,6 +168,12 @@ bool DTX::IssueReadLock(std::vector<CasRead>& pending_cas_rw,
 
 bool DTX::IssueValidate(std::vector<ValidateRead>& pending_validate) {
   // For those are not locked during exe phase, we lock and read their versions in a batch
+
+  #ifdef FIX_COVERT_LOCKS
+    //Execute these two steps in lock steps. 
+    //check if       not_eager_locked_rw_set is empty.
+  #endif
+
   for (auto& index : not_eager_locked_rw_set) {
     locked_rw_set.emplace_back(index);
     char* cas_buf = thread_rdma_buffer_alloc->Alloc(sizeof(lock_t));
@@ -191,6 +197,11 @@ bool DTX::IssueValidate(std::vector<ValidateRead>& pending_validate) {
       return false;
     }
   }
+
+#ifdef FIX_COVERT_LOCKS
+    //Execute these two steps in lock steps. 
+
+#endif   
  
 #ifdef FIX_VALIDATE_ERROR
 

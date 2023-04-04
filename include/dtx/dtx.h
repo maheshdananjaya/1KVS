@@ -29,6 +29,7 @@
 #include "util/hash.h"
 #include "util/json_config.h"
 
+#define MAX_FAILED_LIST_SIZE 65525
 // 0: Does not wait lock, just abort (For end-to-end tests)
 // 1: wait lock until resuming execution (For lock duration tests, remember set coroutine num as 2)
 #define LOCK_WAIT 0
@@ -369,7 +370,12 @@ class DTX {
 
 #endif
 
-
+ #ifdef EEL //ONLY for explicit epoch logging.
+    public:
+      bool InitFailedList(bool * failed_list);
+      bool AddToFailedList(t_id_t failed_process_id); // < MAX_FAILED_LIST_SIZE
+      bool FindFailedId(t_id_t failed_process_id);  //thread or process ids
+ #endif
 
  public:
   tx_id_t tx_id;  // Transaction ID
@@ -379,6 +385,8 @@ class DTX {
   coro_id_t coro_id;  // Coroutine ID
 
   bool is_last_set; //pre-commit
+
+  bool * failed_id_list;  
 
  public:
   // For statistics
@@ -932,3 +940,27 @@ void DTX::Clean() {
   // DAM log prune temporary
   PruneLog();
 }
+
+
+//FOR EEL
+ALWAYS_INLINE
+bool DTX::InitFailedList(bool * failed_list){
+  failed_id_list = failed_list;
+}
+
+
+ALWAYS_INLINE
+bool DTX::AddToFailedList(t_id_t failed_process_id){
+  
+  assert(failed_id_list != NULL);
+  assert(failed_process_id < MAX_FAILED_LIST_SIZE);
+  failed_id_list[(int)failed_process_id] = true;
+}
+
+
+ALWAYS_INLINE
+bool DTX::FindFailedId(t_id_t failed_process_id){
+  assert(failed_process_id < MAX_FAILED_LIST_SIZE);
+  return failed_id_list[(int)failed_process_id];
+}
+

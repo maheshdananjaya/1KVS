@@ -235,7 +235,7 @@ bool DTX::CheckValidate(std::vector<ValidateRead>& pending_validate) {
                   if(FindFailedId(failed_id)){
                       //lock recovery.
                       //Release lock or update it from this side using a CAS operation. 
-                    auto rc = re.qp->post_cas(re.lock_start, remote_lock_addr_ro, failed_id, STATE_CLEAN, IBV_SEND_SIGNALED);
+                    auto rc = re.qp->post_cas(lock_start, remote_lock_addr_ro, failed_id, STATE_CLEAN, IBV_SEND_SIGNALED);
                     if (rc != SUCC) {
                       TLOG(ERROR, t_id) << "client: post cas fail. rc=" << rc;
                       exit(-1);

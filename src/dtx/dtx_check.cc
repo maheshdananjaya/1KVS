@@ -230,7 +230,7 @@ bool DTX::CheckValidate(std::vector<ValidateRead>& pending_validate) {
                   auto remote_data_addr_ro = re.item->item_ptr->remote_offset;
                   auto remote_lock_addr_ro = re.item->item_ptr->GetRemoteLockAddr(remote_data_addr_ro);
               
-                  t_id_t failed_id = *((lock_t*)re.cas_buf);
+                  t_id_t failed_id = *((lock_t*)lock_start);
 
                   if(FindFailedId(failed_id)){
                       //lock recovery.

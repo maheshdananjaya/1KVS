@@ -862,7 +862,7 @@ void RunTx(coro_yield_t& yield, coro_id_t coro_id) {
                      log_offset_allocator, addr_cache);
 
   dtx->InitFailedList(failed_id_list);
-  
+
   struct timespec tx_start_time, tx_end_time;
   bool tx_committed = false;
 #if 0
@@ -995,22 +995,46 @@ void RunTx(coro_yield_t& yield, coro_id_t coro_id) {
       break;
     }
 
-      #ifdef CRASH_ENABLE_TPCC
-      if( (stat_attempted_tx_total == (ATTEMPTED_NUM/10)) && (thread_gid==0)){
-          printf("Crashed-Recovery \n");
+    #ifdef CRASH_ENABLE
+      if( (stat_attempted_tx_total == (ATTEMPED_NUM/10)) && (thread_gid==0)){
+          printf("Crashed-Recovery Start \n");
           crash_emu = true;
 
           //send a crash signal to failure detector.         
           // send a signal and get the ack back
-          usleep(6000);
-          dtx->TxUndoRecovery(yield, addr_caches);
-          dtx->TxLatchRecovery(yield, addr_caches);
-          //printf("Wait starts \n");
+          usleep(56); //
+          usleep(5000);
+          usleep(56); //
+
           
+          #ifdef EEL
+              //update the failed_id_list
+              t_id_t start_thread_id = 0;
+              t_id_t end_thread_id = (thread_num/2);
+
+              dtx->TxUndoRecovery(yield, addr_caches, start_thread_id, end_thread_id);
+
+              usleep(56); // grpc latency.
+              for(int f=0; f< (thread_num/2); f++){
+
+                failed_id_list[f+1]= true; // set failed locks ids
+              }
+              
+              usleep(56); // grpc latency
+
+          #else
+             dtx->TxUndoRecovery(yield, addr_caches);
+            dtx->TxLatchRecovery(yield, addr_caches);
+          #endif
+
+          usleep(56); //  
+          //printf("Wait starts \n");          
           //printf("Wait Ends \n");
           crash_emu = false;
+          printf("Crashed-Recovery End \n");
       }
-      //while(crash_emu); // stop all other threads from progressing. 
+
+      while(crash_emu && (thread_gid<= (thread_num/2)) ); // stop all other threads from progressing. 
 
     #endif
     /********************************** Stat end *****************************************/

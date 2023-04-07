@@ -368,6 +368,10 @@ class DTX {
       bool IssueUndoLogRecoveryForAllThreads(coro_yield_t& yield, t_id_t failed_thread_id, coro_id_t failed_coro_id);
       bool UpdatedIssueUndoLogRecoveryForAllThreads(coro_yield_t& yield, AddrCache ** addr_caches, t_id_t failed_thread_id, coro_id_t failed_coro_id);
 
+
+      bool UpdatedIssueUndoLogRecoveryForAllThreads(coro_yield_t& yield, AddrCache ** addr_caches, t_id_t start_failed_thread_id,  t_id_t end_failed_thread_id);
+      bool TxUndoRecovery(coro_yield_t& yield, AddrCache ** addr_caches, t_id_t start_failed_thread_id, t_id_t end_failed_thread_id);
+      bool IssueUndoLogRecovery(coro_yield_t& yield, t_id_t start_failed_thread_id, t_id_t end_failed_thread_id);
 #endif
 
 //Only for EEL

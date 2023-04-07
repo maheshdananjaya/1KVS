@@ -179,7 +179,7 @@ void CollectStats(struct thread_params* params){
   std::string file_name = "result_all_threads.txt";
   file_out.open(file_name.c_str(), std::ios::app);
 
-    uint64_t last_commited_tx [thread_num_per_machine_]; // per thread last count and time 
+  uint64_t last_commited_tx [thread_num_per_machine_]; // per thread last count and time 
   double last_comimted_usec[thread_num_per_machine_];
 
 
@@ -280,7 +280,12 @@ void CollectStats(struct thread_params* params){
 
 
          double tput = (double)(now_tx_count-last_tx_count)/(double)(curr_time-last_usec); // window  tp
-          file_out << (curr_time-start_time) << ", " << tput  << ", " << (tx_tput)  << " atomic tput : " << atomic_tx_tput << std::endl;
+          //file_out << (curr_time-start_time) << ", " << tput  << ", " << (tx_tput)  << " atomic tput : " << atomic_tx_tput << std::endl;
+          if(crash_emu)
+            file_out << "CRASHED , " << (curr_time-start_time) << ", " << atomic_tx_tput << std::endl;
+          else
+            file_out << "UN , " << (curr_time-start_time) << ", " << atomic_tx_tput << std::endl; 
+          
           last_tx_count = now_tx_count;
           last_usec = curr_time;
 
@@ -299,6 +304,9 @@ void CollectStats(struct thread_params* params){
             clock_gettime(CLOCK_REALTIME, &timer_end);
             double grpc_end_time =  (double) timer_end.tv_sec *1000000 + (double)(timer_end.tv_nsec)/1000;
           #endif 
+
+
+            //TODO- wait for the detector. 5 ms. and update the. if crash_emu- update failed-id-list.
 
           //For GRPC round trips
           //std::cout << "Ack received: " << reply  << " Time spent(RTT) " << (grpc_end_time - grpc_start_time) << std::endl;

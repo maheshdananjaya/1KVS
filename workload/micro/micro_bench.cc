@@ -544,7 +544,7 @@ void RunTx(coro_yield_t& yield, coro_id_t coro_id) {
               dtx->TxUndoRecovery(yield, addr_caches, start_thread_id, end_thread_id);
 
               usleep(56); // grpc latency.
-              for(int f=0; f< (thread_num/2); f++){
+              for(int f=0; f < (thread_num/2); f++){
 
                 failed_id_list[f+1]= true; // set failed locks ids
               }
@@ -563,7 +563,7 @@ void RunTx(coro_yield_t& yield, coro_id_t coro_id) {
           printf("Crashed-Recovery End \n");
       }
 
-      while(crash_emu && (thread_gid<= (thread_num/2)) ); // stop all other threads from progressing. 
+      while(crash_emu && (thread_gid < (thread_num/2)) ); // stop all other threads from progressing. 
 
     #endif
 

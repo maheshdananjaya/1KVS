@@ -664,7 +664,7 @@ void RunTx(coro_yield_t& yield, coro_id_t coro_id) {
           printf("Crashed-Recovery End \n");
       }
 
-      while(crash_emu && (thread_gid<= (thread_num/2)) ); // stop all other threads from progressing. 
+       while(crash_emu && (thread_gid < (thread_num/2)) ); // stop all other threads from progressing. 
 
     #endif
 

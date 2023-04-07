@@ -31,6 +31,7 @@ extern std::vector<double> taillat_vec;
 
 extern AddrCache**  addr_caches;
 extern bool * failed_id_list;
+extern bool crash_emu;
 
 __thread size_t ATTEMPTED_NUM;
 __thread uint64_t seed; /* Thread-global random seed */

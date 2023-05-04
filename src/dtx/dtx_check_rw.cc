@@ -183,6 +183,11 @@ int DTX::FindMatchSlot(HashRead& res, std::list<InvisibleRead>& pending_invisibl
     }
   }
   if (likely(find)) {
+
+    #ifdef FIX_INSERT_BUG
+      if(it->lock) return -10;
+    #endif
+
     if (unlikely((it->lock & STATE_INVISIBLE))) {
       // This item is invisible, we need re-read
       char* cas_buf = thread_rdma_buffer_alloc->Alloc(sizeof(lock_t));
@@ -209,6 +214,9 @@ bool DTX::CheckHashRW(std::vector<HashRead>& pending_hash_rw,
       pending_next_hash_rw.emplace_back(HashRead{.qp = res.qp, .item = res.item, .buf = res.buf, .remote_node = res.remote_node, .meta = res.meta});
       if (!coro_sched->RDMARead(coro_id, res.qp, res.buf, node_off, sizeof(HashNode))) return false;
     }
+    else{
+      return false;
+    }
   }
   return true;
 }
@@ -229,6 +237,9 @@ bool DTX::CheckNextHashRW(std::list<InvisibleRead>& pending_invisible_ro,
       if (!coro_sched->RDMARead(coro_id, res.qp, res.buf, node_off, sizeof(HashNode))) return false;
       iter++;
     }
+    else{
+      return false;
+    }
   }
   return true;
 }
@@ -241,6 +252,7 @@ int DTX::FindInsertOff(InsertOffRead& res, std::list<InvisibleRead>& pending_inv
   auto it = res.item->item_ptr;
   for (int i = 0; i < ITEM_NUM_PER_NODE; i++) {
     auto& data_item = local_hash_node->data_items[i];
+
     if (possible_insert_position == OFFSET_NOT_FOUND && !data_item.valid && data_item.lock == STATE_CLEAN) {
       // Within a txn, multiple items cannot insert into one slot
       std::pair<node_id_t, offset_t> new_pos(res.remote_node, res.node_off + i * DataItemSize);
@@ -253,6 +265,8 @@ int DTX::FindInsertOff(InsertOffRead& res, std::list<InvisibleRead>& pending_inv
       // This case is entered only once
       possible_insert_position = res.node_off + i * DataItemSize;
       old_version = data_item.version;
+
+      //Where is lock checks here?.
     } else if (data_item.valid && data_item.key == it->key && data_item.table_id == it->table_id) {
       // Find an item that matches. It is actually an update
       if (it->version < data_item.version) {
@@ -272,6 +286,10 @@ int DTX::FindInsertOff(InsertOffRead& res, std::list<InvisibleRead>& pending_inv
     // There is no need to back up the old data for the first time insertion.
     // Therefore, during recovery, if there is no old backups for some data in remote memory pool,
     // it indicates that this is caused by an insertion.
+    #ifdef FIX_INSERT_BUG
+      if(it->lock) return -10;
+    #endif
+
     it->remote_offset = possible_insert_position;
     addr_cache->Insert(res.remote_node, it->table_id, it->key, possible_insert_position);
     old_version_for_insert.push_back(OldVersionForInsert{.table_id = it->table_id, .key = it->key, .version = old_version});
@@ -304,6 +322,9 @@ bool DTX::CheckInsertOffRW(std::vector<InsertOffRead>& pending_insert_off_rw,
       pending_next_off_rw.emplace_back(InsertOffRead{.qp = res.qp, .item = res.item, .buf = res.buf, .remote_node = res.remote_node, .meta = res.meta, .node_off = res.node_off});
       if (!coro_sched->RDMARead(coro_id, res.qp, res.buf, node_off, sizeof(HashNode))) return false;
     }
+    else{
+      return false;
+    }
   }
   return true;
 }
@@ -323,6 +344,9 @@ bool DTX::CheckNextOffRW(std::list<InvisibleRead>& pending_invisible_ro,
       auto node_off = (uint64_t)local_hash_node->next - res.meta.data_ptr + res.meta.base_off;
       if (!coro_sched->RDMARead(coro_id, res.qp, res.buf, node_off, sizeof(HashNode))) return false;
       iter++;
+    }
+    else{
+      return false;
     }
   }
   return true;

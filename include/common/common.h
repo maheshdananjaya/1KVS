@@ -63,23 +63,24 @@ typedef struct atomic_record{
   double usecs;
 } REC;
 
-//#define STATS
+#define STATS
 
 //POtential Fixes.
 
 #define FIX_VALIDATE_ERROR
 #define FIX_ABORT_ISSUE
 //#define FIX_RO_READ
+#define FIX_INSERT_BUG //new bug. retining from ro and rw reads if the lock is set
 
-//#define EEL //this is to enable explicit epoch logging. 
-#define ELOG
+#define EEL //this is to enable explicit epoch logging. 
+#define ELOG //add proecss ids to the lock
 
 //NOTE of I want to run with ELOG. chnage the visibility flag to zero and then remove all flushes from the config file.
 //Note last- add pre commit and truncation 
 //also fix the schedulaer poll for recovery. 
 
 #define WITH_UNDO_LOGGING
-#define WITH_LATCH_LOGGING
+//#define WITH_LATCH_LOGGING
 #define UNDO_RECOVERY
 #define LATCH_RECOVERY
 
@@ -88,3 +89,5 @@ typedef struct atomic_record{
 
 #define ENABLE_TRUNCATE
 #define ENABLE_PRECOMMIT
+
+#define CRASH_ENABLE

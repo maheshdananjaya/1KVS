@@ -16,6 +16,9 @@ DTX::DTX(MetaManager* meta_man,
   tx_id = 0;
   t_id = tid;
   coro_id = coroid;
+
+  t_id_original = tid;
+
   coro_sched = sched;
   global_meta_man = meta_man;
 
@@ -36,10 +39,12 @@ bool DTX::ExeRO(coro_yield_t& yield) {
   std::vector<DirectRead> pending_direct_ro;
   std::vector<HashRead> pending_hash_ro;
 
+  if(CheckCrash()) return false;
   // Issue reads
   // RDMA_LOG(DBG) << "coro: " << coro_id << " tx_id: " << tx_id << " issue read ro";
   if (!IssueReadOnly(pending_direct_ro, pending_hash_ro)) return false;
 
+ if(CheckCrash()) return false;
   // Yield to other coroutines when waiting for network replies
   coro_sched->Yield(yield, coro_id);
 
@@ -48,10 +53,16 @@ bool DTX::ExeRO(coro_yield_t& yield) {
   std::list<HashRead> pending_next_hash_ro;
   // RDMA_LOG(DBG) << "coro: " << coro_id << " tx_id: " << tx_id << " check read ro";
   auto res = CheckReadRO(pending_direct_ro, pending_hash_ro, pending_invisible_ro, pending_next_hash_ro, yield);
+  
+  if(CheckCrash()) return false;
+
   return res;
 }
 
 bool DTX::ExeRW(coro_yield_t& yield) {
+  
+
+  if(CheckCrash()) return false;
   is_ro_tx = false;
   // You can read from primary or backup
 
@@ -96,17 +107,23 @@ bool DTX::ExeRW(coro_yield_t& yield) {
   if (!IssueReadOnly(pending_direct_ro, pending_hash_ro)) return false;  // RW transactions may also have RO data
   // RDMA_LOG(DBG) << "coro: " << coro_id << " tx_id: " << tx_id << " issue read rorw";
 
+  if(CheckCrash()) return false;
+
   //DAM: changed  this to avoid read+locks?
   if (!IssueReadLock(pending_cas_rw, pending_hash_rw, pending_insert_off_rw)) return false;
 
+  if(CheckCrash()) return false;
+
   // Yield to other coroutines when waiting for network replies
   coro_sched->Yield(yield, coro_id);
+
+  if(CheckCrash()) return false;
 
   // RDMA_LOG(DBG) << "coro: " << coro_id << " tx_id: " << tx_id << " check read rorw";
   auto res = CheckReadRORW(pending_direct_ro, pending_hash_ro, pending_hash_rw, pending_insert_off_rw, pending_cas_rw,
                            pending_invisible_ro, pending_next_hash_ro, pending_next_hash_rw, pending_next_off_rw, yield);
   
-  
+  if(CheckCrash()) return false;
   //ParallelUndoLog();
   //DAM - per coroutine log buffer.
 
@@ -124,6 +141,8 @@ bool DTX::ExeRW(coro_yield_t& yield) {
 
 
 bool DTX::Validate(coro_yield_t& yield) {
+
+  if(CheckCrash()) return false;
   // The transaction is write-only, and the data are locked before
   if (not_eager_locked_rw_set.empty() && read_only_set.empty()) return true;
 
@@ -133,7 +152,7 @@ bool DTX::Validate(coro_yield_t& yield) {
   if (!IssueValidate(pending_validate)) return false;
 
   //DAM-missing inserts logging after locking non-eager write set (i.e. inserts).
-  
+  if(CheckCrash()) return false;
   // Yield to other coroutines when waiting for network replies
   coro_sched->Yield(yield, coro_id);
 
@@ -141,7 +160,7 @@ bool DTX::Validate(coro_yield_t& yield) {
 
   //taking undo logs: table, key, version for inserts as well. TODO- avoid logging inserts.
   //TODO: this has to be done only if the validations is sucessful.
-  
+  if(CheckCrash()) return false;
   //UndoLog();
   #ifdef WITH_UNDO_LOGGING
     UndoLogInsertsOnly();
@@ -155,7 +174,7 @@ bool DTX::CoalescentCommit(coro_yield_t& yield) {
   tx_status = TXStatus::TX_COMMIT;
   char* cas_buf = thread_rdma_buffer_alloc->Alloc(sizeof(lock_t));
 
-
+  if(CheckCrash()) return false;
   
    #ifdef ELOG
        *(lock_t*)cas_buf = (t_id+1) | STATE_INVISIBLE;
@@ -178,11 +197,16 @@ bool DTX::CoalescentCommit(coro_yield_t& yield) {
 
   if (!IssueCommitAll(pending_commit_write, cas_buf)) return false;
 
+
+  if(CheckCrash()) return false;
+
   coro_sched->Yield(yield, coro_id);
 
   *((lock_t*)cas_buf) = 0;
 
   auto res = CheckCommitAll(pending_commit_write, cas_buf);
+  
+  if(CheckCrash()) return false;
 
   return res;
 }

@@ -106,6 +106,9 @@ class DTX {
     Clean();
   }
 
+  //For EEL
+  bool ChangeCurrentTID(t_id_t new_tid);
+
  public:
   size_t GetAddrCacheSize() {
     return addr_cache->TotalAddrSize();
@@ -379,6 +382,8 @@ class DTX {
       bool InitFailedList(bool * failed_list);
       bool AddToFailedList(t_id_t failed_process_id); // < MAX_FAILED_LIST_SIZE
       bool FindFailedId(t_id_t failed_process_id);  //thread or process ids
+      bool InitCrashEmu(bool * crash_emu);
+      bool CheckCrash();
 
 
  public:
@@ -391,6 +396,15 @@ class DTX {
   bool is_last_set; //pre-commit
 
   bool * failed_id_list;  
+
+  bool * crash_emu_list;
+
+
+
+   bool * crash_emu; //to emulate failures. transaction returns false in betwen,
+    t_id_t t_id_original;
+    int64_t num_threads;
+
 
  public:
   // For statistics
@@ -737,6 +751,9 @@ ABORT:
 
 ALWAYS_INLINE
 bool DTX::TxExe(coro_yield_t& yield, bool fail_abort) {
+
+  if(CheckCrash()) return false;
+
   // Start executing transaction
   tx_status = TXStatus::TX_EXE;
   if (read_write_set.empty() && read_only_set.empty()) {
@@ -755,6 +772,8 @@ bool DTX::TxExe(coro_yield_t& yield, bool fail_abort) {
       return true;
     else {
       // TLOG(DBG, t_id) << "ExeRW false";
+      if(CheckCrash()) return false;
+
       goto ABORT;
     }
   }
@@ -768,6 +787,9 @@ ABORT:
 ALWAYS_INLINE
 bool DTX::TxCommit(coro_yield_t& yield) {
   // Only read one item
+  if(CheckCrash()) return false;
+  //Can fails here.
+
   if (is_ro_tx && read_only_set.size() == 1) {
     return true;
   }
@@ -783,6 +805,8 @@ bool DTX::TxCommit(coro_yield_t& yield) {
     goto ABORT;
   }
 
+ if(CheckCrash()) return false;
+
   // Next step. If read-write txns, we need to commit the updates to remote replicas
   if (!is_ro_tx) {
     // Write back for read-write tx
@@ -792,11 +816,12 @@ bool DTX::TxCommit(coro_yield_t& yield) {
       return true;
     } else {
       // RDMA_LOG(FATAL) << "Thread " << t_id << " , Coroutine " << coro_id << " abort txn in CoalescentCommit";
+      //if(CheckCrash()) return false;
       goto ABORT;
     }
   }
 
-  return true;
+   return true;
 
 ABORT:
   Abort(yield);
@@ -967,4 +992,33 @@ bool DTX::FindFailedId(t_id_t failed_process_id){
   assert(failed_process_id < MAX_FAILED_LIST_SIZE);
   return failed_id_list[(int)failed_process_id];
 }
+
+
+ALWAYS_INLINE
+ bool DTX::ChangeCurrentTID(t_id_t new_tid){
+    assert(new_tid < MAX_FAILED_LIST_SIZE);
+    t_id = new_tid;
+
+    return true;
+ }
+
+
+
+ALWAYS_INLINE
+bool DTX::InitCrashEmu(bool * crash_emu_){
+        num_threads = thread_remote_log_offset_alloc->GetNumThreadsPerMachine();
+        crash_emu = crash_emu_;
+
+}
+
+ALWAYS_INLINE
+bool DTX::CheckCrash(){
+  //TODO this does not work with new coroutine stops
+  if(*crash_emu && (t_id_original < (num_threads/2) )){
+              return true; //condition
+
+  }
+  return false;
+}
+
 

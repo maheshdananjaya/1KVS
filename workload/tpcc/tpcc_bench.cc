@@ -19,6 +19,29 @@ using namespace std::placeholders;
 
 // All the functions are executed in each thread
 
+#define STAT_NUM_MAX_THREADS 128
+// All the functions are executed in each thread
+//For Crash TPUT
+#ifdef STATS
+  //extern uint64_t * tx_attempted;
+  //extern uint64_t * tx_commited;
+  //extern bool * thread_done;
+  //extern double * window_start_time;
+  //extern double * window_curr_time;
+
+ extern uint64_t tx_attempted alignas(8)[STAT_NUM_MAX_THREADS];
+ extern uint64_t tx_commited alignas(8) [STAT_NUM_MAX_THREADS];
+ extern bool thread_done [STAT_NUM_MAX_THREADS];
+ extern double window_start_time alignas(8) [STAT_NUM_MAX_THREADS];
+ extern double window_curr_time alignas (8) [STAT_NUM_MAX_THREADS];
+ extern REC* record_ptrs [STAT_NUM_MAX_THREADS];
+ extern node_id_t machine_num_;
+ extern node_id_t machine_id_;
+ extern t_id_t thread_num_per_machine_;
+#endif
+
+__thread t_id_t local_thread_id; 
+
 extern std::atomic<uint64_t> tx_id_generator;
 extern std::atomic<uint64_t> connected_t_num;
 extern std::mutex mux;
@@ -60,6 +83,19 @@ __thread double* timer;
 __thread uint64_t stat_attempted_tx_total = 0;  // Issued transaction number
 __thread uint64_t stat_committed_tx_total = 0;  // Committed transaction number
 const coro_id_t POLL_ROUTINE_ID = 0;            // The poll coroutine ID
+
+
+
+//Space of 
+
+
+extern bool crash_emu;
+extern t_id_t new_base_tid;
+extern uint64_t num_crashes;
+
+#define CRASH_INTERVAL 500000
+__thread uint64_t next_crash_count=CRASH_INTERVAL;
+
 
 /******************** The business logic (Transaction) start ********************/
 
@@ -860,10 +896,11 @@ void PollCompletion(coro_yield_t& yield) {
 // Run actual transactions
 void RunTx(coro_yield_t& yield, coro_id_t coro_id) {
   // Each coroutine has a dtx: Each coroutine is a coordinator
-  DTX* dtx = new DTX(meta_man, qp_man, thread_gid, coro_id, coro_sched, rdma_buffer_allocator,
+  DTX* dtx = new DTX(meta_man, qp_man, thread_gid+(num_crashes*thread_num), coro_id, coro_sched, rdma_buffer_allocator,
                      log_offset_allocator, addr_cache);
 
   dtx->InitFailedList(failed_id_list);
+  dtx->InitCrashEmu(&crash_emu);
 
   struct timespec tx_start_time, tx_end_time;
   bool tx_committed = false;
@@ -971,6 +1008,21 @@ void RunTx(coro_yield_t& yield, coro_id_t coro_id) {
       timer[stat_committed_tx_total++] = tx_usec;
       // latency->update(tx_usec * lat_multiplier);
       // stat_committed_tx_total++;
+
+      #ifdef STATS
+        tx_attempted[local_thread_id] = stat_attempted_tx_total;
+        tx_commited[local_thread_id] = stat_committed_tx_total;
+        double usec = (tx_end_time.tv_sec) * 1000000 + (double)(tx_end_time.tv_nsec) / 1000;  // in miro seconds ;
+        window_curr_time[local_thread_id] =   usec;
+      
+        REC * atomic_record = new REC(); // dynamic allocations within stacks
+        atomic_record->txs = stat_committed_tx_total;
+        atomic_record->usecs = usec;
+
+        record_ptrs[local_thread_id] = atomic_record; // pointer change. 
+
+      #endif
+
     }
     // Stat after a million of transactions finish
     if (stat_attempted_tx_total == ATTEMPTED_NUM) {
@@ -997,17 +1049,21 @@ void RunTx(coro_yield_t& yield, coro_id_t coro_id) {
       break;
     }
 
-    #ifdef CRASH_ENABLE
-      if( (stat_attempted_tx_total == (ATTEMPTED_NUM/10)) && (thread_gid==0)){
-          printf("Crashed-Recovery Start \n");
-          crash_emu = true;
 
+     #ifdef CRASH_ENABLE
+      if( (stat_attempted_tx_total >= next_crash_count) && (thread_gid==0)){
+          printf("Crashed-Recovery Start \n");
+
+          crash_emu = true;
+           __asm__ __volatile__("mfence":::"memory"); //NEEDED HERE
           //send a crash signal to failure detector.         
           // send a signal and get the ack back
           usleep(56); //
           usleep(5000);
-          usleep(56); //
+          //Danger
+          coro_sched->PollCompletion();
 
+          usleep(56); //
           
           #ifdef EEL
               //update the failed_id_list
@@ -1017,9 +1073,10 @@ void RunTx(coro_yield_t& yield, coro_id_t coro_id) {
               dtx->TxUndoRecovery(yield, addr_caches, start_thread_id, end_thread_id);
 
               usleep(56); // grpc latency.
+
               for(int f=0; f < (thread_num/2); f++){
 
-                failed_id_list[f+1]= true; // set failed locks ids
+                failed_id_list[(num_crashes*thread_num)+ f +1]= true; // set failed locks ids
               }
               
               usleep(56); // grpc latency
@@ -1032,15 +1089,53 @@ void RunTx(coro_yield_t& yield, coro_id_t coro_id) {
           usleep(56); //  
           //printf("Wait starts \n");          
           //printf("Wait Ends \n");
+          //Todo- need to update thethread_gid. just shift it. 
+          //UPDATE THE NEW BASE TID
+
+          num_crashes++;
+          next_crash_count += CRASH_INTERVAL;
+          new_base_tid = thread_gid + (thread_num*num_crashes);
+          dtx->ChangeCurrentTID(new_base_tid);
+
           crash_emu = false;
+           __asm__ __volatile__("mfence":::"memory"); //NEEDED HERE
           printf("Crashed-Recovery End \n");
+
+          //Dangerouns Code
+          break;
       }
 
-      while(crash_emu && (thread_gid < (thread_num/2)) ); // stop all other threads from progressing. 
+
+      bool set=false;
+      while(crash_emu && (thread_gid < (thread_num/2)) )
+      {
+              if(!set) {
+                      //RDMA_LOG(INFO) << "Stopping Thread - " << thread_gid; 
+                      set=true;
+
+              }
+             __asm__ __volatile__("mfence":::"memory");
+      }
+
+      if(set){
+        dtx->ChangeCurrentTID(thread_gid+ (thread_num*num_crashes) );
+              //RDMA_LOG(INFO) << "Resuming Thread - " << thread_gid << "Inverted Thread Back " << thread_gid+thread_num; 
+        //dtx->ChangeCurrentTID(thread_gid+thread_num);
+        set=false;
+        //usleep(1000000);
+
+        //for resume. 
+        //Potential Dangerours
+        usleep(10);
+        coro_sched->PollCompletion();
+        break;
+      }
+              ; // stop all other threads from progressing 
 
     #endif
     /********************************** Stat end *****************************************/
   }
+
 #endif
 
     #ifdef UNDO_RECOVERY_BENCH
@@ -1118,6 +1213,11 @@ void run_thread(struct thread_params* params) {
     }
   }
 
+
+  #ifdef STATS
+    local_thread_id =  thread_gid - (machine_id_*thread_num_per_machine_);
+  #endif
+
   // Link all coroutines via pointers in a loop manner
   coro_sched->LoopLinkCoroutine(coro_num);
 
@@ -1134,11 +1234,46 @@ void run_thread(struct thread_params* params) {
     usleep(2000);
   }
 
+
+  #ifdef STATS
+    local_thread_id =  thread_gid - (machine_id_*thread_num_per_machine_);
+  #endif
+
   // Start the first coroutine
   coro_sched->coro_array[0].func();
 
+   //Dangerouns
+  while(stat_attempted_tx_total < ATTEMPTED_NUM){
+
+      //RDMA_LOG(INFO) << "START " << thread_gid << "  " << next_crash_count;
+      coro_sched = new CoroutineScheduler(thread_gid, coro_num);
+
+      // Init coroutines
+      for (coro_id_t coro_i = 0; coro_i < coro_num; coro_i++) {
+        coro_sched->coro_array[coro_i].coro_id = coro_i;
+        // Bind workload to coroutine
+        if (coro_i == POLL_ROUTINE_ID) {
+          coro_sched->coro_array[coro_i].func = coro_call_t(bind(PollCompletion, _1));
+        } else {
+          coro_sched->coro_array[coro_i].func = coro_call_t(bind(RunTx, _1, coro_i));
+        }
+      }
+
+      coro_sched->LoopLinkCoroutine(coro_num);
+      coro_sched->coro_array[0].func();
+
+         //RDMA_LOG(INFO) << "THREAD "<< thread_gid << " " << stat_attempted_tx_total;
+  }
+
+
   // Stop running
   stop_run = true;
+
+
+  #ifdef STATS
+    thread_done[local_thread_id] = true;
+  #endif
+
   usleep(2000);
   // RDMA_LOG(DBG) << "Thread: " << thread_gid << ". Loop RDMA alloc times: " << rdma_buffer_allocator->loop_times;
 

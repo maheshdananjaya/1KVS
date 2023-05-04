@@ -23,6 +23,10 @@ std::vector<double> lock_durations;
 
 bool crash_emu = false;
 
+//EEL Recovery. This in the order of 128
+t_id_t new_base_tid;
+uint64_t num_crashes;
+
 //ToDO mutexes for accesses
 AddrCache**  addr_caches;
 
@@ -150,6 +154,8 @@ void InitCounters(node_id_t machine_num, node_id_t machine_id, t_id_t thread_num
   }
 
   crash_emu = false;
+  new_base_tid = 0;
+  num_crashes = 0;
 
   //#ifdef UNDO_RECOVERY
   //  addr_cache = new AddrCache();
@@ -177,6 +183,7 @@ void CollectStats(struct thread_params* params){
   //start
   std::ofstream file_out;
   std::string file_name = "result_all_threads.txt";
+
   file_out.open(file_name.c_str(), std::ios::app);
 
   uint64_t last_commited_tx [thread_num_per_machine_]; // per thread last count and time 
@@ -282,9 +289,9 @@ void CollectStats(struct thread_params* params){
          double tput = (double)(now_tx_count-last_tx_count)/(double)(curr_time-last_usec); // window  tp
           //file_out << (curr_time-start_time) << ", " << tput  << ", " << (tx_tput)  << " atomic tput : " << atomic_tx_tput << std::endl;
           if(crash_emu)
-            file_out << "CRASHED , " << (curr_time-start_time) << ", " << atomic_tx_tput << std::endl;
+            file_out << "CRASHED , " << (curr_time-start_time)/100 << ", " << atomic_tx_tput << std::endl;
           else
-            file_out << "UN , " << (curr_time-start_time) << ", " << atomic_tx_tput << std::endl; 
+            file_out << "UN , " << (curr_time-start_time)/100 << ", " << atomic_tx_tput << std::endl; 
           
           last_tx_count = now_tx_count;
           last_usec = curr_time;

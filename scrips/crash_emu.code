@@ -1,0 +1,37 @@
+   bool set=false;
+      while(crash_emu && (thread_gid < (thread_num/2)) )
+      {
+              if(!set) {
+                      //RDMA_LOG(INFO) << "Stopping Thread - " << thread_gid; 
+                      set=true;
+
+              }
+             __asm__ __volatile__("mfence":::"memory");
+      }
+
+      if(set){
+        dtx->ChangeCurrentTID(thread_gid+thread_num);
+              //RDMA_LOG(INFO) << "Resuming Thread - " << thread_gid << "Inverted Thread Back " << thread_gid+thread_num; 
+        //dtx->ChangeCurrentTID(thread_gid+thread_num);
+        set=false;
+      }
+              ; // stop all other threads from progressing.
+
+                 bool set=false;
+      while(crash_emu && (thread_gid < (thread_num/2)) )
+      {
+              if(!set) {
+                      //RDMA_LOG(INFO) << "Stopping Thread - " << thread_gid; 
+                      set=true;
+
+              }
+             __asm__ __volatile__("mfence":::"memory");
+      }
+
+      if(set){
+        dtx->ChangeCurrentTID(thread_gid+thread_num);
+              //RDMA_LOG(INFO) << "Resuming Thread - " << thread_gid << "Inverted Thread Back " << thread_gid+thread_num; 
+        //dtx->ChangeCurrentTID(thread_gid+thread_num);
+        set=false;
+      }
+              ; // stop all other threads from progressing.

@@ -1,0 +1,1 @@
+bash build.sh && rm -rf build_with && mv build build_with && bash copy_scripts.sh && cd build_with/workload/micro

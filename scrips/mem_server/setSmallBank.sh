@@ -1,0 +1,1 @@
+ed -i '11c "workload": "SmallBank"' ~/1KVS/config/memory_node_config.json

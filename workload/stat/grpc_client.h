@@ -17,6 +17,18 @@ using helloworld::Greeter;
 using helloworld::HelloReply;
 using helloworld::HelloRequest;
 
+//TODO
+enum ServerState{
+  ACK=0,
+  ACTIVE=1,
+  FAILED=2,
+  RECOVERY=3,
+  RECOVERY_DONE=4,
+  RECONFIGURE=5,
+  RECONF_DONE=6,
+  RESUME=7
+};
+
 class GreeterClient {
  public:
   GreeterClient(std::shared_ptr<Channel> channel)

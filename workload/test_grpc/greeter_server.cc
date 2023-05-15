@@ -41,27 +41,109 @@ using helloworld::HelloRequest;
 #define NUM_MAX_MACHINES 128
 double previous_ts[NUM_MAX_MACHINES];
 
+#define NUM_MAX_SERVERS 65525  
+//TODO
+enum ServerState{
+  ACK=0,
+  ACTIVE=1,
+  FAILED=2,
+  RECOVERY=3,
+  RECOVERY_DONE=4,
+  RECONFIGURE=5,
+  RECONF_DONE=6,
+  RESUME=7
+};
+
+
+//status vector got all machines or processes. .
+int status_vector [NUM_MAX_SERVERS]; //all compute servers // 0 - inactive , 1-acttive, 2- suspicious, 3 -> removed.
+double timeouts [NUM_MAX_SERVERS];
+
+
+//configurations info
+std::string failed_process_ids("");
+
+std::string all_config("0-0");
+
+std::string last_config("");
+
+bool reconf_time=false;
+int status_refconf [NUM_MAX_SERVERS]; // 0- no. 1- sent 2- acked
+int tot_nume_config_sent=0;
+//we need to drop messages
 
 // Logic and data behind the server's behavior.
 class GreeterServiceImpl final : public Greeter::Service {
   Status SayHello(ServerContext* context, const HelloRequest* request,
                   HelloReply* reply) override {
+    
     std::string prefix("ACK ");
     std::string req = request->name();
-    std::string token = (req).substr(0, req.find(" ")); 
-    
 
-    if(token == "Crash"){
-      std::cout << "Crashing server" << req << std::endl;
-      std::string prefix("F*CK ");
+    std::string machine_id = (req).substr(0, req.find(",")); 
+    std::string status = (req).substr(1, req.find(",")); 
+
+    if(status == "ACTIVE"){
+      
+      std::cout << "ACTIVE" << machine_id << std::endl;
+      
+      if(reconf_time){  
+
+        if(status_refconf[machine_id]==0){      
+          status_refconf[machine_id] = 1;
+          tot_nume_config_sent++;
+          prefix.assign(machine_id+",RECONFIGURE:"+last_reconf);
+        }
+        else
+        prefix.assign(machine_id+",ACK");
+
+      }else{
+        prefix.assign(machine_id+",ACK");
+      }
+
     }
-    //failed
-    //if(token);
-    //else if(token)
-    //else; 
+    else if(status == "FAILED") {
+      std::cout << "FAILED " << machine_id << std::endl;
+      failed_process_ids.assign ((req).substr(2, req.find(",")));
+      //delineated by 
+      prefix.assign(machine_id+",RECOVERY,"+ failed_process_ids); // start-end
+
+    }
+
+    else if(status == "RECOVERY_DONE") {
+
+      std::cout << "RECOVERY_DONE on " << machine_id << "  from to " <<  failed_process_ids << std::endl;
+      //prefix.assign(machine_id+", RECONF [ids]");
+
+      //enable next refoniguartions
+      last_reconf.assign(failed_process_ids); // we need to  get all failed process-ids. start->end
+      all_reconfig.assign(all_reconfig+","+last_reconf);
+      reconf_time = true;
+
+      //RECONFIGURE
+      prefix.assign(machine_id+",RESUME"); //includes reconf. or all reconfig. special message.
+
+    }
+    else if(status == "RECONF_DONE"){
+        //similar to acks.
+        if(status_refconf[machine_id]==1){ 
+            status_refconf[machine_id]=0;
+            tot_nume_config_sent--;
+        }
+
+        if(tot_nume_config_sent==0){ 
+            //all set
+          reconf_time = false;
+          printf("CONFIGUED");
+
+        }
+
+        prefix.assign(machine_id+",ACK"); // send a normal act
+    }
 
     //std::cout << "Becon "  << request->name() << std::endl;
-    reply->set_message(prefix + request->name());     
+    reply->set_message(prefix + request->name());    
+
     return Status::OK;
   }
 };

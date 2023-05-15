@@ -23,6 +23,9 @@ std::vector<double> lock_durations;
 
 bool crash_emu = false;
 
+//server state. initial =0// Internal state.
+int process_state = 0;// state of the coordinatror. 0. init -> 1. failed -> 2. recovered -> 3. reconf. 
+
 //EEL Recovery. This in the order of 128
 t_id_t new_base_tid;
 uint64_t num_crashes;
@@ -31,7 +34,6 @@ uint64_t num_crashes;
 AddrCache**  addr_caches;
 
 bool * failed_id_list;
-
 
 //#ifdef UNDO_RECOVERY
 //  extern AddrCache* addr_cache;
@@ -88,7 +90,8 @@ void CollectResult(std::string workload_name, std::string system_name) {
     total_tail += taillat_vec[i];
   }
 
-  size_t thread_num = tid_vec.size();
+  size_t thread_num = tid_ve
+  c.size();
 
   double avg_median = total_median / thread_num;
   double avg_tail = total_tail / thread_num;
@@ -303,9 +306,10 @@ void CollectStats(struct thread_params* params){
             double grpc_start_time =  (double) timer_end.tv_sec *1000000 + (double)(timer_end.tv_nsec)/1000;
                      
               std::string reply;
-              if(crash_emu) reply = greeter.SayHello("Crash "+ machine_id_);
-              else reply = greeter.SayHello(user);
-                      
+              if(crash_emu) reply = greeter.SayHello(machine_id_ + ", FAILED");
+              else reply = greeter.SayHello(machine_id_ + ", ACTIVE");
+
+                        
             if(crash_emu) std::cout << reply << std::endl;
   
             clock_gettime(CLOCK_REALTIME, &timer_end);
@@ -329,4 +333,74 @@ void CollectStats(struct thread_params* params){
   file_out.close();
   return;
 }
+
+
+//Communicate with the failure detector
+void HeartBeats(struct thread_params* params){
+    //live beacoins.
+    GreeterClient greeter(grpc::CreateChannel("10.10.1.1:50051", grpc::InsecureChannelCredentials()));
+    std::string user("node "+ machine_id_);
+
+    #ifdef HEARTBEATS
+    while(true){
+
+    clock_gettime(CLOCK_REALTIME, &timer_end);
+
+            usleep(200); //200 microseconds. heartneats?.
+
+            double grpc_start_time =  (double) timer_end.tv_sec *1000000 + (double)(timer_end.tv_nsec)/1000;
+                     
+              std::string reply;
+              if(crash_emu &&  (process_state==0)){ 
+                
+                reply = greeter.SayHello(machine_id_ +",FAILED,0-0");
+
+                std::string machine_id = (reply).substr(0, reply.find(",")); 
+                std::string cmd = (reply).substr(1, reply.find(","));
+
+                if(cmd=="RECOVERY"){
+                  std::string failed_coords = (reply).substr(2, reply.find(","));
+                  std::string start_coord = (failed_coords).substr(0, failed_coords.find("-")); 
+                  std::string end_coord = (failed_coords).substr(1, failed_coords.find("-"));
+                  //recovery. call recovery.
+                  process_state=1; //failed.
+                }
+              }
+
+              else if(process_state==1) {
+                  //Recovery. 
+
+              }
+              else if(process_state==2){
+
+                  reply = greeter.SayHello(machine_id_ +",RECOVERY_DONE");
+                  process_state==0; // need reconf here. 
+
+              }
+
+              else{
+               reply = greeter.SayHello(machine_id_ +",ACTIVE");
+              }
+
+                        
+            if(crash_emu) std::cout << reply << std::endl;
+  
+            clock_gettime(CLOCK_REALTIME, &timer_end);
+            double grpc_end_time =  (double) timer_end.tv_sec *1000000 + (double)(timer_end.tv_nsec)/1000;
+
+
+          //termination condition
+          if(all_thread_done){
+            usleep(1000000);
+            file_out.close(); 
+            return;
+          }
+    }
+
+    #endif //HEARTBEATS
+
+}
+
+
+
 

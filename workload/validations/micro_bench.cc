@@ -201,7 +201,7 @@ bool Litmus1Insert(coro_yield_t& yield, tx_id_t tx_id, DTX* dtx) {
       assert(micro_key.item_key >= 0 && micro_key.item_key < num_keys_global);
 
       //Inserts
-      micro_objs[i] = std::make_shared<DataItem>((table_id_t)MicroTableType::kMicroTable, micro_key.item_key, tx_id, 1);
+      micro_objs[i] = std::make_shared<DataItem>((table_id_t)MicroTableType::kMicroTable, sizeof(micro_val_t), micro_key.item_key, tx_id, 1);
 
       //do this with deletes and inserts radomly.
 

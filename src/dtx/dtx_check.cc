@@ -141,6 +141,7 @@ bool DTX::CheckValidate(std::vector<ValidateRead>& pending_validate) {
           if(FindFailedId(failed_id)){
             //lock recovery.
             //Release lock or update it from this side using a CAS operation. . FOR reads write zero.
+            #ifdef BLOCKING_RECOVERY
             auto rc = re.qp->post_cas(re.cas_buf, remote_lock_addr, failed_id, (t_id+1), IBV_SEND_SIGNALED);
             if (rc != SUCC) {
               TLOG(ERROR, t_id) << "client: post cas fail. rc=" << rc;
@@ -153,7 +154,11 @@ bool DTX::CheckValidate(std::vector<ValidateRead>& pending_validate) {
               TLOG(ERROR, t_id) << "client: poll cas fail. rc=" << rc;
               exit(-1);
             }
-
+            #else
+                coro_sched->RDMACAS(coro_id, re.qp,re.cas_buf, remote_lock_addr, failed_id, STATE_CLEAN);
+                //coro_sched->Yield(yield, coro_id);
+                while(!coro_sched->PollCoro(coro_id));
+            #endif
             //Check the lock value. TODO - put this in a while loop. someone active has the lock. 
             if (*((lock_t*)re.cas_buf) != failed_id){
                 #ifdef FIX_ABORT_ISSUE
@@ -235,6 +240,7 @@ bool DTX::CheckValidate(std::vector<ValidateRead>& pending_validate) {
                   if(FindFailedId(failed_id)){
                       //lock recovery.
                       //Release lock or update it from this side using a CAS operation. 
+                    #ifdef BLOCKING_RECOVERY
                     auto rc = re.qp->post_cas(lock_start, remote_lock_addr_ro, failed_id, STATE_CLEAN, IBV_SEND_SIGNALED);
                     if (rc != SUCC) {
                       TLOG(ERROR, t_id) << "client: post cas fail. rc=" << rc;
@@ -247,6 +253,11 @@ bool DTX::CheckValidate(std::vector<ValidateRead>& pending_validate) {
                       TLOG(ERROR, t_id) << "client: poll cas fail. rc=" << rc;
                       exit(-1);
                     }
+                    #else
+                      coro_sched->RDMACAS(coro_id, re.qp, lock_start, remote_lock_addr_ro, failed_id, STATE_CLEAN);
+                      //coro_sched->Yield(yield, coro_id);
+                      while(!coro_sched->PollCoro(coro_id));
+                    #endif
       
                     //Check the lock value. TODO - put this in a while loop.
                     if (*((lock_t*)lock_start) != failed_id){

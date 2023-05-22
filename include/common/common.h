@@ -71,6 +71,8 @@ typedef struct atomic_record{
 #define FIX_ABORT_ISSUE
 //#define FIX_RO_READ
 #define FIX_INSERT_BUG //new bug. retining from ro and rw reads if the lock is set
+//#define BLOCKING_RECOVERY
+
 
 #define EEL //this is to enable explicit epoch logging. 
 #define ELOG //add proecss ids to the lock
@@ -91,3 +93,5 @@ typedef struct atomic_record{
 #define ENABLE_PRECOMMIT
 
 #define CRASH_ENABLE
+
+

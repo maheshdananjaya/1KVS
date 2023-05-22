@@ -81,6 +81,7 @@ bool DTX::CheckCasRW(std::vector<CasRead>& pending_cas_rw, std::list<HashRead>& 
           if(FindFailedId(failed_id)){
             //lock recovery.
             //Release lock or update it from this side using a CAS operation. 
+            #ifdef BLOCKING_RECOVERY
             auto rc = re.qp->post_cas(re.cas_buf, remote_lock_addr, failed_id, (t_id+1), IBV_SEND_SIGNALED);
             if (rc != SUCC) {
               TLOG(ERROR, t_id) << "client: post cas fail. rc=" << rc;
@@ -93,6 +94,12 @@ bool DTX::CheckCasRW(std::vector<CasRead>& pending_cas_rw, std::list<HashRead>& 
               TLOG(ERROR, t_id) << "client: poll cas fail. rc=" << rc;
               exit(-1);
             }
+            #else
+              coro_sched->RDMACAS(coro_id, re.qp, re.cas_buf, remote_lock_addr, failed_id, STATE_CLEAN);
+              //coro_sched->Yield(yield, coro_id);
+              while(!coro_sched->PollCoro(coro_id));
+            #endif
+
 
             //Check the lock value. TODO - put this in a while loop.
             if (*((lock_t*)re.cas_buf) != failed_id){
@@ -214,6 +221,9 @@ bool DTX::CheckHashRW(std::vector<HashRead>& pending_hash_rw,
       pending_next_hash_rw.emplace_back(HashRead{.qp = res.qp, .item = res.item, .buf = res.buf, .remote_node = res.remote_node, .meta = res.meta});
       if (!coro_sched->RDMARead(coro_id, res.qp, res.buf, node_off, sizeof(HashNode))) return false;
     }
+    else if(rc == SLOT_FOUND){
+      continue;
+    }
     else{
       return false;
     }
@@ -321,6 +331,9 @@ bool DTX::CheckInsertOffRW(std::vector<InsertOffRead>& pending_insert_off_rw,
       auto node_off = (uint64_t)local_hash_node->next - res.meta.data_ptr + res.meta.base_off;
       pending_next_off_rw.emplace_back(InsertOffRead{.qp = res.qp, .item = res.item, .buf = res.buf, .remote_node = res.remote_node, .meta = res.meta, .node_off = res.node_off});
       if (!coro_sched->RDMARead(coro_id, res.qp, res.buf, node_off, sizeof(HashNode))) return false;
+    }
+    else if(rc == OFFSET_FOUND){
+      continue;
     }
     else{
       return false;

@@ -90,8 +90,11 @@ const coro_id_t POLL_ROUTINE_ID = 0;            // The poll coroutine ID
  
 __thread int litmus=5; //1 2 3 4 5 is the 3_lat
 
-
 extern bool crash_emu;
+extern t_id_t new_base_tid;
+extern uint64_t num_crashes;
+#define CRASH_INTERVAL 500000
+__thread uint64_t next_crash_count=CRASH_INTERVAL;
 
 #ifdef CRASH_TPUT
 thread_local std::ofstream file_out;// per thread file writes
@@ -177,6 +180,131 @@ bool Litmus1(coro_yield_t& yield, tx_id_t tx_id, DTX* dtx) {
 
 }
 
+
+//if the last one is delete. insert must be on the way. 
+bool Litmus1Insert(coro_yield_t& yield, tx_id_t tx_id, DTX* dtx) {
+
+  //No more random writes. pick any combinations. 
+  //micro_key.item_key = (itemkey_t)FastRand(&seed) & (num_keys_global - 1);
+  //
+  dtx->TxBegin(tx_id);
+  bool is_write[data_set_size]; 
+  DataItemPtr micro_objs[data_set_size];
+
+    //CRASH points
+
+   //DelayRandom();
+  
+    for (uint64_t i = 0; i < data_set_size; i++) {
+      micro_key_t micro_key;
+      micro_key.item_key = (itemkey_t) i+1;
+      assert(micro_key.item_key >= 0 && micro_key.item_key < num_keys_global);
+
+      //Inserts
+      micro_objs[i] = std::make_shared<DataItem>((table_id_t)MicroTableType::kMicroTable, micro_key.item_key, tx_id, 1);
+
+      //do this with deletes and inserts radomly.
+
+      dtx->AddToReadWriteSet(micro_objs[i]);
+      is_write[i] = true;
+
+    }
+  
+      //CRASH points 1: CRASH must happen in the background rather thanhere.
+
+    if (!dtx->TxExe(yield)) {
+      // TLOG(DBG, thread_gid) << "tx " << tx_id << " aborts after exe";
+      return false;
+    }
+ 
+    //CRASH points 2
+
+
+    uint64_t value_v = (uint64_t)FastRand(&seed) & (num_keys_global - 1);
+  
+    for (uint64_t i = 0; i < data_set_size; i++) {
+
+      //randomly insert/delete all objects.
+      micro_val_t* micro_val = (micro_val_t*) micro_objs[i]->value;
+      micro_val->magic[1] = value_v; // new version value for all writes.
+    }
+
+    //CRASH points 3
+
+    bool commit_status = dtx->TxCommit(yield); // We also need to emulate crashes within commit. use interrupts.
+
+    //CRASH points 4
+
+    //CRASH points 5
+
+    return commit_status;
+
+}
+
+
+//if the last one is delete. insert must be on the way. 
+bool Litmus1Delete(coro_yield_t& yield, tx_id_t tx_id, DTX* dtx) {
+
+  //No more random writes. pick any combinations. 
+  //micro_key.item_key = (itemkey_t)FastRand(&seed) & (num_keys_global - 1);
+  //
+  dtx->TxBegin(tx_id);
+  bool is_write[data_set_size]; 
+  DataItemPtr micro_objs[data_set_size];
+
+    //CRASH points
+
+   //DelayRandom();
+  
+    for (uint64_t i = 0; i < data_set_size; i++) {
+      micro_key_t micro_key;
+      micro_key.item_key = (itemkey_t) i+1;
+      assert(micro_key.item_key >= 0 && micro_key.item_key < num_keys_global);
+
+      //Inserts
+      micro_objs[i] = std::make_shared<DataItem>((table_id_t)MicroTableType::kMicroTable, micro_key.item_key);
+
+      //do this with deletes and inserts radomly.
+
+      dtx->AddToReadWriteSet(micro_objs[i]);
+      is_write[i] = true;
+
+    }
+  
+      //CRASH points 1: CRASH must happen in the background rather thanhere.
+
+    if (!dtx->TxExe(yield)) {
+      // TLOG(DBG, thread_gid) << "tx " << tx_id << " aborts after exe";
+      return false;
+    }
+ 
+    //CRASH points 2
+    for (uint64_t i = 0; i < data_set_size; i++) {
+        micro_objs[i]->valid = 0; // for deleting the object., 
+    }
+
+    /*
+    uint64_t value_v = (uint64_t)FastRand(&seed) & (num_keys_global - 1);
+  
+    for (uint64_t i = 0; i < data_set_size; i++) {
+
+      //randomly insert/delete all objects.
+      micro_val_t* micro_val = (micro_val_t*) micro_objs[i]->value;
+      micro_val->magic[1] = value_v; // new version value for all writes.
+    }
+    */
+
+    //CRASH points 3
+
+    bool commit_status = dtx->TxCommit(yield); // We also need to emulate crashes within commit. use interrupts.
+
+    //CRASH points 4
+
+    //CRASH points 5
+
+    return commit_status;
+
+}
 
 //Assert nebver fails in the middle. emulaitons;
 bool Assert1(coro_yield_t& yield, tx_id_t tx_id, DTX* dtx) {
@@ -1271,10 +1399,15 @@ void PollCompletion(coro_yield_t& yield) {
 void RunTx(coro_yield_t& yield, coro_id_t coro_id) {
   double total_msr_us = 0;
   // Each coroutine has a dtx: Each coroutine is a coordinator
-  DTX* dtx = new DTX(meta_man, qp_man, thread_gid, coro_id, coro_sched, rdma_buffer_allocator,
-                     log_offset_allocator, addr_cache);
+  //DTX* dtx = new DTX(meta_man, qp_man, thread_gid, coro_id, coro_sched, rdma_buffer_allocator,log_offset_allocator, addr_cache);
 
+  //dtx->InitFailedList(failed_id_list);
+
+  DTX* dtx = new DTX(meta_man, qp_man, thread_gid+(num_crashes*thread_num), coro_id, coro_sched, rdma_buffer_allocator,
+                     log_offset_allocator, addr_cache);
   dtx->InitFailedList(failed_id_list);
+  dtx->InitCrashEmu(&crash_emu);
+
 
   struct timespec tx_start_time, tx_end_time;
   bool tx_committed = false;
@@ -1346,6 +1479,19 @@ void RunTx(coro_yield_t& yield, coro_id_t coro_id) {
 
           //update, insert, delete. failures at any point 
           tx_committed = Litmus1(yield, iter, dtx);
+          //assert
+          Assert1(yield, iter, dtx);
+          break;
+      }
+
+      case 11:{ // version with insert and deletes. . 
+
+          //update, insert, delete. failures at any point 
+        if ( (thread_gid%2==0 && coro_id%2 == 0) || (thread_gid%2==1 && coro_id%2 == 1)) 
+          tx_committed = Litmus1Insert(yield, iter, dtx);
+        else
+          tx_committed = Litmus1Delete(yield, iter, dtx);
+
           //assert
           Assert1(yield, iter, dtx);
           break;

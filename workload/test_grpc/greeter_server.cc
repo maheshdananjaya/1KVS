@@ -155,6 +155,7 @@ class GreeterServiceImpl final : public Greeter::Service {
       //enable next refoniguartions
       last_config.assign(failed_process_ids); // we need to  get all failed process-ids. start->end
       all_config.assign(all_config + "," + last_config);
+      std::cout  << "New COnfiguration " << all_config << std::endl;
       reconf_time = true;
 
       //RECONFIGURE
@@ -179,12 +180,13 @@ class GreeterServiceImpl final : public Greeter::Service {
     }else{
 
       printf("Unknown"); // error.
+      prefix.assign("Unknown"+",ACK"); // send a normal act
       //prefix.assign(machine_id+",ACK"); // send a normal act
 
     }
 
     //std::cout << "Becon "  << request->name() << std::endl;
-    reply->set_message(prefix + request->name());    
+    reply->set_message(prefix + ","+ request->name());    
 
     return Status::OK;
   }

@@ -180,7 +180,7 @@ class GreeterServiceImpl final : public Greeter::Service {
     }else{
 
       printf("Unknown"); // error.
-      prefix.assign("Unknown"+",ACK"); // send a normal act
+      prefix.assign("Unknown"); // send a normal act
       //prefix.assign(machine_id+",ACK"); // send a normal act
 
     }

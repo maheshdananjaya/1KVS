@@ -90,7 +90,7 @@ void CollectResult(std::string workload_name, std::string system_name) {
     total_tail += taillat_vec[i];
   }
 
-  size_t thread_num = tid_ve  c.size();
+  size_t thread_num = tid_vec.size();
 
   double avg_median = total_median / thread_num;
   double avg_tail = total_tail / thread_num;

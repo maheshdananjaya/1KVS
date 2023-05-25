@@ -97,7 +97,7 @@ int main(int argc, char** argv) {
     }
   } else {
     
-    target_str = "10.10.1.1:50051";
+    target_str = "10.10.1.8:50051";
 
   }
   GreeterClient greeter(grpc::CreateChannel(target_str, grpc::InsecureChannelCredentials()));

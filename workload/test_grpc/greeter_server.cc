@@ -83,6 +83,7 @@ class GreeterServiceImpl final : public Greeter::Service {
     std::string req = request->name();
 
     std::string machine_id_str = (req).substr(0, req.find(",")); 
+    
     int machine_id = std::stoi(machine_id_str);
 
     std::string status = (req).substr(1, req.find(",")); 
@@ -143,6 +144,9 @@ class GreeterServiceImpl final : public Greeter::Service {
         }
 
         prefix.assign(machine_id+",ACK"); // send a normal act
+    }else{
+
+      printf("Unknown"); // error.
     }
 
     //std::cout << "Becon "  << request->name() << std::endl;

@@ -79,7 +79,7 @@ class GreeterServiceImpl final : public Greeter::Service {
   Status SayHello(ServerContext* context, const HelloRequest* request,
                   HelloReply* reply) override {
     
-    
+
     std::string prefix("ACK ");
     std::string req = request->name();
 
@@ -87,11 +87,14 @@ class GreeterServiceImpl final : public Greeter::Service {
     
     int machine_id = std::stoi(machine_id_str);
 
+    std::cout << "Sender " << machine_id << std::endl;
+
     std::string status = (req).substr(1, req.find(",")); 
+    std::cout << "Message " << status << std::endl;
 
     if(status == "ACTIVE"){
       
-      std::cout << "ACTIVE" << machine_id << std::endl;
+      //std::cout << "ACTIVE" << machine_id << std::endl;
       
       if(reconf_time){  
 
@@ -148,6 +151,8 @@ class GreeterServiceImpl final : public Greeter::Service {
     }else{
 
       printf("Unknown"); // error.
+      //prefix.assign(machine_id+",ACK"); // send a normal act
+
     }
 
     //std::cout << "Becon "  << request->name() << std::endl;

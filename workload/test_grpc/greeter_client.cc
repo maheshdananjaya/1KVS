@@ -105,14 +105,17 @@ int main(int argc, char** argv) {
   int N=100;
   for (int i=0; i< N; i++){ 
 
-    if(i< (N/2))
+
+    if(i< (N/2)){
       std::string user("1,ACTIVE");
-    else
+      std::string reply = greeter.SayHello(user);
+      std::cout << "Greeter received: " << reply << std::endl;
+    }
+    else{
       std::string user("1,FAILED,0-3");
-
-    std::string reply = greeter.SayHello(user);
-    std::cout << "Greeter received: " << reply << std::endl;
-
+      std::string reply = greeter.SayHello(user);
+      std::cout << "Greeter received: " << reply << std::endl;
+    }
   }
 
   return 0;

@@ -90,8 +90,7 @@ void CollectResult(std::string workload_name, std::string system_name) {
     total_tail += taillat_vec[i];
   }
 
-  size_t thread_num = tid_ve
-  c.size();
+  size_t thread_num = tid_ve  c.size();
 
   double avg_median = total_median / thread_num;
   double avg_tail = total_tail / thread_num;
@@ -335,6 +334,9 @@ void CollectStats(struct thread_params* params){
 }
 
 
+
+
+#ifdef FD
 //Communicate with the failure detector
 void HeartBeats(struct thread_params* params){
     //live beacoins.
@@ -401,6 +403,6 @@ void HeartBeats(struct thread_params* params){
 
 }
 
-
+#endif
 
 

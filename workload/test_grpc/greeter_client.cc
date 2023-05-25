@@ -96,11 +96,12 @@ int main(int argc, char** argv) {
       return 0;
     }
   } else {
-    target_str = "localhost:50051";
+    
+    target_str = "10.10.1.1:50051";
+
   }
-  GreeterClient greeter(
-      grpc::CreateChannel(target_str, grpc::InsecureChannelCredentials()));
-  std::string user("world");
+  GreeterClient greeter(grpc::CreateChannel(target_str, grpc::InsecureChannelCredentials()));
+  std::string user("ACTIVE");
   std::string reply = greeter.SayHello(user);
   std::cout << "Greeter received: " << reply << std::endl;
 

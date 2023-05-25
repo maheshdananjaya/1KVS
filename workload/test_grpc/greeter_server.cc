@@ -68,7 +68,9 @@ std::string all_config("0-0");
 std::string last_config("");
 
 bool reconf_time=false;
-int status_refconf [NUM_MAX_SERVERS]; // 0- no. 1- sent 2- acked
+int status_refconf [NUM_MAX_SERVERS]; 
+
+// 0- no. 1- sent 2- acked
 int tot_nume_config_sent=0;
 //we need to drop messages
 
@@ -80,7 +82,9 @@ class GreeterServiceImpl final : public Greeter::Service {
     std::string prefix("ACK ");
     std::string req = request->name();
 
-    std::string machine_id = (req).substr(0, req.find(",")); 
+    std::string machine_id_str = (req).substr(0, req.find(",")); 
+    int machine_id = std::stoi(machine_id_str);
+    
     std::string status = (req).substr(1, req.find(",")); 
 
     if(status == "ACTIVE"){
@@ -116,8 +120,8 @@ class GreeterServiceImpl final : public Greeter::Service {
       //prefix.assign(machine_id+", RECONF [ids]");
 
       //enable next refoniguartions
-      last_reconf.assign(failed_process_ids); // we need to  get all failed process-ids. start->end
-      all_reconfig.assign(all_reconfig+","+last_reconf);
+      last_config.assign(failed_process_ids); // we need to  get all failed process-ids. start->end
+      all_config.assign(all_config + "," + last_config);
       reconf_time = true;
 
       //RECONFIGURE

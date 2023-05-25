@@ -74,6 +74,27 @@ int status_refconf [NUM_MAX_SERVERS];
 int tot_nume_config_sent=0;
 //we need to drop messages
 
+size_t split(const std::string &txt, std::vector<std::string> &strs, char ch)
+{
+    size_t pos = txt.find( ch );
+    size_t initialPos = 0;
+    strs.clear();
+
+    // Decompose statement
+    while( pos != std::string::npos ) {
+        strs.push_back( txt.substr( initialPos, pos - initialPos ) );
+        initialPos = pos + 1;
+
+        pos = txt.find( ch, initialPos );
+    }
+
+    // Add the last one
+    strs.push_back( txt.substr( initialPos, std::min( pos, txt.size() ) - initialPos + 1 ) );
+
+    return strs.size();
+}
+
+
 // Logic and data behind the server's behavior.
 class GreeterServiceImpl final : public Greeter::Service {
   Status SayHello(ServerContext* context, const HelloRequest* request,
@@ -83,13 +104,17 @@ class GreeterServiceImpl final : public Greeter::Service {
     std::string prefix("ACK ");
     std::string req = request->name();
 
-    std::string machine_id_str = (req).substr(0, req.find(",")); 
-    
-    int machine_id = std::stoi(machine_id_str);
+    std::vector<std::string> v;
+
+    //std::string machine_id_str = (req).substr(0, req.find(",")); 
+    //std::string status = (req).substr(1, req.find(",")); 
+    // int machine_id = std::stoi(machine_id_str); 
+    split(req, v, ',');
+
+    int machine_id = std::stoi(v.at(0)); 
+    std::string status = v.at(1);   
 
     std::cout << "Sender " << machine_id << std::endl;
-
-    std::string status = (req).substr(1, req.find(",")); 
     std::cout << "Message " << status << std::endl;
 
     if(status == "ACTIVE"){
@@ -113,7 +138,10 @@ class GreeterServiceImpl final : public Greeter::Service {
     }
     else if(status == "FAILED") {
       std::cout << "FAILED " << machine_id << std::endl;
-      failed_process_ids.assign ((req).substr(2, req.find(",")));
+
+      //failed_process_ids.assign ((req).substr(2, req.find(",")));
+      failed_process_ids.assign(v.at(2));
+
       //delineated by 
       prefix.assign(machine_id+",RECOVERY,"+ failed_process_ids); // start-end
 

@@ -407,8 +407,7 @@ void RunTx(coro_yield_t& yield, coro_id_t coro_id) {
   dtx->InitFailedList(failed_id_list);
   dtx->InitCrashEmu(&crash_emu);
 
-  struct timespec tx_start_time, tx_
-  end_time;
+  struct timespec tx_start_time, tx_end_time;
   bool tx_committed = false;
 
   //This to log the throughput in crash-recovery window. this is run by non-faulty ones. 

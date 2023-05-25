@@ -84,7 +84,7 @@ class GreeterServiceImpl final : public Greeter::Service {
 
     std::string machine_id_str = (req).substr(0, req.find(",")); 
     int machine_id = std::stoi(machine_id_str);
-    
+
     std::string status = (req).substr(1, req.find(",")); 
 
     if(status == "ACTIVE"){
@@ -96,7 +96,7 @@ class GreeterServiceImpl final : public Greeter::Service {
         if(status_refconf[machine_id]==0){      
           status_refconf[machine_id] = 1;
           tot_nume_config_sent++;
-          prefix.assign(machine_id+",RECONFIGURE:"+last_reconf);
+          prefix.assign(machine_id+",RECONFIGURE:"+last_config);
         }
         else
         prefix.assign(machine_id+",ACK");

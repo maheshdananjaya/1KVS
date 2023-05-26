@@ -71,6 +71,28 @@ class GreeterClient {
   std::unique_ptr<Greeter::Stub> stub_;
 };
 
+
+size_t split(const std::string &txt, std::vector<std::string> &strs, char ch)
+{
+    size_t pos = txt.find( ch );
+    size_t initialPos = 0;
+    strs.clear();
+
+    // Decompose statement
+    while( pos != std::string::npos ) {
+        strs.push_back( txt.substr( initialPos, pos - initialPos ) );
+        initialPos = pos + 1;
+
+        pos = txt.find( ch, initialPos );
+    }
+
+    // Add the last one
+    strs.push_back( txt.substr( initialPos, std::min( pos, txt.size() ) - initialPos + 1 ) );
+
+    return strs.size();
+}
+
+
 int main(int argc, char** argv) {
   // Instantiate the client. It requires a channel, out of which the actual RPCs
   // are created. This channel models a connection to an endpoint specified by
@@ -105,17 +127,30 @@ int main(int argc, char** argv) {
   int N=100;
   for (int i=0; i< N; i++){ 
 
+     std::string reply;
 
     if(i< (N/2)){
       std::string user("1,ACTIVE");
-      std::string reply = greeter.SayHello(user);
+      reply = greeter.SayHello(user);
       std::cout << "Greeter received: " << reply << std::endl;
     }
     else{
       std::string user("1,FAILED,0-3");
-      std::string reply = greeter.SayHello(user);
+      reply = greeter.SayHello(user);
       std::cout << "Greeter received: " << reply << std::endl;
+
     }
+
+    std::vector<std::string> v;
+    split(reply, v, ',');
+    if(v.at(0) ==  "RECOVERY"){
+        //Do recovery.
+        std::string user("1,RECOVERY_DONE"+v.at(1));
+        reply = greeter.SayHello(user);
+        std::cout << "RECOVERY ACK?: " << reply << std::endl;
+    }
+
+
   }
 
   return 0;

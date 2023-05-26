@@ -88,7 +88,7 @@ __thread uint64_t stat_attempted_tx_total = 0;  // Issued transaction number
 __thread uint64_t stat_committed_tx_total = 0;  // Committed transaction number
 const coro_id_t POLL_ROUTINE_ID = 0;            // The poll coroutine ID
  
-__thread int litmus=5; //1 2 3 4 5 is the 3_lat
+__thread int litmus=1; //1 2 3 4 5 is the 3_lat
 
 extern bool crash_emu;
 extern t_id_t new_base_tid;

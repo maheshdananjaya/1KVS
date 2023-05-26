@@ -112,6 +112,15 @@ bool DTX::CheckCasRW(std::vector<CasRead>& pending_cas_rw, std::list<HashRead>& 
             } 
 
           }
+          else{ // TO fix litmus 1 bug- 
+              #ifdef FIX_ABORT_ISSUE
+                  decision=false;
+                  continue;
+                #else
+                  return false; //Immediately returns. 
+                #endif
+          }   
+
       #else
           //End lock recovery time
           #ifdef FIX_ABORT_ISSUE
@@ -125,13 +134,24 @@ bool DTX::CheckCasRW(std::vector<CasRead>& pending_cas_rw, std::list<HashRead>& 
 #endif
 
 
-    //There seems to be aproblem somehere here. litmus 3 alt fails. 
+    // There seems to be aproblem somehere here. litmus 3 alt fails. 
     auto it = re.item->item_ptr;
     auto* fetched_item = (DataItem*)(re.data_buf);
     if (likely(fetched_item->key == it->key && fetched_item->table_id == it->table_id)) {
+      re.item->is_fetched = true;
+      re.item->is_locked_flag = true;  
+
       if (it->user_insert) {
         // insert or update (insert an exsiting key)
-        if (it->version < fetched_item->version) return false;
+        if (it->version < fetched_item->version){
+          // return false; fixing 1 insert assert litmus 1 bug
+          #ifdef FIX_ABORT_ISSUE
+              decision=false;
+              //continue; // is this a bug
+          #else
+            return false; //Immediately returns. 
+          #endif
+        }
         old_version_for_insert.push_back(OldVersionForInsert{.table_id = it->table_id, .key = it->key, .version = fetched_item->version});
       } else {
         // Update or deletion
@@ -143,8 +163,8 @@ bool DTX::CheckCasRW(std::vector<CasRead>& pending_cas_rw, std::list<HashRead>& 
           return false;
         }
       }
-      re.item->is_fetched = true;
-      re.item->is_locked_flag = true;
+
+
     } else {
       // The cached address is stale
 

@@ -88,7 +88,7 @@ bool DTX::CompareIssueReadRWLitmus(std::vector<DirectRead>& pending_direct_read,
                              std::vector<InsertOffRead>& pending_insert_off_read) {
   // Read read-write data
   for (size_t i = 0; i < read_write_set.size(); i++) {
-     //if (read_write_set[i].is_fetched) continue;
+     //if (read_write_set[i].is_fetched) continue; 
     //not_eager_locked_rw_set.emplace_back(i);
     auto it = read_write_set[i].item_ptr;
     auto remote_node_id = global_meta_man->GetPrimaryNodeID(it->table_id);

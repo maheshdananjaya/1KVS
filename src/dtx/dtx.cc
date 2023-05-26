@@ -677,6 +677,8 @@ bool DTX::LatchLogDataQP() {
 
   #else
   // Write undo logs to all memory nodes. ibv send send the offset relative to the memory region.
+
+  //TODO - MEM FAILURES
   for (int i = 0; i < global_meta_man->remote_nodes.size(); i++) {
     offset_t log_offset = thread_remote_log_offset_alloc->GetNextLatchLogOffset(i, coro_id, log_size);
     //DAM -using data qps to write latch logs.

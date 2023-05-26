@@ -146,7 +146,6 @@ bool DTX::IssueReadLock(std::vector<CasRead>& pending_cas_rw,
       offset_t node_off = idx * meta.node_size + meta.base_off;
       char* local_hash_node = thread_rdma_buffer_alloc->Alloc(sizeof(HashNode));
       if (it->user_insert) {
-
         pending_insert_off_rw.emplace_back(InsertOffRead{.qp = qp, .item = &read_write_set[i], .buf = local_hash_node, .remote_node = remote_node_id, .meta = meta, .node_off = node_off});
       } else {
         pending_hash_rw.emplace_back(HashRead{.qp = qp, .item = &read_write_set[i], .buf = local_hash_node, .remote_node = remote_node_id, .meta = meta});

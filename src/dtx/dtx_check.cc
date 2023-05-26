@@ -138,7 +138,9 @@ bool DTX::CheckValidate(std::vector<ValidateRead>& pending_validate) {
           auto remote_lock_addr = re.item->item_ptr->GetRemoteLockAddr(remote_data_addr);
           
           t_id_t failed_id = *((lock_t*)re.cas_buf);
+
           if(FindFailedId(failed_id)){
+
             //lock recovery.
             //Release lock or update it from this side using a CAS operation. . FOR reads write zero.
             #ifdef BLOCKING_RECOVERY
@@ -161,6 +163,7 @@ bool DTX::CheckValidate(std::vector<ValidateRead>& pending_validate) {
             #endif
             //Check the lock value. TODO - put this in a while loop. someone active has the lock. 
             if (*((lock_t*)re.cas_buf) != failed_id){
+                
                 #ifdef FIX_ABORT_ISSUE
                   decision=false;
                   continue;
@@ -170,6 +173,16 @@ bool DTX::CheckValidate(std::vector<ValidateRead>& pending_validate) {
             } 
 
           }
+          else{ // TO fix litmus 1 bug- 
+              #ifdef FIX_ABORT_ISSUE
+                  decision=false;
+                  continue;
+                #else
+                  return false; //Immediately returns. 
+                #endif
+
+          }          
+
         #else
             #ifdef FIX_ABORT_ISSUE
               decision = false;
@@ -185,6 +198,7 @@ bool DTX::CheckValidate(std::vector<ValidateRead>& pending_validate) {
       re.item->is_locked_flag = true;
 
       version_t my_version = it->version;
+
       if (it->user_insert) {
         // If it is an insertion, we need to compare the the fetched version with
         // the old version, instead of the new version stored in item
@@ -272,6 +286,14 @@ bool DTX::CheckValidate(std::vector<ValidateRead>& pending_validate) {
                     //successful.
     
                   }
+                  else{ // TO fix litmus 1 bug- 
+                    #ifdef FIX_ABORT_ISSUE
+                      decision=false;
+                      continue;
+                    #else
+                      return false; //Immediately returns. 
+                    #endif
+                  }   
           
               #else
 

@@ -4,6 +4,8 @@
 #include "dtx/dtx.h"
 #include "util/timer.h"
 
+
+//This affects the abort unlock in litmus tests. becuase the lock_falg is overwritten.
 bool DTX::CompareCheckDirectRead(std::vector<DirectRead>& pending_direct_read, std::list<HashRead>& pending_next_hash_read, std::list<InsertOffRead>& pending_next_off_read) {
   // Check results from direct read via local cache
   for (auto& res : pending_direct_read) {
@@ -23,7 +25,8 @@ bool DTX::CompareCheckDirectRead(std::vector<DirectRead>& pending_direct_read, s
           return false;
         }
       }
-      res.item->is_fetched = true;
+      
+
     } else {
       // The cached address is stale. E.g., insert a new item after being deleted
       // Local cache does not have. We have to re-read via hash
@@ -208,6 +211,8 @@ bool DTX::CompareCheckReadRORW(std::vector<DirectRead>& pending_direct_read,
 }
 
 bool DTX::CompareCheckLocking(std::vector<Lock>& pending_lock) {
+  
+  bool decision = true;
   for (auto& re : pending_lock) {
 #if LOCK_WAIT
     // Re-read the slot until it becomes unlocked
@@ -259,10 +264,23 @@ bool DTX::CompareCheckLocking(std::vector<Lock>& pending_lock) {
     *re.item->item_ptr.get() = *((DataItem*)buf);
 
 #else
-    if (*((lock_t*)re.cas_buf) != STATE_CLEAN) return false;
+    if (*((lock_t*)re.cas_buf) != STATE_CLEAN){
+
+          #ifdef FIX_ABORT_ISSUE
+              decision = false;
+              continue;
+          #else
+              return false;
+          #endif
+   }
+
+
 #endif
+    re.item->is_locked_flag = true; // set the locked flag
+    //HERE is the error. litmus was old. there is nothing on locked_flag set here. 
+  
   }
-  return true;
+  return decision;
 }
 
 bool DTX::CompareCheckValidation(std::vector<Version>& pending_version_read) {

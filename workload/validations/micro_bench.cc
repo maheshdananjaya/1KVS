@@ -280,7 +280,7 @@ bool Litmus1Delete(coro_yield_t& yield, tx_id_t tx_id, DTX* dtx) {
  
     //CRASH points 2
     for (uint64_t i = 0; i < data_set_size; i++) {
-        micro_objs[i]->valid = 0; // for deleting the object., 
+        micro_objs[i]->valid = 0; // for deleting the object. 
     }
 
     /*
@@ -303,6 +303,64 @@ bool Litmus1Delete(coro_yield_t& yield, tx_id_t tx_id, DTX* dtx) {
     //CRASH points 5
 
     return commit_status;
+
+}
+
+
+bool Assert1Stateless(coro_yield_t& yield, tx_id_t tx_id, DTX* dtx) {
+
+  //assertion function for the mitmus testing
+  //trick: either stop the world or lock all read only objects.
+  dtx->TxBegin(tx_id);
+  bool is_write[data_set_size];
+  DataItemPtr micro_objs[data_set_size];
+
+    for (uint64_t i = 0; i < data_set_size; i++) {
+      micro_key_t micro_key;
+      micro_key.item_key = (itemkey_t) i+1;
+      assert(micro_key.item_key >= 0 && micro_key.item_key < num_keys_global);
+      micro_objs[i] = std::make_shared<DataItem>((table_id_t)MicroTableType::kMicroTable, micro_key.item_key);
+
+      //Perssimistic Reads
+      dtx->AddToReadOnlySet(micro_objs[i]);
+      is_write[i] = false;
+
+    }
+
+    //Lock and Read
+    if (!dtx->TxExe(yield)) {
+      // TLOG(DBG, thread_gid) << "tx " << tx_id << " aborts after exe";
+         //dtx->AssertAbort();
+      return false;
+    }
+
+
+    if(!dtx->TxCommit(yield)){
+        return false;
+    }
+
+
+
+   //RDMA_LOG(INFO) << "assert success " ; 
+    //Assert versions
+    uint64_t value_v=0;
+    for (uint64_t i = 0; i < data_set_size; i++) {
+      micro_val_t* micro_val = (micro_val_t*) micro_objs[i]->value;
+      if(i==0)
+        value_v= micro_val->magic[1]; // new version value for all writes.
+      else{
+                RDMA_LOG(WARNING) << "asserting " << value_v << " with " << micro_val->magic[1] << " thread " << thread_gid;
+              assert(micro_val->magic[1] == value_v); //local asserts
+      }
+    }
+
+    RDMA_LOG(INFO) << "assert success on thread " << thread_gid;
+    //bool commit_status = dtx->TxCommit(yield); // We also need to emulate crashes within commit. use interrupts.
+    //Unlock should be there. 
+
+   //dtx->AssertAbort(yield); //unlock all the places
+
+  return true;
 
 }
 

@@ -138,7 +138,8 @@ bool DTX::CheckCasRW(std::vector<CasRead>& pending_cas_rw, std::list<HashRead>& 
     auto it = re.item->item_ptr;
     auto* fetched_item = (DataItem*)(re.data_buf);
     if (likely(fetched_item->key == it->key && fetched_item->table_id == it->table_id)) {
-      re.item->is_fetched = true;
+      
+      re.item->is_fetched = true; // this must go to the end.
       re.item->is_locked_flag = true;  
 
       if (it->user_insert) {
@@ -151,8 +152,21 @@ bool DTX::CheckCasRW(std::vector<CasRead>& pending_cas_rw, std::list<HashRead>& 
           #else
             return false; //Immediately returns. 
           #endif
+
         }
-        old_version_for_insert.push_back(OldVersionForInsert{.table_id = it->table_id, .key = it->key, .version = fetched_item->version});
+        
+        //else - ready to insert.i need version and valid bits. 
+
+        // BUG- FIX i need to put this inside else or enable 'continue.'
+        else{
+          
+          //Critical Bug FIX - MAGIC
+          //*it = *fetched_item;  //For logging. //critical
+
+          old_version_for_insert.push_back(OldVersionForInsert{.table_id = it->table_id, .key = it->key, .version = fetched_item->version});
+        
+        }
+
       } else {
         // Update or deletion
         if (likely(fetched_item->valid)) {
@@ -160,7 +174,13 @@ bool DTX::CheckCasRW(std::vector<CasRead>& pending_cas_rw, std::list<HashRead>& 
         } else {
           // The item is deleted before, then update the local cache
           addr_cache->Insert(re.primary_node_id, it->table_id, it->key, NOT_FOUND);
-          return false;
+            
+            #ifdef FIX_ABORT_ISSUE
+                decision=false;
+                //continue;
+            #else
+              return false;
+            #endif
         }
       }
 
@@ -284,6 +304,7 @@ int DTX::FindInsertOff(InsertOffRead& res, std::list<InvisibleRead>& pending_inv
     auto& data_item = local_hash_node->data_items[i];
 
     if (possible_insert_position == OFFSET_NOT_FOUND && !data_item.valid && data_item.lock == STATE_CLEAN) {
+
       // Within a txn, multiple items cannot insert into one slot
       std::pair<node_id_t, offset_t> new_pos(res.remote_node, res.node_off + i * DataItemSize);
       if (inserted_pos.find(new_pos) != inserted_pos.end()) {
@@ -331,7 +352,14 @@ int DTX::FindInsertOff(InsertOffRead& res, std::list<InvisibleRead>& pending_inv
       pending_invisible_ro.emplace_back(InvisibleRead{.qp = res.qp, .buf = cas_buf, .off = lock_offset});
       if (!coro_sched->RDMARead(coro_id, res.qp, cas_buf, lock_offset, sizeof(lock_t))) return false;
     }
+
+    //BUG in logging. FIx it.
+    //Critical Bug FIX - MAGIC
+    
     res.item->is_fetched = true;
+    //FIX need to update value and valid bit in the object. valid?
+
+
     return OFFSET_FOUND;
   }
   return OFFSET_NOT_FOUND;

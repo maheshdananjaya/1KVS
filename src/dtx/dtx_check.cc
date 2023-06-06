@@ -325,7 +325,13 @@ bool DTX::CheckValidate(std::vector<ValidateRead>& pending_validate) {
 
 bool DTX::CheckCommitAll(std::vector<CommitWrite>& pending_commit_write, char* cas_buf) {
   // Release: set visible and unlock remote data
+
+  if(CheckCrash()) return false;
+
   for (auto& re : pending_commit_write) {
+    
+    if(CheckCrash()) return false;
+
     auto* qp = thread_qp_man->GetRemoteDataQPWithNodeID(re.node_id);
     qp->post_send(IBV_WR_RDMA_WRITE, cas_buf, sizeof(lock_t), re.lock_off, 0);  // Release
   }

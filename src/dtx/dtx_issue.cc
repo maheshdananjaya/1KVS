@@ -263,6 +263,8 @@ bool DTX::IssueUnlocking() {
 }
 
 bool DTX::IssueCommitAll(std::vector<CommitWrite>& pending_commit_write, char* cas_buf) {
+  if(CheckCrash()) return false;
+
   if (global_meta_man->enable_rdma_flush) {
     return IssueCommitAllFullFlush(pending_commit_write, cas_buf);
   }
@@ -275,6 +277,7 @@ bool DTX::IssueCommitAll(std::vector<CommitWrite>& pending_commit_write, char* c
     // As a result, using a shared data_buf will render a bug: The latter data item will be written to the previous target machine, instead of the latter target machine.
     // Here is the description of `ibv_post_send':
     // ibv_post_send() posts a linked list of Work Requests (WRs) to the Send Queue of a Queue Pair (QP). ibv_post_send() go over all of the entries in the linked list, one by one, check that it is valid, generate a HW-specific Send Request out of it and add it to the tail of the QP's Send Queue without performing any context switch. The RDMA device will handle it (later) in **asynchronous** way. If there is a failure in one of the WRs because the Send Queue is full or one of the attributes in the WR is bad, it stops immediately and return the pointer to that WR.
+    if(CheckCrash()) return false;
 
     char* data_buf = thread_rdma_buffer_alloc->Alloc(DataItemSize);
 
@@ -318,7 +321,7 @@ bool DTX::IssueCommitAll(std::vector<CommitWrite>& pending_commit_write, char* c
     // backup_node_ids guarantees that the order of remote machine is the same in backup_hash_metas and backup_qps
 
     for (size_t i = 0; i < backup_node_ids->size(); i++) {
-
+      if(CheckCrash()) return false;
       auto remote_item_off = offset_in_backup_hash_store + (*backup_hash_metas)[i].base_off;
       auto remote_lock_off = it->GetRemoteLockAddr(remote_item_off);
       pending_commit_write.push_back(CommitWrite{.node_id = backup_node_ids->at(i), .lock_off = remote_lock_off});
@@ -339,15 +342,22 @@ bool DTX::IssueCommitAll(std::vector<CommitWrite>& pending_commit_write, char* c
       }
     }
   }
+  if(CheckCrash()) return false;
   return true;
 }
 
 bool DTX::IssueCommitAllFullFlush(std::vector<CommitWrite>& pending_commit_write, char* cas_buf) {
+  
+  if(CheckCrash()) return false;
+
   if (global_meta_man->enable_selective_flush) {
     return IssueCommitAllSelectFlush(pending_commit_write, cas_buf);
   }
 
   for (auto& set_it : read_write_set) {
+    
+    if(CheckCrash()) return false;
+
     char* data_buf = thread_rdma_buffer_alloc->Alloc(DataItemSize);
 
     auto it = set_it.item_ptr;
@@ -403,6 +413,9 @@ bool DTX::IssueCommitAllFullFlush(std::vector<CommitWrite>& pending_commit_write
     // backup_node_ids guarantees that the order of remote machine is the same in backup_hash_metas and backup_qps
 
     for (size_t i = 0; i < backup_node_ids->size(); i++) {
+
+      if(CheckCrash()) return false;
+      
       auto remote_item_off = offset_in_backup_hash_store + (*backup_hash_metas)[i].base_off;
       auto remote_lock_off = it->GetRemoteLockAddr(remote_item_off);
       pending_commit_write.push_back(CommitWrite{.node_id = backup_node_ids->at(i), .lock_off = remote_lock_off});
@@ -434,16 +447,25 @@ bool DTX::IssueCommitAllFullFlush(std::vector<CommitWrite>& pending_commit_write
 #endif
     }
   }
+
+  if(CheckCrash()) return false;
+
   return true;
 }
 
 bool DTX::IssueCommitAllSelectFlush(std::vector<CommitWrite>& pending_commit_write, char* cas_buf) {
+  
+  if(CheckCrash()) return false;
+
   if (global_meta_man->enable_batched_selective_flush) {
     return IssueCommitAllBatchSelectFlush(pending_commit_write, cas_buf);
   }
 
   size_t current_i = 0;
   for (auto& set_it : read_write_set) {
+
+    if(CheckCrash()) return false;
+
     char* data_buf = thread_rdma_buffer_alloc->Alloc(DataItemSize);
 
     auto it = set_it.item_ptr;
@@ -491,6 +513,9 @@ bool DTX::IssueCommitAllSelectFlush(std::vector<CommitWrite>& pending_commit_wri
     // backup_node_ids guarantees that the order of remote machine is the same in backup_hash_metas and backup_qps
 
     for (size_t i = 0; i < backup_node_ids->size(); i++) {
+      
+      if(CheckCrash()) return false;
+
       auto remote_item_off = offset_in_backup_hash_store + (*backup_hash_metas)[i].base_off;
       auto remote_lock_off = it->GetRemoteLockAddr(remote_item_off);
       pending_commit_write.push_back(CommitWrite{.node_id = backup_node_ids->at(i), .lock_off = remote_lock_off});
@@ -522,15 +547,22 @@ bool DTX::IssueCommitAllSelectFlush(std::vector<CommitWrite>& pending_commit_wri
 
     current_i++;
   }
+
+  if(CheckCrash()) return false;
+
   return true;
 }
 
 bool DTX::IssueCommitAllBatchSelectFlush(std::vector<CommitWrite>& pending_commit_write, char* cas_buf) {
   
   // Obsolete
+  if(CheckCrash()) return false;
 
   size_t current_i = 0;
   for (auto& set_it : read_write_set) {
+    
+    if(CheckCrash()) return false;
+
     char* data_buf = thread_rdma_buffer_alloc->Alloc(DataItemSize);
 
     auto it = set_it.item_ptr;
@@ -571,6 +603,8 @@ bool DTX::IssueCommitAllBatchSelectFlush(std::vector<CommitWrite>& pending_commi
     // backup_node_ids guarantees that the order of remote machine is the same in backup_hash_metas and backup_qps
 
     for (size_t i = 0; i < backup_node_ids->size(); i++) {
+      if(CheckCrash()) return false;
+
       auto remote_item_off = offset_in_backup_hash_store + (*backup_hash_metas)[i].base_off;
       auto remote_lock_off = it->GetRemoteLockAddr(remote_item_off);
 
@@ -599,5 +633,8 @@ bool DTX::IssueCommitAllBatchSelectFlush(std::vector<CommitWrite>& pending_commi
 
     current_i++;
   }
+
+  if(CheckCrash()) return false;
+
   return true;
 }

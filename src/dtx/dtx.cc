@@ -774,7 +774,12 @@ bool DTX::LogTruncation(coro_yield_t& yield){
    return true;
 }
 
+
+
+//
 void DTX::Abort(coro_yield_t& yield) {
+
+if(CheckCrash()) return;
 
   #ifdef FIX_TRUNCATE
       LogTruncation(yield);
@@ -789,6 +794,7 @@ void DTX::Abort(coro_yield_t& yield) {
 
   for (auto& index : locked_rw_set) {
 
+    if(CheckCrash()) return;
     auto& it = read_write_set[index].item_ptr;
 
     //#ifdef BUG-11
@@ -813,8 +819,32 @@ void DTX::Abort(coro_yield_t& yield) {
       RDMA_LOG(FATAL) << "Thread " << t_id << " , Coroutine " << coro_id << " unlock fails during abortion";
     }
   }
+
+  if(CheckCrash()) return false;
+  
   tx_status = TXStatus::TX_ABORT;
 }
 
 //We can fix the abort with CAS. but nwe need coodinator IDS as lock values. 
 //define ELOG_COORD //e log with cooridnator ids. but this cannot be used with recovery.
+
+
+
+
+
+
+//The following functions are for mem failures only. 
+#ifdef MEM_FAILURES
+
+ALWAYS_INLINE
+bool DTX::InitMemCrashEmu(bool * mem_crash_emu_){
+
+        //num_threads = thread_remote_log_offset_alloc->GetNumThreadsPerMachine();
+        mem_crash_emu = mem_crash_emu_;
+        global_meta_man->removeMemServer();
+        //change the memory server.
+        //remove the memory node. 
+
+}
+
+#endif

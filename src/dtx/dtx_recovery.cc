@@ -1641,7 +1641,8 @@ bool DTX::UpdatedIssueUndoLogRecoveryForAllThreads(coro_yield_t& yield, AddrCach
                             break;
                     }
                     //if tx matched. if the last flag is set. tx has staretd commiting. 
-                    last_flagged &= (bool)record[r].t_id_;  
+                    //last_flagged &= (bool)record[r].t_id_;  
+                    last_flagged = (bool)record[r].t_id_;  
 
                 }// NODES    
     
@@ -1678,7 +1679,8 @@ bool DTX::UpdatedIssueUndoLogRecoveryForAllThreads(coro_yield_t& yield, AddrCach
                 
                     if(curr_agreed_tx_id < coro_agreed_tx_id){
                         //canot be larger. assert. we write logs in order. cannt get reordered.
-                        has_started_commit = true;
+                        //has_started_commit = true; //FIX
+                        has_started_commit = false;
                         num_valid_logs = r;  // remove the last log recored. which is old.
                         break;
                     }
@@ -1971,7 +1973,7 @@ bool DTX::UpdatedIssueUndoLogRecoveryForAllThreads(coro_yield_t& yield, AddrCach
 
 
 
-
+//Mainly for Litmus tests.
 bool DTX::UpdatedIssueUndoLogRecoveryForAllThreads(coro_yield_t& yield, AddrCache ** addr_caches, t_id_t failed_thread_id, coro_id_t failed_coro_id){
 
     coro_id_t num_coro = thread_remote_log_offset_alloc->GetNumCoro();
@@ -2112,7 +2114,8 @@ bool DTX::UpdatedIssueUndoLogRecoveryForAllThreads(coro_yield_t& yield, AddrCach
                             break;
                     }
                     //if tx matched. if the last flag is set. tx has staretd commiting. 
-                    last_flagged &= (bool)record[r].t_id_;  
+                    //last_flagged &= (bool)record[r].t_id_; 
+                    last_flagged = (bool)record[r].t_id_;   
 
                 }// NODES    
     
@@ -2149,7 +2152,8 @@ bool DTX::UpdatedIssueUndoLogRecoveryForAllThreads(coro_yield_t& yield, AddrCach
                 
                     if(curr_agreed_tx_id < coro_agreed_tx_id){
                         //canot be larger. assert. we write logs in order. cannt get reordered.
-                        has_started_commit = true;
+                        //has_started_commit = true; //FIX
+                        has_started_commit = false;
                         num_valid_logs = r;  // remove the last log recored. which is old.
                         break;
                     }
@@ -2444,6 +2448,8 @@ bool DTX::UpdatedIssueUndoLogRecoveryForAllThreads(coro_yield_t& yield, AddrCach
 
 }
 
+//We assume contigoius thread ids.
+
 bool DTX::UpdatedIssueUndoLogRecoveryForAllThreads(coro_yield_t& yield, AddrCache ** addr_caches, t_id_t start_failed_thread_id, t_id_t end_failed_thread_id){
 
     coro_id_t num_coro = thread_remote_log_offset_alloc->GetNumCoro();
@@ -2454,7 +2460,7 @@ bool DTX::UpdatedIssueUndoLogRecoveryForAllThreads(coro_yield_t& yield, AddrCach
     assert(end_failed_thread_id < num_thread);
     //assert(failed_coro_id <= num_coro);   
 
-    const int MAX_DATA_LOG_RECORDS = 16;
+    const int MAX_DATA_LOG_RECORDS = 32; //default =32. reduce to 16 for non tpcc
 
     size_t undo_log_size = sizeof(UndoLogRecord) * MAX_DATA_LOG_RECORDS;
     size_t inplace_update_size = sizeof(DataItem) * MAX_DATA_LOG_RECORDS;
@@ -2584,7 +2590,8 @@ bool DTX::UpdatedIssueUndoLogRecoveryForAllThreads(coro_yield_t& yield, AddrCach
                             break;
                     }
                     //if tx matched. if the last flag is set. tx has staretd commiting. 
-                    last_flagged &= (bool)record[r].t_id_;  
+                    //last_flagged &= (bool)record[r].t_id_;  
+                    last_flagged = (bool)record[r].t_id_;  
 
                 }// NODES    
     
@@ -2621,11 +2628,14 @@ bool DTX::UpdatedIssueUndoLogRecoveryForAllThreads(coro_yield_t& yield, AddrCach
                 
                     if(curr_agreed_tx_id < coro_agreed_tx_id){
                         //canot be larger. assert. we write logs in order. cannt get reordered.
-                        has_started_commit = true;
+                        //has_started_commit = true; //FIX: without last_flagged
+                        has_started_commit = false;
                         num_valid_logs = r;  // remove the last log recored. which is old.
                         break;
                     }
 
+                    //RDMA_LOG(INFO) << "curr " << curr_agreed_tx_id  << " agreed " << coro_agreed_tx_id;
+                    assert((coro_agreed_tx_id ==0) || (curr_agreed_tx_id <= coro_agreed_tx_id));
 
                     coro_agreed_tx_id = curr_agreed_tx_id;                
     

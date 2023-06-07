@@ -66,8 +66,8 @@ node_id_t MetaManager::GetMemStoreMeta(std::string& remote_ip, int remote_port) 
     return -1;
   }
   server_addr.sin_port = htons(remote_port);
-  int client_socket = socket(AF_INET, SOCK_STREAM, 0);
-
+  int client_socket = socket(AF_INET, SOCK_STREAM, 0)
+;
   // The port can be used immediately after restart
   int on = 1;
   setsockopt(client_socket, SOL_SOCKET, SO_REUSEADDR, &on, sizeof(on));
@@ -115,7 +115,12 @@ node_id_t MetaManager::GetMemStoreMeta(std::string& remote_ip, int remote_port) 
       memcpy(&meta, (HashMeta*)(snooper + i * sizeof(HashMeta)), sizeof(HashMeta));
       primary_hash_metas[meta.table_id] = meta;
       primary_table_nodes[meta.table_id] = remote_machine_id;
-      // RDMA_LOG(INFO) << "primary_node_ip: " << remote_ip << " table id: " << meta.table_id << " data_ptr: 0x" << std::hex << meta.data_ptr << " base_off: 0x" << meta.base_off << " bucket_num: " << std::dec << meta.bucket_num << " node_size: " << meta.node_size << " B";
+
+      #ifdef MEM_FAILURES
+        priamry_hash_meta_by_node[remote_machine_id].push_back(meta); //adding to map as a primary table
+      #endif
+
+      //RDMA_LOG(INFO) << "primary_node_ip: " << remote_ip << " table id: " << meta.table_id << " data_ptr: 0x" << std::hex << meta.data_ptr << " base_off: 0x" << meta.base_off << " bucket_num: " << std::dec << meta.bucket_num << " node_size: " << meta.node_size << " B";
     }
     snooper += sizeof(HashMeta) * primary_meta_num;
     for (size_t i = 0; i < backup_meta_num; i++) {
@@ -129,6 +134,12 @@ node_id_t MetaManager::GetMemStoreMeta(std::string& remote_ip, int remote_port) 
       }
       backup_hash_metas[meta.table_id].push_back(meta);
       backup_table_nodes[meta.table_id].push_back(remote_machine_id);
+
+
+      #ifdef MEM_FAILURES
+        backup_hash_meta_by_node[remote_machine_id].push_back(meta); //adding to map as a primary table
+      #endif
+
       // RDMA_LOG(INFO) << "backup_node_ip: " << remote_ip << " table id: " << meta.table_id << " data_ptr: " << std::hex << meta.data_ptr << " base_off: " << meta.base_off << " bucket_num: " << std::dec << meta.bucket_num << " node_size: " << meta.node_size;
     }
   } else {
@@ -152,3 +163,72 @@ void MetaManager::GetMRMeta(const RemoteNode& node) {
   remote_log_mrs[node.node_id] = remote_log_mr;
   remote_hash_mrs[node.node_id] = remote_hash_mr;
 }
+
+
+#ifdef MEM_FAILURES
+int MetaManager::removeMemServer(node_id_t failed_memnode_id){
+  //remove the failed node from the metadata and promote the first backup as the primary for the table. 
+  // All servers must agree on the machine
+  //For more than 1 backup server we
+   
+   //also change global_meta_man->GetBackupNodeID, global_meta_man->remote_nodes.size(), hash and tables.
+   //
+  node_id_t failed_mem_node;
+  std::string node_ip ();
+
+  //Find all failed machine ids and the primary of all tables of that machine id.
+  auto primary_metas = primary_hash_meta_by_node[failed_memnode_id];
+
+  for (auto meta : primary_metas){
+    table_id_t table_id = meta.table_id;
+
+    //find the backup and promote to the primary.
+    auto backup_metas = backup_hash_metas[table_id];
+
+    node_id_t lowest_machine_id = 65525; //No backup remaining
+    node_id_t lowest_machine_id_index = -1; //No backup remaining
+    int index = 0;
+
+    for(auto machine_id : backup_table_nodes[table_id]){
+         
+        if(machine_id < lowest_machine_id){
+          lowest_machine_id = machine_id;
+          lowest_machine_id_index = index;
+        }
+
+        index++;
+    }
+
+    //remove from primary
+    if(lowest_machine_id != 65525){
+       
+      RDMA_LOG(INFO) << "Promote Node " << lowest_machine_id << " for Table " << table_id <<  " which was primary of " << failed_memnode_id;  
+
+      auto promote_meta =  backup_hash_metas[table_id].at(lowest_machine_id_index);
+      auto promote_node =  backup_table_nodes[table_id].at(lowest_machine_id_index);
+
+      backup_table_nodes[table_id].erase(backup_table_nodes[table_id].begin() + lowest_machine_id_index);
+      backup_hash_metas[table_id].erase(backup_hash_metas[table_id].begin() + lowest_machine_id_index);
+
+
+      auto downgrade_meta = primary_hash_metas[table_id];
+      auto downgrade_node = primary_table_nodes[table_id];
+
+      primary_hash_metas[table_id] = promote_meta;
+      primary_table_nodes[table_id] = promote_node;
+      
+      RDMA_LOG(INFO) << "Promoting backup_node_ip: " << promote_meta.remote_ip << " table id: " << promote_meta.table_id << " data_ptr: " << std::hex << promote_meta.data_ptr << " base_off: " << promote_meta.base_off << " bucket_num: " << std::dec << promote_meta.bucket_num << " node_size: " << promote_meta.node_size;
+      RDMA_LOG(INFO) << "Downgrade backup_node_ip: " << downgrade_meta.remote_ip << " table id: " << downgrade_meta.table_id << " data_ptr: " << std::hex << downgrade_meta.data_ptr << " base_off: " << downgrade_meta.base_off << " bucket_num: " << std::dec << downgrade_meta.bucket_num << " node_size: " << downgrade_meta.node_size;
+    
+    }else{
+      
+      RDMA_LOG(FATAL) << "cannot find a backup to upgrade";
+    }
+
+    //find the lowest machine id for the backups and protomote.
+
+  }
+  //remove from backup and add to priamry table. 
+} 
+
+#endif

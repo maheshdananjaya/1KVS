@@ -46,6 +46,7 @@ class MetaManager {
     return &(search->second);
   }
 
+
   /*** Node ID Metadata ***/
   ALWAYS_INLINE
   node_id_t GetPrimaryNodeID(const table_id_t table_id) const {
@@ -94,6 +95,12 @@ class MetaManager {
 
   node_id_t local_machine_id;
 
+  //for memory failures
+  #ifdef MEM_FAILURES
+    std::unordered_map<node_id_t, std::vector<HashMeta> > primary_hash_metas_by_node;
+    std::unordered_map<node_id_t, std::vector<HashMeta> > backup_hash_metas_by_node;
+  #endif
+ 
  public:
   // Used by QP manager and RDMA Region
   RdmaCtrlPtr global_rdma_ctrl;

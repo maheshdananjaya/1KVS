@@ -820,8 +820,8 @@ if(CheckCrash()) return;
     }
   }
 
-  if(CheckCrash()) return false;
-  
+  if(CheckCrash()) return;
+
   tx_status = TXStatus::TX_ABORT;
 }
 

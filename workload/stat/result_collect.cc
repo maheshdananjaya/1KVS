@@ -35,6 +35,8 @@ AddrCache**  addr_caches;
 
 bool * failed_id_list;
 
+
+bool mem_crash_enable = false;
 //#ifdef UNDO_RECOVERY
 //  extern AddrCache* addr_cache;
 // extern std::mutex cache_mux; 
@@ -159,6 +161,7 @@ void InitCounters(node_id_t machine_num, node_id_t machine_id, t_id_t thread_num
   new_base_tid = 0;
   num_crashes = 0;
 
+  mem_crash_enable = false;
   //#ifdef UNDO_RECOVERY
   //  addr_cache = new AddrCache();
   //#endif
@@ -404,5 +407,79 @@ void HeartBeats(struct thread_params* params){
 }
 
 #endif
+
+
+
+
+#ifdef FD
+//ZOOkeeper distributed mode and failure detector - ZKRFD zookeeper reliable failure detector.
+//Communicate with the failure detector
+void HeartBeatsZK(struct thread_params* params){
+    //live beacoins.
+    GreeterClient greeter(grpc::CreateChannel("10.10.1.1:50051", grpc::InsecureChannelCredentials()));
+    std::string user("node "+ machine_id_);
+
+    #ifdef ZKRFD
+    while(true){
+
+    clock_gettime(CLOCK_REALTIME, &timer_end);
+
+            usleep(200); //200 microseconds. heartneats?.
+
+            double grpc_start_time =  (double) timer_end.tv_sec *1000000 + (double)(timer_end.tv_nsec)/1000;
+                     
+              std::string reply;
+              if(crash_emu &&  (process_state==0)){ 
+                
+                reply = greeter.SayHello(machine_id_ +",FAILED,0-0");
+
+                std::string machine_id = (reply).substr(0, reply.find(",")); 
+                std::string cmd = (reply).substr(1, reply.find(","));
+
+                if(cmd=="RECOVERY"){
+                  std::string failed_coords = (reply).substr(2, reply.find(","));
+                  std::string start_coord = (failed_coords).substr(0, failed_coords.find("-")); 
+                  std::string end_coord = (failed_coords).substr(1, failed_coords.find("-"));
+                  //recovery. call recovery.
+                  process_state=1; //failed.
+                }
+              }
+
+              else if(process_state==1) {
+                  //Recovery. 
+
+              }
+              else if(process_state==2){
+
+                  reply = greeter.SayHello(machine_id_ +",RECOVERY_DONE");
+                  process_state==0; // need reconf here. 
+
+              }
+
+              else{
+               reply = greeter.SayHello(machine_id_ +",ACTIVE");
+              }
+
+                        
+            if(crash_emu) std::cout << reply << std::endl;
+  
+            clock_gettime(CLOCK_REALTIME, &timer_end);
+            double grpc_end_time =  (double) timer_end.tv_sec *1000000 + (double)(timer_end.tv_nsec)/1000;
+
+
+          //termination condition
+          if(all_thread_done){
+            usleep(1000000);
+            file_out.close(); 
+            return;
+          }
+    }
+
+    #endif //HEARTBEATS
+
+}
+
+#endif
+
 
 

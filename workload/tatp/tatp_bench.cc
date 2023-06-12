@@ -96,6 +96,12 @@ extern uint64_t num_crashes;
 #define CRASH_INTERVAL 500000
 __thread uint64_t next_crash_count=CRASH_INTERVAL;
 
+
+#ifdef MEM_FAILURES
+__thread uint64_t mem_crash_coros =0; // number of coros finished after mem crash recoeved.
+extern bool mem_crash_enable;
+#endif
+
 /******************** The business logic (Transaction) start ********************/
 // Read 1 SUBSCRIBER row
 bool TxGetSubsciberData(coro_yield_t& yield, tx_id_t tx_id, DTX* dtx) {

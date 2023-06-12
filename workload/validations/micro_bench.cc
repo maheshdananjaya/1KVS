@@ -106,6 +106,13 @@ __thread double curr_time =0;
 __thread double recorded_start_time=0;
 #endif
 
+
+
+#ifdef MEM_FAILURES
+__thread uint64_t mem_crash_coros =0; // number of coros finished after mem crash recoeved.
+extern bool mem_crash_enable;
+#endif
+
 /******************** The business logic (Transaction) start ********************/
 
 struct DataItemDuplicate {

@@ -107,6 +107,11 @@ __thread double curr_time =0;
 __thread double recorded_start_time=0;
 #endif
 
+#ifdef MEM_FAILURES
+__thread uint64_t mem_crash_coros =0; // number of coros finished after mem crash recoeved.
+extern bool mem_crash_enable;
+#endif
+
 /******************** The business logic (Transaction) start ********************/
 
 struct DataItemDuplicate {
@@ -397,6 +402,15 @@ void PollCompletion(coro_yield_t& yield) {
     }
     if (stop_run) break;
 
+    #ifdef MEM_FAILURES
+      if(mem_crash_enable && (mem_crash_coros== (coro_num-1) ) ){
+        //mem_crash_enable = false;
+        mem_crash_coros = 0;
+         __asm__ __volatile__("mfence":::"memory"); 
+        RDMALOG(WARNING) << "Compute Server - Sign Off: Bye bye " << thread_gid;
+        break;
+      }
+    #endif
 
     #ifdef CRASH_TPUT
         while(crash_emu);
@@ -615,6 +629,38 @@ void RunTx(coro_yield_t& yield, coro_id_t coro_id) {
 
     #endif
 
+
+
+
+    #ifdef MEM_FAILURES
+      #ifdef MEM_CRASH_ENBALE
+        
+        if(thread_gid==0 && ((stat_attempted_tx_total==(ATTEMPED_NUM/10)) && !mem_crash_enable) ){  
+          mem_crash_enable = true;
+          mem_crash_coros++
+           __asm__ __volatile__("mfence":::"memory");
+
+          sleep(50);
+
+          coro_sched->Yield(yield, coro_id, true); //r emmeber to use waiting one. not
+  
+          //dtx->TxUndoRecovery(yield, addr_caches, 0, STAT_NUM_MAX_THREADS);
+
+          // TODO: We need to restart the entire thing. locks are lost. what if compute did not die. but resumes. IIL would not work.
+          // Problem: there are transactions accessing different primaries. so we cannot stop without aborting. locks?
+           //sleep(50);
+           //break;
+        }else if(mem_crash_enable){
+            //all coros exept the one enable
+            mem_crash_coros++
+           __asm__ __volatile__("mfence":::"memory");
+             coro_sched->Yield(yield, coro_id, true);//r emmeber to use waiting one. not
+        }
+
+
+      #endif
+    #endif
+
   }
 
   std::string thread_num_coro_num;
@@ -705,7 +751,9 @@ void RunTx(coro_yield_t& yield, coro_id_t coro_id) {
     }
   #endif
 
-  delete dtx;
+
+
+  delete dtx;coro_num
 }
 
 void run_thread(struct thread_params* params) {
@@ -789,6 +837,22 @@ void run_thread(struct thread_params* params) {
   while(stat_attempted_tx_total < ATTEMPED_NUM){
 
       //RDMA_LOG(INFO) << "START " << thread_gid << "  " << next_crash_count;
+
+      #ifdef MEM_FAILURES
+          #ifdef MEM_CRASH_ENABLE
+           //sleep(1000000);
+              if(thread_gid ==0){
+                        usleep(1000000);
+
+                        meta_man->removeMemServer(1);
+                        mem_crash_enable = false;
+                        mem_crash_coros = 0;
+                        __asm__ __volatile__("mfence":::"memory");
+                }
+                while (mem_crash_enable);
+          #endif
+        #endif
+
       coro_sched = new CoroutineScheduler(thread_gid, coro_num);
 
 

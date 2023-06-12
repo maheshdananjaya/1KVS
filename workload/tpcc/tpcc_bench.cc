@@ -97,6 +97,11 @@ extern uint64_t num_crashes;
 __thread uint64_t next_crash_count=CRASH_INTERVAL;
 
 
+
+#ifdef MEM_FAILURES
+__thread uint64_t mem_crash_coros =0; // number of coros finished after mem crash recoeved.
+extern bool mem_crash_enable;
+#endif
 /******************** The business logic (Transaction) start ********************/
 
 // The following transaction business logics are referred to the standard TPCC specification.

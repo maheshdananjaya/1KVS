@@ -895,6 +895,17 @@ void PollCompletion(coro_yield_t& yield) {
       break;
     }
 
+
+     #ifdef MEM_FAILURES
+      if(mem_crash_enable && (mem_crash_coros == (coro_num-1) ) ){
+         //mem_crash_enable = false;
+        mem_crash_coros = 0;
+         __asm__ __volatile__("mfence":::"memory");
+             RDMA_LOG(WARNING) << "Compute Server Sign Off: Bye bye " << thread_gid;
+        break;
+      }
+    #endif
+
   }
 }
 
@@ -1138,6 +1149,41 @@ void RunTx(coro_yield_t& yield, coro_id_t coro_id) {
               ; // stop all other threads from progressing 
 
     #endif
+
+
+      #ifdef MEM_FAILURES
+      #ifdef MEM_CRASH_ENABLE
+
+        if(thread_gid==0 && ((stat_attempted_tx_total==(ATTEMPTED_NUM/2)) && (!mem_crash_enable)) ){
+          RDMA_LOG(INFO) << "Starting Mem Crash " ;
+            mem_crash_enable = true;
+            ///num_crashes++;
+           mem_crash_coros++;
+          __asm__ __volatile__("mfence":::"memory");
+
+          //sleep(50);
+         // mem_crash_count++;
+          RDMA_LOG(INFO) << "MEM CRASH:  thread " << thread_gid << " coro " <<coro_id  << " mem_crash_count " << mem_crash_coros ;
+
+          coro_sched->Yield(yield, coro_id, true);
+
+          //dtx->TxUndoRecovery(yield, addr_caches, 0, STAT_NUM_MAX_THREADS);
+
+          // TODO: We need to restart the entire thing. locks are lost. what if compute did not die. but resumes. IIL would not work.
+          // Problem: there are transactions accessing different primaries. so we cannot stop without aborting. locks?
+           //sleep(50);
+           //break;
+        }else if(mem_crash_enable){
+            //all coros exept the one enable
+             mem_crash_coros++;
+              __asm__ __volatile__("mfence":::"memory");
+             RDMA_LOG(INFO) << "MEM CRASH:  thread " << thread_gid << " coro " <<coro_id << " mem_crash_count " << mem_crash_coros;
+             coro_sched->Yield(yield, coro_id, true);
+        }
+
+
+      #endif      
+     #endif
     /********************************** Stat end *****************************************/
   }
 
@@ -1249,6 +1295,24 @@ void run_thread(struct thread_params* params) {
 
    //Dangerouns
   while(stat_attempted_tx_total < ATTEMPTED_NUM){
+
+
+	   #ifdef MEM_FAILURES
+           //sleep(1000000);
+                if(thread_gid ==0){
+                        usleep(5000);
+
+                        meta_man->removeMemServer(1);
+                        mem_crash_enable = false;
+                        mem_crash_coros = 0;
+                        __asm__ __volatile__("mfence":::"memory");
+                }
+                while (mem_crash_enable){
+                        __asm__ __volatile__("mfence":::"memory");
+                }
+
+        #endif
+
 
       //RDMA_LOG(INFO) << "START " << thread_gid << "  " << next_crash_count;
       coro_sched = new CoroutineScheduler(thread_gid, coro_num);

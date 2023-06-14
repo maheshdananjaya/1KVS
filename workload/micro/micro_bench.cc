@@ -110,6 +110,7 @@ __thread double recorded_start_time=0;
 #ifdef MEM_FAILURES
 __thread uint64_t mem_crash_coros =0; // number of coros finished after mem crash recoeved.
 extern bool mem_crash_enable;
+extern std::atomic<uint64_t> mem_crash_tnums;
 #endif
 
 /******************** The business logic (Transaction) start ********************/
@@ -406,8 +407,9 @@ void PollCompletion(coro_yield_t& yield) {
       if(mem_crash_enable && (mem_crash_coros== (coro_num-1) ) ){
         //mem_crash_enable = false;
         mem_crash_coros = 0;
+	mem_crash_tnums ++;
          __asm__ __volatile__("mfence":::"memory"); 
-        RDMALOG(WARNING) << "Compute Server - Sign Off: Bye bye " << thread_gid;
+        RDMA_LOG(WARNING) << "Compute Server - Sign Off: Bye bye " << thread_gid;
         break;
       }
     #endif
@@ -458,7 +460,7 @@ void RunTx(coro_yield_t& yield, coro_id_t coro_id) {
   clock_gettime(CLOCK_REALTIME, &msr_start);
 
   #ifdef STATS
-    RDMA_LOG(INFO) << "Stats Starting" ;
+    //RDMA_LOG(INFO) << "Stats Starting" ;
     double tx_usec_start = (msr_start.tv_sec) * 1000000 + (double)(msr_start.tv_nsec) / 1000;
     window_start_time[local_thread_id] = tx_usec_start;  // in miro seconds   
   #endif
@@ -633,11 +635,11 @@ void RunTx(coro_yield_t& yield, coro_id_t coro_id) {
 
 
     #ifdef MEM_FAILURES
-      #ifdef MEM_CRASH_ENBALE
+      #ifdef MEM_CRASH_ENABLE
         
-        if(thread_gid==0 && ((stat_attempted_tx_total==(ATTEMPED_NUM/10)) && !mem_crash_enable) ){  
+        if(thread_gid==0 && ((stat_attempted_tx_total==(ATTEMPED_NUM/2)) && !mem_crash_enable) ){  
           mem_crash_enable = true;
-          mem_crash_coros++
+          mem_crash_coros++ ;
            __asm__ __volatile__("mfence":::"memory");
 
           sleep(50);
@@ -652,7 +654,7 @@ void RunTx(coro_yield_t& yield, coro_id_t coro_id) {
            //break;
         }else if(mem_crash_enable){
             //all coros exept the one enable
-            mem_crash_coros++
+            mem_crash_coros++;
            __asm__ __volatile__("mfence":::"memory");
              coro_sched->Yield(yield, coro_id, true);//r emmeber to use waiting one. not
         }
@@ -753,7 +755,7 @@ void RunTx(coro_yield_t& yield, coro_id_t coro_id) {
 
 
 
-  delete dtx;coro_num
+  delete dtx;
 }
 
 void run_thread(struct thread_params* params) {
@@ -842,11 +844,29 @@ void run_thread(struct thread_params* params) {
           #ifdef MEM_CRASH_ENABLE
            //sleep(1000000);
               if(thread_gid ==0){
-                        usleep(1000000);
+                        usleep(5000);
+			while(mem_crash_tnums < thread_num){
+				__asm__ __volatile__("mfence":::"memory");
+			}
+
+			//usleep(1000000);
+                        RDMA_LOG(INFO) << "Waiting... ";
+
+                        usleep(112);
+
+                        //Recovery
+                        usleep(112);
+                        DTX* dtx = new DTX(meta_man, qp_man, 0, 1, coro_sched, rdma_buffer_allocator, log_offset_allocator, addr_cache);
+                        coro_yield_t yield;
+                        dtx->TxUndoRecovery(yield, addr_caches, 0 , thread_num);
+                        //
+                        usleep(112);
+
 
                         meta_man->removeMemServer(1);
                         mem_crash_enable = false;
                         mem_crash_coros = 0;
+			mem_crash_tnums=0;
                         __asm__ __volatile__("mfence":::"memory");
                 }
                 while (mem_crash_enable);
@@ -881,7 +901,7 @@ void run_thread(struct thread_params* params) {
     thread_done[local_thread_id] = true;
   #endif
 
-  // RDMA_LOG(DBG) << "Thread: " << thread_gid << ". Loop RDMA alloc times: " << rdma_buffer_allocator->loop_times;
+  RDMA_LOG(DBG) << "Thread: " << thread_gid << ". Loop RDMA alloc times: " ; //<< rdma_buffer_allocator->loop_times;
   #ifdef CRASH_TPUT  
     file_out.close();
   #endif  

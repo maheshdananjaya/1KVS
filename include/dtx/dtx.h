@@ -384,7 +384,7 @@ class DTX {
       bool FindFailedId(t_id_t failed_process_id);  //thread or process ids
       bool InitCrashEmu(bool * crash_emu);
       bool CheckCrash();
-
+       bool InitMemCrashEmu(bool * mem_crash_emu);
 
  public:
   tx_id_t tx_id;  // Transaction ID
@@ -400,7 +400,7 @@ class DTX {
   bool * crash_emu_list;
 
 
-
+   bool * mem_crash_emu;
    bool * crash_emu; //to emulate failures. transaction returns false in betwen,
     t_id_t t_id_original;
     int64_t num_threads;

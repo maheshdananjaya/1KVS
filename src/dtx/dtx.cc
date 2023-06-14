@@ -841,7 +841,7 @@ bool DTX::InitMemCrashEmu(bool * mem_crash_emu_){
 
         //num_threads = thread_remote_log_offset_alloc->GetNumThreadsPerMachine();
         mem_crash_emu = mem_crash_emu_;
-        global_meta_man->removeMemServer();
+       // global_meta_man->removeMemServer();
         //change the memory server.
         //remove the memory node. 
 

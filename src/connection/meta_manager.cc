@@ -120,7 +120,7 @@ node_id_t MetaManager::GetMemStoreMeta(std::string& remote_ip, int remote_port) 
         if (primary_hash_metas_by_node.find(remote_machine_id) == primary_hash_metas_by_node.end()) {
                  primary_hash_metas_by_node[remote_machine_id] = std::vector<HashMeta>();
         }
-        priamry_hash_metas_by_node[remote_machine_id].push_back(meta); //adding to map as a primary table
+        primary_hash_metas_by_node[remote_machine_id].push_back(meta); //adding to map as a primary table
       #endif
 
       //RDMA_LOG(INFO) << "primary_node_ip: " << remote_ip << " table id: " << meta.table_id << " data_ptr: 0x" << std::hex << meta.data_ptr << " base_off: 0x" << meta.base_off << " bucket_num: " << std::dec << meta.bucket_num << " node_size: " << meta.node_size << " B";
@@ -208,7 +208,7 @@ int MetaManager::removeMemServer(node_id_t failed_memnode_id){
     //remove from primary
     if(lowest_machine_id != 65525){
        
-      RDMA_LOG(INFO) << "Promote Node " << lowest_machine_id << " for Table " << table_id <<  " which was primary of " << failed_memnode_id;  
+      //RDMA_LOG(INFO) << "Promote Node " << lowest_machine_id << " for Table " << table_id <<  " which was primary of " << failed_memnode_id;  
 
       auto promote_meta =  backup_hash_metas[table_id].at(lowest_machine_id_index);
       auto promote_node =  backup_table_nodes[table_id].at(lowest_machine_id_index);
@@ -223,8 +223,8 @@ int MetaManager::removeMemServer(node_id_t failed_memnode_id){
       primary_hash_metas[table_id] = promote_meta;
       primary_table_nodes[table_id] = promote_node;
       
-      RDMA_LOG(INFO) << "Promoting backup_node_ip: " << promote_node << " table id: " << promote_meta.table_id << " data_ptr: " << std::hex << promote_meta.data_ptr << " base_off: " << promote_meta.base_off << " bucket_num: " << std::dec << promote_meta.bucket_num << " node_size: " << promote_meta.node_size;
-      RDMA_LOG(INFO) << "Downgrade backup_node_ip: " << downgrade_node << " table id: " << downgrade_meta.table_id << " data_ptr: " << std::hex << downgrade_meta.data_ptr << " base_off: " << downgrade_meta.base_off << " bucket_num: " << std::dec << downgrade_meta.bucket_num << " node_size: " << downgrade_meta.node_size;
+      //RDMA_LOG(INFO) << "Promoting backup_node_ip: " << promote_node << " table id: " << promote_meta.table_id << " data_ptr: " << std::hex << promote_meta.data_ptr << " base_off: " << promote_meta.base_off << " bucket_num: " << std::dec << promote_meta.bucket_num << " node_size: " << promote_meta.node_size;
+     // RDMA_LOG(INFO) << "Downgrade backup_node_ip: " << downgrade_node << " table id: " << downgrade_meta.table_id << " data_ptr: " << std::hex << downgrade_meta.data_ptr << " base_off: " << downgrade_meta.base_off << " bucket_num: " << std::dec << downgrade_meta.bucket_num << " node_size: " << downgrade_meta.node_size;
     
     }else{
 

@@ -27,7 +27,7 @@ class MetaManager {
   node_id_t GetMemStoreMeta(std::string& remote_ip, int remote_port);
 
   void GetMRMeta(const RemoteNode& node);
-
+ int removeMemServer(node_id_t failed_memnode_id);
   /*** Memory Store Metadata ***/
   ALWAYS_INLINE
   const HashMeta& GetPrimaryHashMetaWithTableID(const table_id_t table_id) const {

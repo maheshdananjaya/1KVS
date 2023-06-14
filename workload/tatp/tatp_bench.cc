@@ -100,6 +100,8 @@ __thread uint64_t next_crash_count=CRASH_INTERVAL;
 #ifdef MEM_FAILURES
 __thread uint64_t mem_crash_coros =0; // number of coros finished after mem crash recoeved.
 extern bool mem_crash_enable;
+extern std::atomic<uint64_t>  mem_crash_tnums;
+
 #endif
 
 /******************** The business logic (Transaction) start ********************/
@@ -486,8 +488,9 @@ void PollCompletion(coro_yield_t& yield) {
       if(mem_crash_enable && (mem_crash_coros == (coro_num-1) ) ){
          //mem_crash_enable = false;
         mem_crash_coros = 0;
-         __asm__ __volatile__("mfence":::"memory");
-             RDMA_LOG(WARNING) << "Compute Server Sign Off: Bye bye " << thread_gid;
+        mem_crash_tnums++; 
+	__asm__ __volatile__("mfence":::"memory");
+	     RDMA_LOG(WARNING) << "Compute Server Sign Off: Bye bye " << thread_gid;
         break;
       }
     #endif
@@ -916,10 +919,27 @@ void run_thread(struct thread_params* params) {
            //sleep(1000000);
                 if(thread_gid == 0){
                         usleep(5000);
+			while(mem_crash_tnums <  thread_num){
+				__asm__ __volatile__("mfence":::"memory");
+			}
+
+			//usleep(1000000);
+                        RDMA_LOG(INFO) << "Waiting... ";
+
+                        usleep(112);
+
+                        //Recovery
+                        usleep(112);
+                        DTX* dtx = new DTX(meta_man, qp_man, 0, 1, coro_sched, rdma_buffer_allocator, log_offset_allocator, addr_cache);       
+                        coro_yield_t yield;
+                        dtx->TxUndoRecovery(yield, addr_caches, 0 , thread_num);
+                        //
+                        usleep(112);
 
                         meta_man->removeMemServer(1);
                         mem_crash_enable = false;
                         mem_crash_coros = 0;
+			mem_crash_tnums=0;
                         __asm__ __volatile__("mfence":::"memory");
                 }
                 while (mem_crash_enable){
@@ -959,7 +979,7 @@ void run_thread(struct thread_params* params) {
     thread_done[local_thread_id] = true;
   #endif
 
-  // RDMA_LOG(DBG) << "Thread: " << thread_gid << ". Loop RDMA alloc times: " << rdma_buffer_allocator->loop_times;
+  RDMA_LOG(DBG) << "Thread: " << thread_gid << ". Loop RDMA alloc times: ";// << rdma_buffer_allocator->loop_times;
 
   // Clean
   // delete latency;

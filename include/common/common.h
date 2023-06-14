@@ -92,6 +92,7 @@ typedef struct atomic_record{
 #define ENABLE_TRUNCATE
 #define ENABLE_PRECOMMIT
 
-#define CRASH_ENABLE
+//#define CRASH_ENABLE
 
-
+#define MEM_FAILURES
+#define MEM_CRASH_ENABLE

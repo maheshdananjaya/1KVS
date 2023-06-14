@@ -35,8 +35,8 @@ AddrCache**  addr_caches;
 
 bool * failed_id_list;
 
-
 bool mem_crash_enable = false;
+std::atomic<uint64_t> mem_crash_tnums {0};
 //#ifdef UNDO_RECOVERY
 //  extern AddrCache* addr_cache;
 // extern std::mutex cache_mux; 
@@ -162,6 +162,7 @@ void InitCounters(node_id_t machine_num, node_id_t machine_id, t_id_t thread_num
   num_crashes = 0;
 
   mem_crash_enable = false;
+  mem_crash_tnums = 0;
   //#ifdef UNDO_RECOVERY
   //  addr_cache = new AddrCache();
   //#endif
@@ -294,8 +295,10 @@ void CollectStats(struct thread_params* params){
          double tput = (double)(now_tx_count-last_tx_count)/(double)(curr_time-last_usec); // window  tp
           //file_out << (curr_time-start_time) << ", " << tput  << ", " << (tx_tput)  << " atomic tput : " << atomic_tx_tput << std::endl;
           if(crash_emu)
-            file_out << "CRASHED , " << (curr_time-start_time)/100 << ", " << atomic_tx_tput << std::endl;
-          else
+            file_out << "COMPUTE CRASHED , " << (curr_time-start_time)/100 << ", " << atomic_tx_tput << std::endl;
+          if(mem_crash_enable)
+            file_out << "MEMORY CRASHED , " << (curr_time-start_time)/100 << ", " << atomic_tx_tput << std::endl;
+	  else
             file_out << "UN , " << (curr_time-start_time)/100 << ", " << atomic_tx_tput << std::endl; 
           
           last_tx_count = now_tx_count;

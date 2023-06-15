@@ -390,7 +390,12 @@ void PollCompletion(coro_yield_t& yield) {
 	mem_crash_tnums++;
          __asm__ __volatile__("mfence":::"memory");
              RDMA_LOG(WARNING) << "Compute Server Sign Off: Bye bye " << thread_gid <<  " " <<mem_crash_tnums ; //RDMA_LOG(INFO) << "THREAD "<< thread_gid << " " << stat_attempted_tx_total;
-        break;
+        
+	  //   if(thread_gid == 0){
+	//	usleep(1000);
+	    // 	coro_sched->PollCompletion();
+	     //}
+	     break;
       }
     #endif
 
@@ -663,7 +668,7 @@ void RunTx(coro_yield_t& yield, coro_id_t coro_id) {
     #ifdef MEM_FAILURES
       #ifdef MEM_CRASH_ENABLE
 
-        if(thread_gid==0 && ((stat_attempted_tx_total==(ATTEMPTED_NUM/10)) && (!mem_crash_enable)) ){
+        if(thread_gid==0 && ((stat_attempted_tx_total==(ATTEMPTED_NUM/4)) && (!mem_crash_enable)) ){
           RDMA_LOG(INFO) << "Starting Mem Crash " ;
             mem_crash_enable = true;
            mem_crash_coros++;
@@ -673,6 +678,7 @@ void RunTx(coro_yield_t& yield, coro_id_t coro_id) {
          // mem_crash_count++; 
 	 // RDMA_LOG(INFO) << "MEM CRASH:  thread " << thread_gid << " coro " <<coro_id  << " mem_crash_count " << mem_crash_coros ;
 
+	  while (!coro_sched->CheckLogAck(coro_id));
           coro_sched->Yield(yield, coro_id, true);
 
           //dtx->TxUndoRecovery(yield, addr_caches, 0, STAT_NUM_MAX_THREADS);
@@ -686,8 +692,11 @@ void RunTx(coro_yield_t& yield, coro_id_t coro_id) {
              mem_crash_coros++;
               __asm__ __volatile__("mfence":::"memory");
             // RDMA_LOG(INFO) << "MEM CRASH:  thread " << thread_gid << " coro " <<coro_id << " mem_crash_count " << mem_crash_coros;
-             coro_sched->Yield(yield, coro_id, true);
+             while (!coro_sched->CheckLogAck(coro_id));
+
+	      coro_sched->Yield(yield, coro_id, true);
         }
+
 
 
       #endif

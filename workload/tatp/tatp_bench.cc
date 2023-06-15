@@ -200,7 +200,7 @@ bool TxGetNewDestination(coro_yield_t& yield, tx_id_t tx_id, DTX* dtx) {
 
     auto* callfwd_val = (tatp_callfwd_val_t*)(callfwd_obj[i]->value);
     if (callfwd_val->numberx[0] != tatp_callfwd_numberx0_magic) {
-      RDMA_LOG(FATAL) << "[FATAL] Read unmatch, tid-cid-txid: " << thread_gid << "-" << dtx->coro_id << "-" << tx_id;
+      RDMA_LOG(WARNING) << "[FATAL] Read unmatch, tid-cid-txid: " << thread_gid << "-" << dtx->coro_id << "-" << tx_id;
     }
     if (callfwd_key[i].start_time <= start_time && end_time < callfwd_val->end_time) {
       /* All conditions satisfied */
@@ -454,7 +454,7 @@ bool TxDeleteCallForwarding(coro_yield_t& yield, tx_id_t tx_id, DTX* dtx) {
      */
   auto* callfwd_val = (tatp_callfwd_val_t*)(callfwd_obj->value);
   if (callfwd_val->numberx[0] != tatp_callfwd_numberx0_magic) {
-    RDMA_LOG(FATAL) << "[FATAL] Read unmatch, tid-cid-txid: " << thread_gid << "-" << dtx->coro_id << "-" << tx_id;
+    RDMA_LOG(WARNING) << "[FATAL] Read unmatch, tid-cid-txid: " << thread_gid << "-" << dtx->coro_id << "-" << tx_id;
   }
   callfwd_obj->valid = 0;  // 0 to indicate that this callfwd_obj will be deleted
 

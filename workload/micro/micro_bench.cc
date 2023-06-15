@@ -637,12 +637,12 @@ void RunTx(coro_yield_t& yield, coro_id_t coro_id) {
     #ifdef MEM_FAILURES
       #ifdef MEM_CRASH_ENABLE
         
-        if(thread_gid==0 && ((stat_attempted_tx_total==(ATTEMPED_NUM/2)) && !mem_crash_enable) ){  
+        if(thread_gid==0 && ((stat_attempted_tx_total==(ATTEMPED_NUM/3)) && !mem_crash_enable) ){  
           mem_crash_enable = true;
           mem_crash_coros++ ;
            __asm__ __volatile__("mfence":::"memory");
 
-          sleep(50);
+          //sleep(50);
 
           coro_sched->Yield(yield, coro_id, true); //r emmeber to use waiting one. not
   
@@ -846,6 +846,7 @@ void run_thread(struct thread_params* params) {
               if(thread_gid ==0){
                         usleep(5000);
 			while(mem_crash_tnums < thread_num){
+				uint64_t m = mem_crash_tnums;
 				__asm__ __volatile__("mfence":::"memory");
 			}
 
@@ -869,7 +870,10 @@ void run_thread(struct thread_params* params) {
 			mem_crash_tnums=0;
                         __asm__ __volatile__("mfence":::"memory");
                 }
-                while (mem_crash_enable);
+                while (mem_crash_enable){
+                    	bool b=mem_crash_enable;
+			 __asm__ __volatile__("mfence":::"memory");
+		}
           #endif
         #endif
 

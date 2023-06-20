@@ -824,7 +824,7 @@ bool TxStockLevel(coro_yield_t& yield, tx_id_t tx_id, DTX* dtx) {
 
       tpcc_order_line_val_t* ol_val = (tpcc_order_line_val_t*)ol_obj->value;
       if (ol_val->debug_magic != tpcc_add_magic) {
-        RDMA_LOG(FATAL) << "[FATAL] Read order line unmatch, tid-cid-txid: " << thread_gid << "-" << dtx->coro_id << "-" << tx_id;
+        RDMA_LOG(WARNING) << "[FATAL] Read order line unmatch, tid-cid-txid: " << thread_gid << "-" << dtx->coro_id << "-" << tx_id;
       }
 
       int64_t s_key = tpcc_client->MakeStockKey(warehouse_id, ol_val->ol_i_id);

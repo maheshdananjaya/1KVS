@@ -296,7 +296,7 @@ void CollectStats(struct thread_params* params){
           //file_out << (curr_time-start_time) << ", " << tput  << ", " << (tx_tput)  << " atomic tput : " << atomic_tx_tput << std::endl;
           if(crash_emu)
             file_out << "COMPUTE CRASHED , " << (curr_time-start_time)/100 << ", " << atomic_tx_tput << std::endl;
-          if(mem_crash_enable)
+	  else if(mem_crash_enable)
             file_out << "MEMORY CRASHED , " << (curr_time-start_time)/100 << ", " << atomic_tx_tput << std::endl;
 	  else
             file_out << "UN , " << (curr_time-start_time)/100 << ", " << atomic_tx_tput << std::endl; 

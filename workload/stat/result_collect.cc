@@ -34,7 +34,7 @@ uint64_t num_crashes;
 AddrCache**  addr_caches;
 
 bool * failed_id_list;
-
+uint64_t num_mem_crashes;
 bool mem_crash_enable = false;
 std::atomic<uint64_t> mem_crash_tnums {0};
 //#ifdef UNDO_RECOVERY
@@ -160,7 +160,7 @@ void InitCounters(node_id_t machine_num, node_id_t machine_id, t_id_t thread_num
   crash_emu = false;
   new_base_tid = 0;
   num_crashes = 0;
-
+  num_mem_crashes = 0;
   mem_crash_enable = false;
   mem_crash_tnums = 0;
   //#ifdef UNDO_RECOVERY

@@ -1115,7 +1115,9 @@ void RunTx(coro_yield_t& yield, coro_id_t coro_id) {
           next_crash_count += CRASH_INTERVAL;
           new_base_tid = thread_gid + (thread_num*num_crashes);
           dtx->ChangeCurrentTID(new_base_tid);
-
+          #ifdef NORESUME 
+	  usleep(10000000);
+	  #endif
           crash_emu = false;
            __asm__ __volatile__("mfence":::"memory"); //NEEDED HERE
           printf("Crashed-Recovery End \n");

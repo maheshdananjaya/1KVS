@@ -93,7 +93,7 @@ extern bool crash_emu;
 extern t_id_t new_base_tid;
 extern uint64_t num_crashes;
 
-#define CRASH_INTERVAL 500000
+#define CRASH_INTERVAL 750000
 __thread uint64_t next_crash_count=CRASH_INTERVAL;
 
 
@@ -111,6 +111,7 @@ __thread double recorded_start_time=0;
 __thread uint64_t mem_crash_coros =0; // number of coros finished after mem crash recoeved.
 extern bool mem_crash_enable;
 extern std::atomic<uint64_t> mem_crash_tnums;
+extern uint64_t num_mem_crashes;
 #endif
 
 
@@ -581,7 +582,7 @@ void RunTx(coro_yield_t& yield, coro_id_t coro_id) {
 
      
      #ifdef CRASH_ENABLE
-      if( (stat_attempted_tx_total >= next_crash_count) && (thread_gid==0)){
+      if( (stat_attempted_tx_total >= next_crash_count) && (thread_gid==0) && (num_crashes==0)){
           printf("Crashed-Recovery Start \n");
 
           crash_emu = true;
@@ -626,7 +627,10 @@ void RunTx(coro_yield_t& yield, coro_id_t coro_id) {
           next_crash_count += CRASH_INTERVAL;
           new_base_tid = thread_gid + (thread_num*num_crashes);
           dtx->ChangeCurrentTID(new_base_tid);
-
+          #ifdef NORESUME 
+          usleep(10000000);
+	   __asm__ __volatile__("mfence":::"memory"); //NEEDED HERE
+ 	  #endif
           crash_emu = false;
            __asm__ __volatile__("mfence":::"memory"); //NEEDED HERE
           printf("Crashed-Recovery End \n");
@@ -668,7 +672,7 @@ void RunTx(coro_yield_t& yield, coro_id_t coro_id) {
     #ifdef MEM_FAILURES
       #ifdef MEM_CRASH_ENABLE
 
-        if(thread_gid==0 && ((stat_attempted_tx_total==(ATTEMPTED_NUM/4)) && (!mem_crash_enable)) ){
+        if(thread_gid==0 && ((stat_attempted_tx_total==(ATTEMPTED_NUM/4)) && (!mem_crash_enable) && (num_mem_crashes==0)) ){
           RDMA_LOG(INFO) << "Starting Mem Crash " ;
             mem_crash_enable = true;
            mem_crash_coros++;
@@ -831,6 +835,7 @@ void run_thread(struct thread_params* params) {
                         mem_crash_enable = false;
                         mem_crash_coros = 0;
 			mem_crash_tnums = 0;
+			num_mem_crashes ++;
                         __asm__ __volatile__("mfence":::"memory");
                 }
 

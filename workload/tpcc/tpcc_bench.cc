@@ -102,6 +102,7 @@ __thread uint64_t next_crash_count=CRASH_INTERVAL;
 __thread uint64_t mem_crash_coros =0; // number of coros finished after mem crash recoeved.
 extern bool mem_crash_enable;
 extern std::atomic<uint64_t>  mem_crash_tnums;
+extern uint64_t num_mem_crashes;
 #endif
 /******************** The business logic (Transaction) start ********************/
 
@@ -1070,7 +1071,7 @@ void RunTx(coro_yield_t& yield, coro_id_t coro_id) {
 
 
      #ifdef CRASH_ENABLE
-      if( (stat_attempted_tx_total >= next_crash_count) && (thread_gid==0)){
+      if( (stat_attempted_tx_total >= next_crash_count) && (thread_gid==0) && (num_crashes==0)){
           printf("Crashed-Recovery Start \n");
 
           crash_emu = true;
@@ -1159,7 +1160,7 @@ void RunTx(coro_yield_t& yield, coro_id_t coro_id) {
       #ifdef MEM_FAILURES
       #ifdef MEM_CRASH_ENABLE
 
-        if(thread_gid==0 && ((stat_attempted_tx_total==(ATTEMPTED_NUM/3)) && (!mem_crash_enable)) ){
+        if(thread_gid==0 && ((stat_attempted_tx_total==(ATTEMPTED_NUM/3)) && (!mem_crash_enable) && (num_mem_crashes==0)) ){
           RDMA_LOG(INFO) << "Starting Mem Crash " ;
             
 	  mem_crash_enable = true;

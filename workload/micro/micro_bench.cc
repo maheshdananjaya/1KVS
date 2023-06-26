@@ -459,7 +459,7 @@ void RunTx(coro_yield_t& yield, coro_id_t coro_id) {
 
   // Running transactions
   if( (num_crashes + num_mem_crashes) ==0 ) //only before any failures.
-  clock_gettime(CLOCK_REALTIME, &msr_start);
+      clock_gettime(CLOCK_REALTIME, &msr_start);
 
   #ifdef STATS
     //RDMA_LOG(INFO) << "Stats Starting" ;

@@ -93,7 +93,7 @@ extern bool crash_emu;
 extern t_id_t new_base_tid;
 extern uint64_t num_crashes;
 
-#define CRASH_INTERVAL 500000
+#define CRASH_INTERVAL 50000
 __thread uint64_t next_crash_count=CRASH_INTERVAL;
 
 
@@ -111,9 +111,9 @@ __thread double recorded_start_time=0;
 __thread uint64_t mem_crash_coros =0; // number of coros finished after mem crash recoeved.
 extern bool mem_crash_enable;
 extern std::atomic<uint64_t> mem_crash_tnums;
-extern uint64_t num_mem_crashes;
+//extern uint64_t num_mem_crashes;
 #endif
-
+extern uint64_t num_mem_crashes;
 /******************** The business logic (Transaction) start ********************/
 
 struct DataItemDuplicate {

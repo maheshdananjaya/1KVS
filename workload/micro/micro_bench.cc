@@ -93,7 +93,7 @@ extern bool crash_emu;
 extern t_id_t new_base_tid;
 extern uint64_t num_crashes;
 
-#define CRASH_INTERVAL 50000
+#define CRASH_INTERVAL 120000000
 __thread uint64_t next_crash_count=CRASH_INTERVAL;
 
 

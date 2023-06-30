@@ -96,7 +96,7 @@ extern uint64_t num_crashes;
 #define CRASH_INTERVAL 500000
 __thread uint64_t next_crash_count=CRASH_INTERVAL;
 
-
+extern uint64_t num_mem_crashes;
 #ifdef MEM_FAILURES
 __thread uint64_t mem_crash_coros =0; // number of coros finished after mem crash recoeved.
 extern bool mem_crash_enable;
@@ -507,6 +507,9 @@ void RunTx(coro_yield_t& yield, coro_id_t coro_id) {
 
   dtx->InitFailedList(failed_id_list);
   dtx->InitCrashEmu(&crash_emu);
+#ifdef MEM_FAILURES
+  dtx->InitMemCrashEmu(&mem_crash_enable);
+#endif
 
   struct timespec tx_start_time, tx_end_time;
   bool tx_committed = false;
@@ -792,7 +795,8 @@ void RunTx(coro_yield_t& yield, coro_id_t coro_id) {
       #ifdef MEM_FAILURES
       #ifdef MEM_CRASH_ENABLE
 
-        if(thread_gid==0 && ((stat_attempted_tx_total==(ATTEMPTED_NUM/10)) && (!mem_crash_enable)) ){
+	///if(thread_gid==0 && ((stat_attempted_tx_total==(ATTEMPTED_NUM/4)) && (!mem_crash_enable)) ){
+	if((thread_gid==0) && (stat_attempted_tx_total >= next_crash_count) && (!mem_crash_enable) && (num_mem_crashes==0)){
           RDMA_LOG(INFO) << "Starting Mem Crash " ;
             mem_crash_enable = true;
            mem_crash_coros++;
@@ -877,6 +881,7 @@ void run_thread(struct thread_params* params) {
   log_offset_allocator = new LogOffsetAllocator(thread_gid, params->total_thread_num, coro_num);
   // latency = new Latency();
   timer = new double[ATTEMPTED_NUM]();
+__asm__ __volatile__("mfence":::"memory");
 
   seed = 0xdeadbeef + thread_gid;  // Guarantee that each thread has a global different initial seed
   workgen_arr = tatp_client->CreateWorkgenArray();
@@ -934,15 +939,34 @@ void run_thread(struct thread_params* params) {
                         usleep(112);
                         DTX* dtx = new DTX(meta_man, qp_man, 0, 1, coro_sched, rdma_buffer_allocator, log_offset_allocator, addr_cache);       
                         coro_yield_t yield;
+			
+
                         dtx->TxUndoRecovery(yield, addr_caches, 0 , thread_num);
                         //
                         usleep(112);
 
                         meta_man->removeMemServer(1);
+			
+			//failed-id-list update
+			num_crashes++;
+			for(int f=0; f < (thread_num); f++){
+
+        		        failed_id_list[(num_crashes*thread_num)+ f +1]= true; // set failed locks ids
+	              	}
+
+
+			mem_crash_coros = 0;
+                        mem_crash_tnums=0;
+                        
+                        num_mem_crashes++;
+                        next_crash_count += CRASH_INTERVAL;
+			
+			__asm__ __volatile__("mfence":::"memory");
+
+
                         mem_crash_enable = false;
-                        mem_crash_coros = 0;
-			mem_crash_tnums=0;
-                        __asm__ __volatile__("mfence":::"memory");
+                       
+		       	__asm__ __volatile__("mfence":::"memory");
                 }
                 while (mem_crash_enable){
                     __asm__ __volatile__("mfence":::"memory"); //Precautiously

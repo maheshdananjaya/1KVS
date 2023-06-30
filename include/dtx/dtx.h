@@ -384,8 +384,8 @@ class DTX {
       bool FindFailedId(t_id_t failed_process_id);  //thread or process ids
       bool InitCrashEmu(bool * crash_emu);
       bool CheckCrash();
-       bool InitMemCrashEmu(bool * mem_crash_emu);
-
+       bool InitMemCrashEmu(bool * mem_crash_emu_);
+      //bool InitMemCrashEmu(bool * mem_crash_emu);
  public:
   tx_id_t tx_id;  // Transaction ID
 
@@ -1011,13 +1011,34 @@ bool DTX::InitCrashEmu(bool * crash_emu_){
 
 }
 
+
+ALWAYS_INLINE
+bool DTX::InitMemCrashEmu(bool * crash_emu_){
+        //num_threads = thread_remote_log_offset_alloc->GetNumThreadsPerMachine();
+        mem_crash_emu = crash_emu_;
+
+}
+
+
 ALWAYS_INLINE
 bool DTX::CheckCrash(){
   //TODO this does not work with new coroutine stops
-  if(*crash_emu && (t_id_original < (num_threads/2) )){
+  
+  if( (t_id >=  (num_threads/2)) && (t_id < num_threads)) return false; 
+
+ 
+  if(*crash_emu && ( ( t_id_original < (num_threads/2)) || ( t_id_original >= (num_threads))  ) ){
               return true; //condition
 
   }
+
+#ifdef MEM_FAILURES__
+  if(*mem_crash_emu){
+              return true; //condition
+
+  }
+#endif
+
   return false;
 }
 

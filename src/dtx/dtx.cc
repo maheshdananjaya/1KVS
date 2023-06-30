@@ -834,7 +834,7 @@ if(CheckCrash()) return;
 
 
 //The following functions are for mem failures only. 
-#ifdef MEM_FAILURES
+#ifdef MEM_FAILURES_REMOVE
 
 ALWAYS_INLINE
 bool DTX::InitMemCrashEmu(bool * mem_crash_emu_){

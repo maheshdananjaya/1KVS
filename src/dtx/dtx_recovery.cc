@@ -2457,7 +2457,7 @@ bool DTX::UpdatedIssueUndoLogRecoveryForAllThreads(coro_yield_t& yield, AddrCach
     //TODO- fix this. only the failed process threads. otherwise caches overflowing. 
     t_id_t num_thread = thread_remote_log_offset_alloc->GetNumThreadsPerMachine();
 
-    assert(end_failed_thread_id < num_thread);
+    assert(end_failed_thread_id <= num_thread);
     //assert(failed_coro_id <= num_coro);   
 
     const int MAX_DATA_LOG_RECORDS = 32; //default =32. reduce to 16 for non tpcc
@@ -2866,6 +2866,7 @@ bool DTX::UpdatedIssueUndoLogRecoveryForAllThreads(coro_yield_t& yield, AddrCach
                     //SUCC (tx_completed && is_updated_inplace asll (match))
 
                     if((!tx_completed) || (!is_updated_inplace)) {
+			   /// RDMA_LOG(INFO) << "roollback";
                         for(int j=0; j < coro_num_valid_logs[t][c]; j++){
                     
                             DataItem* logged_item = &record_node_0[j].data_ ;

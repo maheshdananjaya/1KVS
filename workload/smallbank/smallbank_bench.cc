@@ -107,11 +107,12 @@ __thread double curr_time =0;
 __thread double recorded_start_time=0;
 #endif
 
+extern uint64_t num_mem_crashes;
 #ifdef MEM_FAILURES
 __thread uint64_t mem_crash_coros =0; // number of coros finished after mem crash recoeved.
 extern bool mem_crash_enable;
 extern std::atomic<uint64_t> mem_crash_tnums;
-extern uint64_t num_mem_crashes;
+//extern uint64_t num_mem_crashes;
 #endif
 
 
@@ -672,8 +673,9 @@ void RunTx(coro_yield_t& yield, coro_id_t coro_id) {
     #ifdef MEM_FAILURES
       #ifdef MEM_CRASH_ENABLE
 
-        if(thread_gid==0 && ((stat_attempted_tx_total==(ATTEMPTED_NUM/4)) && (!mem_crash_enable) && (num_mem_crashes==0)) ){
-          RDMA_LOG(INFO) << "Starting Mem Crash " ;
+        //if(thread_gid==0 && ((stat_attempted_tx_total==(ATTEMPTED_NUM/4)) && (!mem_crash_enable) && (num_mem_crashes==0)) ){
+         if((thread_gid==0) && (stat_attempted_tx_total >= next_crash_count) && (!mem_crash_enable) && (num_mem_crashes==0)){
+	      RDMA_LOG(INFO) << "Starting Mem Crash " ;
             mem_crash_enable = true;
            mem_crash_coros++;
           __asm__ __volatile__("mfence":::"memory");
@@ -832,11 +834,28 @@ void run_thread(struct thread_params* params) {
                         usleep(112);
 
                         meta_man->removeMemServer(1);
-                        mem_crash_enable = false;
+
+			//failed-id-list update
+                        num_crashes++;
+                        for(int f=0; f < (thread_num); f++){
+
+                                failed_id_list[(num_crashes*thread_num)+ f +1]= true; // set failed locks ids
+                        }
+
+
                         mem_crash_coros = 0;
-			mem_crash_tnums = 0;
-			num_mem_crashes ++;
+                        mem_crash_tnums=0;
+
+                        num_mem_crashes++;
+                        next_crash_count += CRASH_INTERVAL;
+
                         __asm__ __volatile__("mfence":::"memory");
+
+
+                        mem_crash_enable = false;
+
+                        __asm__ __volatile__("mfence":::"memory");
+
                 }
 
 		

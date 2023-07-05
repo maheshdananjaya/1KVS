@@ -1,8 +1,8 @@
 {
   "local_compute_node": {
-    "machine_num": 3,
+    "machine_num": 1,
     "machine_id": 0,
-"thread_num_per_machine": 8,
+"thread_num_per_machine": 64,
 "coroutine_num": 2,
     "local_port": 12345,
     "enable_rdma_flush": 1,

@@ -346,7 +346,7 @@ void CollectStats(struct thread_params* params){
 int fd_client(int machine_id_){
     std::cout << "task1 says: " << process_id;
 
-    GreeterClient greeter(grpc::CreateChannel("10.10.1.1:50051", grpc::InsecureChannelCredentials()));
+    GreeterClient greeter(grpc::CreateChannel("10.10.1.8:50051", grpc::InsecureChannelCredentials()));
     std::string user("node "+ machine_id_);
 
     int fd_state=0; std::string recovery_coros; int start_coro, end_coro;

@@ -299,7 +299,7 @@ size_t split(const std::string &txt, std::vector<std::string> &strs, char ch)
 int fd_client(int machine_id_){
    std::cout << "task1 says: " << process_id;
   
-    GreeterClient greeter(grpc::CreateChannel("10.10.1.1:50051", grpc::InsecureChannelCredentials()));
+    GreeterClient greeter(grpc::CreateChannel("10.10.1.8:50051", grpc::InsecureChannelCredentials()));
     std::string user("node "+ machine_id_);
 
    while(true){

@@ -95,7 +95,8 @@ bool DTX::CheckCasRW(std::vector<CasRead>& pending_cas_rw, std::list<HashRead>& 
               exit(-1);
             }
             #else
-              coro_sched->RDMACAS(coro_id, re.qp, re.cas_buf, remote_lock_addr, failed_id, STATE_CLEAN);
+              // FIX coro_sched->RDMACAS(coro_id, re.qp, re.cas_buf, remote_lock_addr, failed_id, STATE_CLEAN);
+	      coro_sched->RDMACAS(coro_id, re.qp, re.cas_buf, remote_lock_addr, failed_id,  (t_id+1) );
               //coro_sched->Yield(yield, coro_id);
               while(!coro_sched->PollCoro(coro_id));
             #endif
@@ -113,7 +114,18 @@ bool DTX::CheckCasRW(std::vector<CasRead>& pending_cas_rw, std::list<HashRead>& 
 
           }
           else{ // TO fix litmus 1 bug- 
-              #ifdef FIX_ABORT_ISSUE
+              
+		#ifdef LATCH_STALL
+	          do{
+			coro_sched->RDMACAS(coro_id, re.qp, re.cas_buf, remote_lock_addr, STATE_CLEAN,  (t_id+1) );
+			 while(!coro_sched->PollCoro(coro_id));
+
+		  }while(*((lock_t*)re.cas_buf) != STATE_CLEAN);
+		  continue;		  
+
+		#endif 
+
+		#ifdef FIX_ABORT_ISSUE
                   decision=false;
                   continue;
                 #else

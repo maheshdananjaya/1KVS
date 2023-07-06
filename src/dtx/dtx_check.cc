@@ -157,7 +157,8 @@ bool DTX::CheckValidate(std::vector<ValidateRead>& pending_validate) {
               exit(-1);
             }
             #else
-                coro_sched->RDMACAS(coro_id, re.qp,re.cas_buf, remote_lock_addr, failed_id, STATE_CLEAN);
+	    	//FIX STATE_CLEAN -> t_id+1
+                coro_sched->RDMACAS(coro_id, re.qp,re.cas_buf, remote_lock_addr, failed_id, (t_id+1));
                 //coro_sched->Yield(yield, coro_id);
                 while(!coro_sched->PollCoro(coro_id));
             #endif
@@ -173,7 +174,16 @@ bool DTX::CheckValidate(std::vector<ValidateRead>& pending_validate) {
             } 
 
           }
-          else{ // TO fix litmus 1 bug- 
+          else{ // TO fix litmus 1 bug-
+          
+	  	#ifdef LATCH_STALL
+		    do{
+		      coro_sched->RDMACAS(coro_id, re.qp, re.cas_buf, remote_lock_addr, STATE_CLEAN,  (t_id+1) );
+		      while(!coro_sched->PollCoro(coro_id));
+    	          }while(*((lock_t*)re.cas_buf) != STATE_CLEAN); 
+	          continue;      
+               	#endif
+
               #ifdef FIX_ABORT_ISSUE
                   decision=false;
                   continue;
@@ -268,7 +278,8 @@ bool DTX::CheckValidate(std::vector<ValidateRead>& pending_validate) {
                       exit(-1);
                     }
                     #else
-                      coro_sched->RDMACAS(coro_id, re.qp, lock_start, remote_lock_addr_ro, failed_id, STATE_CLEAN);
+		     //FIX STATE_CLEAN-> t_id+1 in other places
+                      coro_sched->RDMACAS(coro_id, re.qp, lock_start, remote_lock_addr_ro, failed_id,STATE_CLEAN);
                       //coro_sched->Yield(yield, coro_id);
                       while(!coro_sched->PollCoro(coro_id));
                     #endif
@@ -287,7 +298,23 @@ bool DTX::CheckValidate(std::vector<ValidateRead>& pending_validate) {
     
                   }
                   else{ // TO fix litmus 1 bug- 
-                    #ifdef FIX_ABORT_ISSUE
+                   //with (*(lock_t*)lock_start)
+		   #ifdef LATCH_STALL
+			 do{
+			    coro_sched->RDMACAS(coro_id, re.qp, lock_start, remote_lock_addr_ro, STATE_CLEAN,  STATE_CLEAN );
+			    while(!coro_sched->PollCoro(coro_id));
+			}while(*((lock_t*)re.cas_buf) != STATE_CLEAN);
+			
+			 //reread the version
+			 //coro_sched->RDMARead(coro_id, qp, version_buf, it->GetRemoteVersionAddr(), sizeof(version_t)+sizeof(lock_t))
+			 //coro_sched->RDMAREAD(coro_id, re.qp, re.cas, remote_lock_addr, STATE_CLEAN,  STATE_CLEAN );
+			 //I am allowing some incorrect behavior here. todo
+			 continue;
+		   #endif
+
+		  
+
+		   #ifdef FIX_ABORT_ISSUE
                       decision=false;
                       continue;
                     #else

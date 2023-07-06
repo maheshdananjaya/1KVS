@@ -10,6 +10,11 @@
 
 #include "util/json_config.h"
 
+
+#include "stat/grpc_client.h"
+
+
+
 void Server::AllocMem() {
   RDMA_LOG(INFO) << "Start allocating memory...";
   if (use_pm) {
@@ -268,6 +273,65 @@ bool Server::Run() {
   }
 }
 
+
+size_t split(const std::string &txt, std::vector<std::string> &strs, char ch)
+{
+    size_t pos = txt.find( ch );
+    size_t initialPos = 0;
+    strs.clear();
+
+    // Decompose statement
+    while( pos != std::string::npos ) {
+        strs.push_back( txt.substr( initialPos, pos - initialPos ) );
+        initialPos = pos + 1;
+
+        pos = txt.find( ch, initialPos );
+    }
+
+    // Add the last one
+    strs.push_back( txt.substr( initialPos, std::min( pos, txt.size() ) - initialPos + 1 ) );
+
+    return strs.size();
+}
+
+
+
+int fd_client(int machine_id_){
+   std::cout << "task1 says: " << process_id;
+  
+    GreeterClient greeter(grpc::CreateChannel("10.10.1.1:50051", grpc::InsecureChannelCredentials()));
+    std::string user("node "+ machine_id_);
+
+   while(true){
+    //Send messages to the fault detector.
+            clock_gettime(CLOCK_REALTIME, &timer_end);
+            double grpc_start_time =  (double) timer_end.tv_sec *1000000 + (double)(timer_end.tv_nsec)/1000;
+
+              std::string reply;
+              //if(crash_emu) reply = greeter.SayHello(machine_id_ + ", FAILED");
+              reply = greeter.SayHello(machine_id_ + ", ACTIVE"); 
+           
+	      std::cout << reply << std::endl;
+
+	      	std::vector<std::string> v;
+		split(reply, v, ',');
+    			if(v.at(0) ==  "TERMINATE"){
+        			//Do recovery.
+        			std::string response("TERMINATED,"+v.at(1));
+        			reply = greeter.SayHello(response);
+     				std::cout << "TERMINATED ACK: " << reply << std::endl;
+    			}
+
+		
+
+            clock_gettime(CLOCK_REALTIME, &timer_end);
+            double grpc_end_time =  (double) timer_end.tv_sec *1000000 + (double)(timer_end.tv_nsec)/1000;
+	    //std::cout << "Ack received: " << reply  << " Time spent(RTT) " << (grpc_end_time - grpc_start_time) << std::endl;
+	    usleep(1000);
+    }
+   
+}
+
 int main(int argc, char* argv[]) {
   // Configure of this server
   std::string config_filepath = "../../../config/memory_node_config.json";
@@ -306,6 +370,12 @@ int main(int argc, char* argv[]) {
   server->InitRDMA();
   bool run_next_round = server->Run();
 
+	#ifdef REMOTE_FD
+  		std::cout << "Staring FD Client"<< std::endl;
+		 std::thread fd_client_thread (fd_client, 16+machine_id);
+		 t1.join();
+
+	#endif 
   // Continue to run the next round. RDMA does not need to be inited twice
   while (run_next_round) {
     server->InitMem();

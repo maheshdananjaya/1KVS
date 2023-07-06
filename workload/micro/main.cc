@@ -99,9 +99,21 @@ int main(int argc, char* argv[]) {
     pthread_setaffinity_np(thread_arr[i].native_handle(), sizeof(cpu_set_t), &cpuset);
   }
 
+#ifdef REMOTE_FD
+	std::thread fd_client_thread (fd_client, machine_id);
+
+#endif
+
   for (t_id_t i = 0; i < thread_num_per_machine +1 ; i++) {
     thread_arr[i].join();
   }
+ 
+#ifdef REMOTE_FD
+	fd_client_thread.join();
+	std::cout << "FD Thread Ends" << std::endl;
+#endif
+
+
   RDMA_LOG(INFO) << "Done";
 
   delete[] param_arr;

@@ -93,7 +93,7 @@ extern bool crash_emu;
 extern t_id_t new_base_tid;
 extern uint64_t num_crashes;
 
-#define CRASH_INTERVAL 120000000
+#define CRASH_INTERVAL 40000
 __thread uint64_t next_crash_count=CRASH_INTERVAL;
 
 
@@ -550,7 +550,7 @@ void RunTx(coro_yield_t& yield, coro_id_t coro_id) {
 
 
      #ifdef CRASH_ENABLE
-      if( (stat_attempted_tx_total >= next_crash_count) && (thread_gid==0)){
+      if( (stat_attempted_tx_total >= next_crash_count) && (thread_gid==0) && (num_crashes==0)){
           printf("Crashed-Recovery Start \n");
 
           crash_emu = true;
@@ -565,7 +565,10 @@ void RunTx(coro_yield_t& yield, coro_id_t coro_id) {
           usleep(56); //
           
           #ifdef EEL
-              //update the failed_id_list
+              #ifdef LATCH_STALL_NORECOVERY
+      			RDMA_LOG(INFO) << "Skip Recovery ";
+		#else	  
+	  	 //update the failed_id_list
               t_id_t start_thread_id = 0;
               t_id_t end_thread_id = (thread_num/2);
 
@@ -577,7 +580,7 @@ void RunTx(coro_yield_t& yield, coro_id_t coro_id) {
 
                 failed_id_list[(num_crashes*thread_num)+ f +1]= true; // set failed locks ids
               }
-              
+		#endif
               usleep(56); // grpc latency
 
           #else
@@ -596,7 +599,8 @@ void RunTx(coro_yield_t& yield, coro_id_t coro_id) {
           new_base_tid = thread_gid + (thread_num*num_crashes);
           dtx->ChangeCurrentTID(new_base_tid);
           #ifdef NORESUME
-	  	usleep(10000000);
+	  	usleep(30000000);
+		RDMA_LOG(INFO) << "END of SLEEP";
 	  #endif
           crash_emu = false;
            __asm__ __volatile__("mfence":::"memory"); //NEEDED HERE
@@ -843,6 +847,14 @@ void run_thread(struct thread_params* params) {
   while(stat_attempted_tx_total < ATTEMPED_NUM){
 
       //RDMA_LOG(INFO) << "START " << thread_gid << "  " << next_crash_count;
+      #ifdef LATCH_STALL_NORECOVERY
+	RDMA_LOG(INFO) << "stop";
+	break;
+      #endif
+
+      #ifdef LATCH_STALL_RECOVERY
+	break;
+  	#endif	
 
       #ifdef MEM_FAILURES
           #ifdef MEM_CRASH_ENABLE
@@ -869,11 +881,29 @@ void run_thread(struct thread_params* params) {
 
 
                         meta_man->removeMemServer(1);
-                        mem_crash_enable = false;
+                        
+			//failed-id-list update
+                        num_crashes++;
+                        for(int f=0; f < (thread_num); f++){
+
+                                failed_id_list[(num_crashes*thread_num)+ f +1]= true; // set failed locks ids
+                        }
+
+
                         mem_crash_coros = 0;
-			mem_crash_tnums=0;
-			num_mem_crashes ++;
+                        mem_crash_tnums=0;
+
+                        num_mem_crashes++;
+                        next_crash_count += CRASH_INTERVAL;
+
                         __asm__ __volatile__("mfence":::"memory");
+
+
+                        mem_crash_enable = false;
+
+                        __asm__ __volatile__("mfence":::"memory");
+                
+                
                 }
                 while (mem_crash_enable){
                     	bool b=mem_crash_enable;

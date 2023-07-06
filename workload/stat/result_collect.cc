@@ -340,13 +340,80 @@ void CollectStats(struct thread_params* params){
 }
 
 
+//new failure detector iterface
+#ifdef REMOTE_FD
+
+int fd_client(int machine_id_){
+    std::cout << "task1 says: " << process_id;
+
+    GreeterClient greeter(grpc::CreateChannel("10.10.1.1:50051", grpc::InsecureChannelCredentials()));
+    std::string user("node "+ machine_id_);
+
+    int fd_state=0; std::string recovery_coros; int start_coro, end_coro;
+    
+
+   while(true){
+    //Send messages to the fault detector.
+            clock_gettime(CLOCK_REALTIME, &timer_end);
+            double grpc_start_time =  (double) timer_end.tv_sec *1000000 + (double)(timer_end.tv_nsec)/1000;
+
+              std::string reply;
+              
+	      if(fd_state==0 && crash_emu){
+	           reply = greeter.SayHello(machine_id_ +",FAILED,0-0");
+		    std::vector<std::string> v;
+                    split(reply, v, ',');
+                        if(v.at(0) ==  "RECOVERY"){
+                                //Do recovery.
+				//fd_state = 1;
+				recovery_coros = v.at(1);
+				std::vector<std::string> vrec;
+	                        split(recovery_coros, vrec, '-');
+				start_coro = vrec.at(0);
+				end_coro = vrec.at(1);
+				std::cout << "start coro " << start_coro << " end coro " << end_coro<< std::endl;
+				fd_state = 1;
+
+                            }
+
+	      }
+
+	      else if(fd_state == 1){
+	      	//do nothing; wait for it/
+		////use recovery coros.
+		//
+		 //if (!crash_emu)  fd_state = 2;
+
+	      }
+
+	      else if(fd_state == 2){
+			 std::string recovery_response(machine_id_ + "RECOVERED,"+recovery_coros);
+                         reply = greeter.SayHello(recovery_response);
+                         std::cout << "RECOVERED ACK: " << reply << std::endl;
+			 fd_state = 0;
+	      }
+
+	      else {
+              		reply = greeter.SayHello(machine_id_ + ", ACTIVE");
+			std::cout << reply << std::endl;
+	      }
+
+            clock_gettime(CLOCK_REALTIME, &timer_end);
+            double grpc_end_time =  (double) timer_end.tv_sec *1000000 + (double)(timer_end.tv_nsec)/1000;
+            //std::cout << "Ack received: " << reply  << " Time spent(RTT) " << (grpc_end_time - grpc_start_time) << std::endl;
+            usleep(1000);
+    }
+
+}
+
+#endif
 
 
 #ifdef FD
 //Communicate with the failure detector
-void HeartBeats(struct thread_params* params){
+void HeartBeats(int machine_id_){
     //live beacoins.
-    GreeterClient greeter(grpc::CreateChannel("10.10.1.1:50051", grpc::InsecureChannelCredentials()));
+    GreeterClient greeter(grpc::CreateChannel("10.10.1.8:50051", grpc::InsecureChannelCredentials()));
     std::string user("node "+ machine_id_);
 
     #ifdef HEARTBEATS

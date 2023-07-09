@@ -1,5 +1,5 @@
-sed -i '96c #define CRASH_INTERVAL 500000' workload/micro/micro_bench.cc
-bash build.sh
+sed -i '96c #define CRASH_INTERVAL 40000' workload/micro/micro_bench.cc
+bash build.sh -d
 
 cd build/workload/micro/
 
@@ -138,7 +138,7 @@ mv result_all_threads.txt result_all_threads_128threads.txt
 
 
 
-cp result_all_threads* ../../../bench_results/compute_crash/micro
+cp result_all_threads* ../../../bench_results/multi-crash/micro/micro-10000/
 
 cd ../../../
 

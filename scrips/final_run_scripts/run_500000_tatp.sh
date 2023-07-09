@@ -1,5 +1,5 @@
 sed -i '96c #define CRASH_INTERVAL 500000' workload/tatp/tatp_bench.cc
-bash build.sh
+bash build.sh 
 
 cd build/workload/tatp/
 

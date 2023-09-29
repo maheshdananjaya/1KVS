@@ -62,13 +62,13 @@ int main(int argc, char* argv[]) {
   /* Start working */
   tx_id_generator = 0;  // Initial transaction id == 0
   connected_t_num = 0;  // Sync all threads' RDMA QP connections 
-  auto thread_arr = new std::thread[thread_num_per_machine + 1]; //+1 is for the additional thread
+  auto thread_arr = new std::thread[thread_num_per_machine + 1+ 1]; //+1 is for the additional thread +1 foe failure detector
   MICRO* micro_client = new MICRO();
   auto* global_meta_man = new MetaManager();
   RDMA_LOG(INFO) << "Alloc local memory: " << (size_t)(thread_num_per_machine * PER_THREAD_ALLOC_SIZE) / (1024 * 1024) << " MB. Waiting...";
   auto* global_rdma_region = new RDMARegionAllocator(global_meta_man, thread_num_per_machine);
 
-  auto* param_arr = new struct thread_params[thread_num_per_machine + 1];
+  auto* param_arr = new struct thread_params[thread_num_per_machine + 1 +1];
 
 
   //intializing stat queues.  
@@ -76,7 +76,7 @@ int main(int argc, char* argv[]) {
 
 
   RDMA_LOG(INFO) << "spawn threads...";
-  for (t_id_t i = 0; i < thread_num_per_machine + 1; i++) {
+  for (t_id_t i = 0; i < thread_num_per_machine + 1 +1 ; i++) {
     param_arr[i].thread_local_id = i;
     param_arr[i].thread_global_id = (machine_id * thread_num_per_machine) + i;
     param_arr[i].coro_num = coro_num;
@@ -87,7 +87,8 @@ int main(int argc, char* argv[]) {
     param_arr[i].total_thread_num = thread_num_per_machine * machine_num;
 
 
-     if( i == thread_num_per_machine) thread_arr[i] = std::thread(CollectStats, &param_arr[i]);
+     if( i == thread_num_per_machine+1 ) thread_arr[i] = std::thread(HeartBeats, &machine_id);
+     else if( i == thread_num_per_machine) thread_arr[i] = std::thread(CollectStats, &param_arr[i]);
       else  thread_arr[i] = std::thread(run_thread, &param_arr[i]);
 
     //thread_arr[i] = std::thread(run_thread, &param_arr[i]);

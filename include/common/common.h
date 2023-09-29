@@ -73,7 +73,7 @@ typedef struct atomic_record{
 #define FIX_INSERT_BUG //new bug. retining from ro and rw reads if the lock is set
 //#define BLOCKING_RECOVERY
 
-//#define FD //deprectaed
+#define FD //deprectaed
 //#define REMOTE_FD //enable this for failure detector
 
 #define EEL //this is to enable explicit epoch logging. 

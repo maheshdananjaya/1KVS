@@ -67,6 +67,9 @@ t_id_t thread_num_per_machine_;
 
 //CounterTimer
  struct timespec timer_start,timer_end;
+ struct timespec timer_start_fd,timer_end_fd;
+ struct timespec timer_start_fd_zk,timer_end_fd_zk;
+
 
 void CollectResult(std::string workload_name, std::string system_name) {
   std::ofstream of, of_detail;
@@ -415,8 +418,9 @@ void HeartBeats(int machine_id_){
     //live beacoins.
     GreeterClient greeter(grpc::CreateChannel("10.10.1.8:50051", grpc::InsecureChannelCredentials()));
     std::string user("node "+ machine_id_);
-
-    #ifdef HEARTBEATS
+     struct timespec timer_start,timer_end;
+	
+ 	 #ifdef HEARTBEATS
     while(true){
 
     clock_gettime(CLOCK_REALTIME, &timer_end);
@@ -488,6 +492,10 @@ void HeartBeatsZK(struct thread_params* params){
     //live beacoins.
     GreeterClient greeter(grpc::CreateChannel("10.10.1.1:50051", grpc::InsecureChannelCredentials()));
     std::string user("node "+ machine_id_);
+
+	 struct timespec timer_start,timer_end;
+
+
 
     #ifdef ZKRFD
     while(true){

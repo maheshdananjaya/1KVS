@@ -2,7 +2,9 @@
 #include <memory>
 #include <string>
 
+#ifdef FD
 #include <grpcpp/grpcpp.h>
+#endif
 
 #ifdef BAZEL_BUILD
 #include "examples/protos/helloworld.grpc.pb.h"

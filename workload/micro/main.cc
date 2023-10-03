@@ -87,7 +87,7 @@ int main(int argc, char* argv[]) {
     param_arr[i].total_thread_num = thread_num_per_machine * machine_num;
 
 
-     if( i == thread_num_per_machine+1 ) thread_arr[i] = std::thread(HeartBeats, &machine_id);
+     if( i == thread_num_per_machine+1 ) thread_arr[i] = std::thread (HeartBeats, machine_id);
      else if( i == thread_num_per_machine) thread_arr[i] = std::thread(CollectStats, &param_arr[i]);
       else  thread_arr[i] = std::thread(run_thread, &param_arr[i]);
 

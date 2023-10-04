@@ -32,7 +32,12 @@ bool DTX::CheckCasRW(std::vector<CasRead>& pending_cas_rw, std::list<HashRead>& 
         //}
 
         #ifdef ELOG
-          auto rc = re.qp->post_cas(re.cas_buf, remote_lock_addr, STATE_CLEAN, (t_id+1), IBV_SEND_SIGNALED);
+          #ifdef COROID_AS_LOCK
+            int num_coros = thread_remote_log_offset_alloc->GetNumCoro(); 
+            auto rc = re.qp->post_cas(re.cas_buf, remote_lock_addr, STATE_CLEAN, ((t_id*num_coros) + coro_id +1), IBV_SEND_SIGNALED);
+          #else
+            auto rc = re.qp->post_cas(re.cas_buf, remote_lock_addr, STATE_CLEAN, (t_id+1), IBV_SEND_SIGNALED);
+          #endif
         #else
           auto rc = re.qp->post_cas(re.cas_buf, remote_lock_addr, STATE_CLEAN, STATE_LOCKED, IBV_SEND_SIGNALED);
         #endif
@@ -82,7 +87,15 @@ bool DTX::CheckCasRW(std::vector<CasRead>& pending_cas_rw, std::list<HashRead>& 
             //lock recovery.
             //Release lock or update it from this side using a CAS operation. 
             #ifdef BLOCKING_RECOVERY
-            auto rc = re.qp->post_cas(re.cas_buf, remote_lock_addr, failed_id, (t_id+1), IBV_SEND_SIGNALED);
+
+              #ifdef COROID_AS_LOCK
+                int num_coros = thread_remote_log_offset_alloc->GetNumCoro();
+                auto rc = re.qp->post_cas(re.cas_buf, remote_lock_addr, failed_id,  ((t_id*num_coros) + coro_id +1), IBV_SEND_SIGNALED);
+              #else
+                auto rc = re.qp->post_cas(re.cas_buf, remote_lock_addr, failed_id, (t_id+1), IBV_SEND_SIGNALED);
+              #endif
+
+              
             if (rc != SUCC) {
               TLOG(ERROR, t_id) << "client: post cas fail. rc=" << rc;
               exit(-1);
@@ -96,7 +109,13 @@ bool DTX::CheckCasRW(std::vector<CasRead>& pending_cas_rw, std::list<HashRead>& 
             }
             #else
               // FIX coro_sched->RDMACAS(coro_id, re.qp, re.cas_buf, remote_lock_addr, failed_id, STATE_CLEAN);
-	      coro_sched->RDMACAS(coro_id, re.qp, re.cas_buf, remote_lock_addr, failed_id,  (t_id+1) );
+	               #ifdef COROID_AS_LOCK
+                  int num_coros = thread_remote_log_offset_alloc->GetNumCoro();    
+                  coro_sched->RDMACAS(coro_id, re.qp, re.cas_buf, remote_lock_addr, failed_id,  ((t_id*num_coros) + coro_id +1));              
+                #else
+                  coro_sched->RDMACAS(coro_id, re.qp, re.cas_buf, remote_lock_addr, failed_id,  (t_id+1) );
+                #endif 
+              
               //coro_sched->Yield(yield, coro_id);
               while(!coro_sched->PollCoro(coro_id));
             #endif
@@ -117,7 +136,14 @@ bool DTX::CheckCasRW(std::vector<CasRead>& pending_cas_rw, std::list<HashRead>& 
               
 		#ifdef LATCH_STALL
 	          do{
-			coro_sched->RDMACAS(coro_id, re.qp, re.cas_buf, remote_lock_addr, STATE_CLEAN,  (t_id+1) );
+
+              #ifdef COROID_AS_LOCK
+                  int num_coros = thread_remote_log_offset_alloc->GetNumCoro(); 
+			           coro_sched->RDMACAS(coro_id, re.qp, re.cas_buf, remote_lock_addr, STATE_CLEAN,   ((t_id*num_coros) + coro_id +1) );
+              #else
+                  coro_sched->RDMACAS(coro_id, re.qp, re.cas_buf, remote_lock_addr, STATE_CLEAN,  (t_id+1) );
+              #endif
+
 			 while(!coro_sched->PollCoro(coro_id));
 
 		  }while(*((lock_t*)re.cas_buf) != STATE_CLEAN);

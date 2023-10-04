@@ -177,7 +177,14 @@ bool DTX::CoalescentCommit(coro_yield_t& yield) {
   if(CheckCrash()) return false;
   
    #ifdef ELOG
+
+      #ifdef COROID_AS_LOCK
+        int num_coros = thread_remote_log_offset_alloc->GetNumCoro();
+        *(lock_t*)cas_buf = ( (t_id*num_coros) + coro_id +1) | STATE_INVISIBLE;
+      #else 
        *(lock_t*)cas_buf = (t_id+1) | STATE_INVISIBLE;
+      #endif
+    
     #else
         *(lock_t*)cas_buf = STATE_LOCKED | STATE_INVISIBLE;
     #endif

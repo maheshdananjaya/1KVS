@@ -127,7 +127,14 @@ bool DTX::IssueReadLock(std::vector<CasRead>& pending_cas_rw,
       std::shared_ptr<LockReadBatch> doorbell = std::make_shared<LockReadBatch>();
 
       #ifdef ELOG //eplciti logging
-        doorbell->SetLockReq(cas_buf, it->GetRemoteLockAddr(offset), STATE_CLEAN, t_id+1);
+
+        #ifdef COROID_AS_LOCK
+          int num_coros = thread_remote_log_offset_alloc->GetNumCoro();
+          doorbell->SetLockReq(cas_buf, it->GetRemoteLockAddr(offset), STATE_CLEAN, ((t_id*num_coros) + coro_id +1));
+        #else 
+          doorbell->SetLockReq(cas_buf, it->GetRemoteLockAddr(offset), STATE_CLEAN, t_id+1);          
+        #endif
+        
       #else
         doorbell->SetLockReq(cas_buf, it->GetRemoteLockAddr(offset), STATE_CLEAN, STATE_LOCKED); 
       #endif
@@ -186,7 +193,12 @@ bool DTX::IssueValidate(std::vector<ValidateRead>& pending_validate) {
     std::shared_ptr<LockReadBatch> doorbell = std::make_shared<LockReadBatch>();
 
     #ifdef ELOG
-      doorbell->SetLockReq(cas_buf, it->GetRemoteLockAddr(), STATE_CLEAN, t_id+1);
+       #ifdef COROID_AS_LOCK
+          int num_coros = thread_remote_log_offset_alloc->GetNumCoro();         
+          doorbell->SetLockReq(cas_buf, it->GetRemoteLockAddr(), STATE_CLEAN, ((t_id*num_coros) + coro_id +1)); 
+        #else 
+          doorbell->SetLockReq(cas_buf, it->GetRemoteLockAddr(), STATE_CLEAN, t_id+1);         
+        #endif      
     #else
       doorbell->SetLockReq(cas_buf, it->GetRemoteLockAddr(), STATE_CLEAN, STATE_LOCKED);
     #endif
@@ -288,7 +300,12 @@ bool DTX::IssueCommitAll(std::vector<CommitWrite>& pending_commit_write, char* c
     }
 
     #ifdef ELOG
-      it->lock = (t_id+1) | STATE_INVISIBLE;
+        #ifdef COROID_AS_LOCK
+          int num_coros = thread_remote_log_offset_alloc->GetNumCoro();         
+          it->lock = ((t_id*num_coros) + coro_id +1) | STATE_INVISIBLE;  
+        #else 
+          it->lock = (t_id+1) | STATE_INVISIBLE;         
+        #endif       
     #else
       it->lock = STATE_LOCKED | STATE_INVISIBLE;
     #endif
@@ -367,7 +384,15 @@ bool DTX::IssueCommitAllFullFlush(std::vector<CommitWrite>& pending_commit_write
     }
 
     #ifdef ELOG
-      it->lock = (it->lock | STATE_INVISIBLE);
+        #ifdef COROID_AS_LOCK
+          int num_coros = thread_remote_log_offset_alloc->GetNumCoro();  
+           // it->lock = (it->lock | STATE_INVISIBLE);     I am fixing this. or remove in config file.    
+           it->lock = ((t_id*num_coros) + coro_id +1) | STATE_INVISIBLE;  
+        #else 
+          // it->lock = (it->lock | STATE_INVISIBLE);   Fixing
+          it->lock = (t_id+1) | STATE_INVISIBLE;       
+        #endif 
+      
     #else
         it->lock = STATE_LOCKED | STATE_INVISIBLE;
     #endif
@@ -476,7 +501,15 @@ bool DTX::IssueCommitAllSelectFlush(std::vector<CommitWrite>& pending_commit_wri
 
 
      #ifdef ELOG
-      it->lock = (it->lock | STATE_INVISIBLE);
+
+        #ifdef COROID_AS_LOCK
+          int num_coros = thread_remote_log_offset_alloc->GetNumCoro();  
+           // it->lock = (it->lock | STATE_INVISIBLE);     I am fixing this. or remove in config file.    
+           it->lock = ((t_id*num_coros) + coro_id +1) | STATE_INVISIBLE;  
+        #else 
+          // it->lock = (it->lock | STATE_INVISIBLE);   Fixing
+          it->lock = (t_id+1) | STATE_INVISIBLE;       
+        #endif
     #else
         it->lock = STATE_LOCKED | STATE_INVISIBLE;
     #endif
@@ -572,7 +605,15 @@ bool DTX::IssueCommitAllBatchSelectFlush(std::vector<CommitWrite>& pending_commi
     }
     
      #ifdef ELOG
-      it->lock = (it->lock | STATE_INVISIBLE);
+         #ifdef COROID_AS_LOCK
+          int num_coros = thread_remote_log_offset_alloc->GetNumCoro();  
+           // it->lock = (it->lock | STATE_INVISIBLE);     I am fixing this. or remove in config file.    
+           it->lock = ((t_id*num_coros) + coro_id +1) | STATE_INVISIBLE;  
+        #else 
+          // it->lock = (it->lock | STATE_INVISIBLE);   Fixing
+          it->lock = (t_id+1) | STATE_INVISIBLE;       
+        #endif
+      //it->lock = (it->lock | STATE_INVISIBLE);
     #else
         it->lock = STATE_LOCKED | STATE_INVISIBLE;
     #endif

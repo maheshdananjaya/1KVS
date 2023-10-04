@@ -22,7 +22,9 @@ IF (Boost_FOUND)
     ADD_DEFINITIONS( "-DHAS_BOOST" )
 ENDIF()
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pthread  -std=c++17  -Wno-unused-result -fPIC -lpthread")
+#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pthread  -std=c++17  -Wno-unused-result -fPIC -lpthread")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}  -std=c++17  -Wno-unused-result -fPIC")
+
 
 if(CMAKE_BUILD_TYPE STREQUAL "Release")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 -DNDEBUG ")
@@ -41,7 +43,7 @@ include_directories(
 
 option(GRPC_FD "enable or disabele GRPC" ON)
 
-add_compile_options(-pthread)
+#add_compile_options(-pthread)
 
 if(GRPC_FD) 
 	

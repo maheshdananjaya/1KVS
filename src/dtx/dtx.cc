@@ -142,6 +142,42 @@ bool DTX::ExeRW(coro_yield_t& yield) {
 
 bool DTX::Validate(coro_yield_t& yield) {
 
+#ifdef FIX_COVERT_LOCKS
+
+  if(CheckCrash()) return false;
+  // The transaction is write-only, and the data are locked before
+  if (not_eager_locked_rw_set.empty() && read_only_set.empty()) return true;
+
+  std::vector<ValidateRead> pending_validate;
+
+  if (!IssueValidate1(pending_validate)) return false;
+
+  //DAM-missing inserts logging after locking non-eager write set (i.e. inserts).
+  if(CheckCrash()) return false;
+  // Yield to other coroutines when waiting for network replies
+  coro_sched->Yield(yield, coro_id);
+
+  auto res = CheckValidate(pending_validate);
+
+  if(!res) return res;
+
+  //taking undo logs: table, key, version for inserts as well. TODO- avoid logging inserts.
+  //TODO: this has to be done only if the validations is sucessful.
+  if(CheckCrash()) return false;
+  //UndoLog();
+  #ifdef WITH_UNDO_LOGGING
+    UndoLogInsertsOnly();
+  #endif
+
+  //Seperate stages
+  if (!IssueValidate2(pending_validate)) return false;
+  if(CheckCrash()) return false;
+  coro_sched->Yield(yield, coro_id);
+  res = CheckValidate(pending_validate);
+  if(CheckCrash()) return false;
+  return res;
+
+#else  //normal unfixed covert locks
   if(CheckCrash()) return false;
   // The transaction is write-only, and the data are locked before
   if (not_eager_locked_rw_set.empty() && read_only_set.empty()) return true;
@@ -167,6 +203,10 @@ bool DTX::Validate(coro_yield_t& yield) {
   #endif
 
   return res;
+
+#endif
+
+
 }
 
 // Invisible + write primary and backups

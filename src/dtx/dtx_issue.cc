@@ -256,6 +256,88 @@ bool DTX::IssueValidate(std::vector<ValidateRead>& pending_validate) {
 }
 
 
+//ficxing read validation bugs
+bool DTX::IssueValidate1(std::vector<ValidateRead>& pending_validate) {
+  // For those are not locked during exe phase, we lock and read their versions in a batch
+
+  #ifdef FIX_COVERT_LOCKS
+    //Execute these two steps in lock steps. 
+    //check if       not_eager_locked_rw_set is empty.
+  #endif
+
+  for (auto& index : not_eager_locked_rw_set) {
+    locked_rw_set.emplace_back(index);
+    char* cas_buf = thread_rdma_buffer_alloc->Alloc(sizeof(lock_t));
+    *(lock_t*)cas_buf = 0xdeadbeaf;
+    char* version_buf = thread_rdma_buffer_alloc->Alloc(sizeof(version_t));
+    auto& it = read_write_set[index].item_ptr;
+    // Must be the primary
+    RCQP* qp = thread_qp_man->GetRemoteDataQPWithNodeID(read_write_set[index].read_which_node);
+    pending_validate.push_back(ValidateRead{.qp = qp, .item = &read_write_set[index], .cas_buf = cas_buf, .version_buf = version_buf, .has_lock_in_validate = true});
+
+    std::shared_ptr<LockReadBatch> doorbell = std::make_shared<LockReadBatch>();
+
+    #ifdef ELOG
+      doorbell->SetLockReq(cas_buf, it->GetRemoteLockAddr(), STATE_CLEAN, t_id+1);
+    #else
+      doorbell->SetLockReq(cas_buf, it->GetRemoteLockAddr(), STATE_CLEAN, STATE_LOCKED);
+    #endif
+
+    doorbell->SetReadReq(version_buf, it->GetRemoteVersionAddr(), sizeof(version_t));  // Read a version
+    if (!doorbell->SendReqs(coro_sched, qp, coro_id)) {
+      return false;
+    }
+  }
+
+
+  return true;
+}
+
+bool DTX::IssueValidate2(std::vector<ValidateRead>& pending_validate) {
+  
+ 
+#ifdef FIX_VALIDATE_ERROR
+
+  for (auto& set_it : read_only_set) {
+
+    auto it = set_it.item_ptr;
+    // If reading from backup, using backup's qp to validate the version on backup.
+    // Otherwise, the qp mismatches the remote version addr
+    RCQP* qp = thread_qp_man->GetRemoteDataQPWithNodeID(set_it.read_which_node);
+
+    //version buff niw has both lock value and 
+    char* version_buf = thread_rdma_buffer_alloc->Alloc(sizeof(version_t) + sizeof(lock_t));
+    //char* version_buf = thread_rdma_buffer_alloc->Alloc(sizeof(version_t));
+
+    pending_validate.push_back(ValidateRead{.qp = qp, .item = &set_it, .cas_buf = nullptr, .version_buf = version_buf, .has_lock_in_validate = false});
+    
+    if (!coro_sched->RDMARead(coro_id, qp, version_buf, it->GetRemoteVersionAddr(), sizeof(version_t)+sizeof(lock_t)) ) {
+      return false;
+    }
+  }
+
+#else  
+
+  //For read-only items, we only need to read their versions
+  for (auto& set_it : read_only_set) {
+
+    auto it = set_it.item_ptr;
+    // If reading from backup, using backup's qp to validate the version on backup.
+    // Otherwise, the qp mismatches the remote version addr
+    RCQP* qp = thread_qp_man->GetRemoteDataQPWithNodeID(set_it.read_which_node);
+    char* version_buf = thread_rdma_buffer_alloc->Alloc(sizeof(version_t));
+    pending_validate.push_back(ValidateRead{.qp = qp, .item = &set_it, .cas_buf = nullptr, .version_buf = version_buf, .has_lock_in_validate = false});
+    if (!coro_sched->RDMARead(coro_id, qp, version_buf, it->GetRemoteVersionAddr(), sizeof(version_t))) {
+      return false;
+    }
+  }
+#endif
+
+
+  return true;
+}
+
+
 //DAM unlock all
 bool DTX::IssueUnlocking() {
   // Release: set visible and unlock remote data

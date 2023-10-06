@@ -174,6 +174,9 @@ class DTX {
 
   bool IssueValidate(std::vector<ValidateRead>& pending_validate);
 
+  bool IssueValidate1(std::vector<ValidateRead>& pending_validate);
+  bool IssueValidate2(std::vector<ValidateRead>& pending_validate);
+
   bool IssueUnlocking(); //FORD unlock all 
 
   bool IssueCommitAll(std::vector<CommitWrite>& pending_commit_write, char* cas_buf);

@@ -416,9 +416,11 @@ int fd_client(int machine_id_){
 //Communicate with the failure detector
 void HeartBeats(int machine_id_){
     //live beacoins.
+    RDMA_LOG (INFO) << "Trying to connect to grpc FD server";
     GreeterClient greeter(grpc::CreateChannel("10.10.1.8:50051", grpc::InsecureChannelCredentials()));
     std::string user("node "+ machine_id_);
      struct timespec timer_start,timer_end;
+     RDMA_LOG (INFO) << "FD server: Connected";
 	
  	 #ifdef HEARTBEATS
     while(true){

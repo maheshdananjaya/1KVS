@@ -177,7 +177,7 @@ void InitCounters(node_id_t machine_num, node_id_t machine_id, t_id_t thread_num
 void CollectStats(struct thread_params* params){
 
   //For grpc clinet- FD alsways runs on 10.10.1.1
-  #ifdef FD
+  #ifdef FD_INSIDE_STAT
     GreeterClient greeter(grpc::CreateChannel("10.10.1.1:50051", grpc::InsecureChannelCredentials()));
     std::string user("node "+ machine_id_);
   #endif
@@ -308,7 +308,7 @@ void CollectStats(struct thread_params* params){
           last_usec = curr_time;
 
 
-          #ifdef FD
+          #ifdef FD_INSIDE_STAT
             //Send messages to the fault detector.
             clock_gettime(CLOCK_REALTIME, &timer_end);
             double grpc_start_time =  (double) timer_end.tv_sec *1000000 + (double)(timer_end.tv_nsec)/1000;

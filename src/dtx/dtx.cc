@@ -473,7 +473,11 @@ bool DTX::UndoLogWithoutInserts() {
   for (auto& set_it : read_write_set) { 
 
     //if (!set_it.is_logged  && !set_it.item_ptr->user_insert ) num_log_entries++;
-    if (set_it.is_fetched && !set_it.is_logged) num_log_entries++;
+    #ifdef LATCH_TO_LOG_ORDER
+      if (set_it.is_locked_flag && set_it.is_fetched && !set_it.is_logged) num_log_entries++;
+    #else
+      if (set_it.is_fetched && !set_it.is_logged) num_log_entries++;
+    #endif
   }
 
   if(num_log_entries == 0) return false;
@@ -485,8 +489,11 @@ bool DTX::UndoLogWithoutInserts() {
   for (auto& set_it : read_write_set) { 
 
     //if (!set_it.is_logged && !set_it.item_ptr->user_insert) { 
+    #ifdef LATCH_TO_LOG_ORDER
+    if (set_it.is_locked_flag && set_it.is_fetched && !set_it.is_logged) {   
+    #else
     if (set_it.is_fetched && !set_it.is_logged) {           
-      
+    #endif    
       UndoLogRecord new_record;
       new_record.tx_id_ = tx_id;
       new_record.t_id_= 0 ; // initially t_id; but last falg is set to 0

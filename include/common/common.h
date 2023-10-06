@@ -66,7 +66,10 @@ typedef struct atomic_record{
 #define STATS
 
 //POtential Fixes.
-//#define FIX_COVERT_LOCKS
+
+//#define LATCH_TO_LOG_ORDER //order lock and latches . either this or COROID_AS_LOCK. not at the same time
+//#define FIX_COVERT_LOCKS //order lock and validate
+
 #define FIX_VALIDATE_ERROR
 #define FIX_ABORT_ISSUE
 //#define FIX_RO_READ

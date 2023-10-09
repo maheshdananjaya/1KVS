@@ -224,7 +224,7 @@ void CollectStats(struct thread_params* params){
   while(true){
 
       //check if any of the transactions are done or have reached the attemp txs.
-        usleep(5000);
+        usleep(1000);
       
 
           uint64_t now_tx_count = 0;

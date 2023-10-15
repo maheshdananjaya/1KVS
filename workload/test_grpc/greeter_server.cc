@@ -114,8 +114,8 @@ class GreeterServiceImpl final : public Greeter::Service {
     int machine_id = std::stoi(v.at(0)); 
     std::string status = v.at(1);   
 
-    std::cout << "Sender " << machine_id << std::endl;
-    std::cout << "Message " << status << std::endl;
+    //std::cout << "Sender " << machine_id << std::endl;
+    //std::cout << "Message " << status << std::endl;
 
     if(status == "ACTIVE"){
       
@@ -126,13 +126,13 @@ class GreeterServiceImpl final : public Greeter::Service {
         if(status_refconf[machine_id]==0){      
           status_refconf[machine_id] = 1;
           tot_nume_config_sent++;
-          prefix.assign(machine_id+",RECONFIGURE:"+last_config);
+          prefix.assign(std::to_string(machine_id)+",RECONFIGURE:"+last_config);
         }
         else
-        prefix.assign(machine_id+",ACK");
+        prefix.assign(std::to_string(machine_id)+",ACK");
 
       }else{
-        prefix.assign(machine_id+",ACK");
+        prefix.assign(std::to_string(machine_id)+",ACK");
       }
 
     }
@@ -143,7 +143,7 @@ class GreeterServiceImpl final : public Greeter::Service {
       failed_process_ids.assign(v.at(2));
 
       //delineated by 
-      prefix.assign(machine_id+",RECOVERY,"+ failed_process_ids); // start-end
+      prefix.assign(std::to_string(machine_id)+",RECOVERY,"+ failed_process_ids); // start-end
 
     }
 
@@ -159,7 +159,7 @@ class GreeterServiceImpl final : public Greeter::Service {
       reconf_time = true;
 
       //RECONFIGURE
-      prefix.assign(machine_id+",RESUME"); //includes reconf. or all reconfig. special message.
+      prefix.assign(std::to_string(machine_id)+",RESUME"); //includes reconf. or all reconfig. special message.
 
     }
     else if(status == "RECONF_DONE"){
@@ -176,7 +176,7 @@ class GreeterServiceImpl final : public Greeter::Service {
 
         }
 
-        prefix.assign(machine_id+",ACK"); // send a normal act
+        prefix.assign(std::to_string(machine_id)+",ACK"); // send a normal act
     }else{
 
       printf("Unknown"); // error.
@@ -194,7 +194,7 @@ class GreeterServiceImpl final : public Greeter::Service {
 
 //This is DAM Failure Detector
 void RunServer() {
-  std::string server_address("0.0.0.0:50051");
+  std::string server_address("10.10.1.8:50051");
   GreeterServiceImpl service;
 
   grpc::EnableDefaultHealthCheckService(true);

@@ -166,6 +166,7 @@ void InitCounters(node_id_t machine_num, node_id_t machine_id, t_id_t thread_num
   num_mem_crashes = 0;
   mem_crash_enable = false;
   mem_crash_tnums = 0;
+  process_state=0;
   //#ifdef UNDO_RECOVERY
   //  addr_cache = new AddrCache();
   //#endif
@@ -224,7 +225,7 @@ void CollectStats(struct thread_params* params){
   while(true){
 
       //check if any of the transactions are done or have reached the attemp txs.
-        usleep(1000);
+        usleep(10000);
       
 
           uint64_t now_tx_count = 0;
@@ -427,55 +428,92 @@ void HeartBeats(int machine_id_){
 
     clock_gettime(CLOCK_REALTIME, &timer_end);
 
-            usleep(200); //200 microseconds. heartneats?.
+            usleep(2500); //200 microseconds. heartneats?.
 
             double grpc_start_time =  (double) timer_end.tv_sec *1000000 + (double)(timer_end.tv_nsec)/1000;
                      
               std::string reply;
               if(crash_emu &&  (process_state==0)){ 
-                
-                reply = greeter.SayHello(machine_id_ +",FAILED,0-0");
+               RDMA_LOG(INFO) << "Suspect Failures";
+		
+	       std::string sft= std::to_string( (num_crashes*thread_num_per_machine_)+1);
+	       std::string eft= std::to_string(  (num_crashes*thread_num_per_machine_)+1+(thread_num_per_machine_/2));
 
-                std::string machine_id = (reply).substr(0, reply.find(",")); 
-                std::string cmd = (reply).substr(1, reply.find(","));
+                reply = greeter.SayHello(std::to_string(machine_id_) +",FAILED,"+ sft+"-" + eft+"0");
+		RDMA_LOG(INFO) << "Message:" << reply;
 
+                //std::string machine_id = (reply).substr(0, reply.find(",")); 
+                //std::string cmd = (reply).substr(1, reply.find(","));
+
+		//std::string token = s.substr(0, s.find(delimiter));
+		//s.erase(0, s.find(delimiter) + delimiter.length());
+		//
+
+		//New cide with split
+
+		std::vector<std::string> v;
+		split2(reply, v, ',');
+
+		//int machine_id = std::stoi(v.at(0));
+   		std::string machine_id =  v.at(0); //std::stoi(v.at(0)); 
+		std::string cmd = v.at(1);
+	
+
+		RDMA_LOG(WARNING) << cmd;
                 if(cmd=="RECOVERY"){
-                  std::string failed_coords = (reply).substr(2, reply.find(","));
-                  std::string start_coord = (failed_coords).substr(0, failed_coords.find("-")); 
-                  std::string end_coord = (failed_coords).substr(1, failed_coords.find("-"));
+			RDMA_LOG(INFO) << "Recovery Message Received";
+                  std::string failed_coords =  v.at(2);  // (reply).substr(2, reply.find(","));
+
+		  std::string start_coord = (failed_coords).substr(0, failed_coords.find("-")); 
+                  std::string end_coord = (failed_coords).substr(failed_coords.find("-")+1, failed_coords.length());
                   //recovery. call recovery.
                   process_state=1; //failed.
                 }
               }
 
               else if(process_state==1) {
-                  //Recovery. 
+                  //Recovery.
+		  RDMA_LOG(INFO) << "Staring Recovery"; 
+		  process_state=2;
 
               }
               else if(process_state==2){
 
-                  reply = greeter.SayHello(machine_id_ +",RECOVERY_DONE");
-                  process_state==0; // need reconf here. 
+                  reply = greeter.SayHello(std::to_string(machine_id_)+",RECOVERY_DONE");
+		  //get reconfigurations
+		  RDMA_LOG(INFO) << reply;
+                  
+		  process_state=3; // need reconf here. 
+	          // __asm__ __volatile__("mfence":::"memory");
 
               }
+	      else if(process_state==3){
+			//waitnig for reconfigurations.
+			RDMA_LOG(INFO) << "Reconfigurating....";
+			if(!crash_emu) process_state=0;
+	      }
 
               else{
-               reply = greeter.SayHello(machine_id_ +",ACTIVE");
+			      
+               //reply = greeter.SayHello(machine_id_ +",ACTIVE");
+		    
+	       reply = greeter.SayHello(std::to_string(machine_id_)+",ACTIVE");
+	       //RDMA_LOG(WARNING) << reply;
               }
 
                         
-            if(crash_emu) std::cout << reply << std::endl;
+            //if(crash_emu) std::cout << reply << std::endl;
   
             clock_gettime(CLOCK_REALTIME, &timer_end);
             double grpc_end_time =  (double) timer_end.tv_sec *1000000 + (double)(timer_end.tv_nsec)/1000;
 
 
           //termination condition
-          if(all_thread_done){
-            usleep(1000000);
-            file_out.close(); 
-            return;
-          }
+          //if(all_thread_done){
+            //usleep(1000000);
+            //file_out.close(); 
+            //return;
+          //}
     }
 
     #endif //HEARTBEATS
@@ -514,7 +552,7 @@ void HeartBeatsZK(struct thread_params* params){
                 reply = greeter.SayHello(machine_id_ +",FAILED,0-0");
 
                 std::string machine_id = (reply).substr(0, reply.find(",")); 
-                std::string cmd = (reply).substr(1, reply.find(","));
+                std::string cmd = (reply).substr(2, reply.find(","));
 
                 if(cmd=="RECOVERY"){
                   std::string failed_coords = (reply).substr(2, reply.find(","));
@@ -550,7 +588,7 @@ void HeartBeatsZK(struct thread_params* params){
           //termination condition
           if(all_thread_done){
             usleep(1000000);
-            file_out.close(); 
+            //file_out.close(); 
             return;
           }
     }

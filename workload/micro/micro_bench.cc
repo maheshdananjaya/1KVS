@@ -93,7 +93,7 @@ extern bool crash_emu;
 extern t_id_t new_base_tid;
 extern uint64_t num_crashes;
 
-#define CRASH_INTERVAL 40000
+#define CRASH_INTERVAL 500000
 __thread uint64_t next_crash_count=CRASH_INTERVAL;
 
 
@@ -599,7 +599,7 @@ void RunTx(coro_yield_t& yield, coro_id_t coro_id) {
           new_base_tid = thread_gid + (thread_num*num_crashes);
           dtx->ChangeCurrentTID(new_base_tid);
           #ifdef NORESUME
-	  	usleep(30000000);
+	  	usleep(300000000);
 		RDMA_LOG(INFO) << "END of SLEEP";
 	  #endif
           crash_emu = false;

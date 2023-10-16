@@ -32,3 +32,6 @@ add_subdirectory(validations)
 if(GRPC_FD) 
 	add_subdirectory(test_grpc)
 endif()
+
+
+add_subdirectory(test_zk)

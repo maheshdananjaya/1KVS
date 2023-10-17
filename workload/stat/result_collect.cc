@@ -7,6 +7,7 @@
 
 #ifdef FD
 #include "stat/grpc_client.h"
+#include "test_zk/zk_cpp_client.h"
 #endif
 
 std::atomic<uint64_t> tx_id_generator;
@@ -520,6 +521,73 @@ void HeartBeats(int machine_id_){
 
 }
 
+
+
+void ZK_HeartBeats(int machine_id_){
+   
+   struct timespec timer_start,timer_end;
+   //clock_gettime(CLOCK_REALTIME, &timer_start);
+   double zk_start_time, zk_end_time;
+
+#ifdef ZK_HEARTBEATS
+	std::string urls = "10.10.1.7:2181"; //use command for quorums
+	utility::zk_cpp zk;
+	utility::zoo_rc ret = zk.connect(urls);
+        
+	if (ret != utility::z_ok) {
+            printf("try connect zk server failed, code[%d][%s]\n", 
+                ret, utility::zk_cpp::error_string(ret));
+            
+        }
+
+	
+
+	std::string path, value;
+        int32_t flag;
+	
+	bool is_fd_alive=false;
+	do{
+
+		clock_gettime(CLOCK_REALTIME, &timer_start);
+		zk_start_time =  (double) timer_start.tv_sec *1000000 + (double)(timer_start.tv_nsec)/1000;
+
+		path="/fd";
+		 utility::zoo_rc ret = zk.exists_node(path.c_str(), nullptr, true);
+         
+		 clock_gettime(CLOCK_REALTIME, &timer_end);
+	 	 zk_end_time = (double) timer_end.tv_sec *1000000 + (double)(timer_end.tv_nsec)/1000;
+		  
+		 RDMA_LOG(INFO) << "ZK ROun Trip Time " << (zk_end_time - zk_start_time);
+
+	         printf("try_check path[%s] exist[%d], ret[%d][%s]\n",
+		       	 path.c_str(), ret == utility::z_ok, ret, utility::zk_cpp::error_string(ret));	
+			 
+	 if(ret == utility::z_ok) break;
+	}while(1);
+
+	while(true){
+		usleep(2500);
+		if(!crash_emu){
+			path="/fd/"+std::to_string(machine_id_);
+			value= "0"; flag=0;
+			std::vector<utility::zoo_acl_t> acl;
+        		acl.push_back(utility::zk_cpp::create_world_acl(utility::zoo_perm_all));
+        		ret = zk.create_persistent_node(path.c_str(), value, acl);
+			//printf("create path[%s] flag[%d] ret[%d][%s], rpath[%s]\n",
+                	  //  path.c_str(), flag, ret, utility::zk_cpp::error_string(ret), rpath.c_str());
+
+		}
+		else{
+			path="/fd/"+std::to_string(machine_id_);	
+			utility::zoo_rc ret = zk.delete_node(path.c_str(), -1);
+                	printf("try delete path[%s], ret[%d][%s]\n",
+                    path.c_str(), ret, utility::zk_cpp::error_string(ret));
+		}
+
+	}
+		
+#endif	
+}
 #endif
 
 
@@ -530,7 +598,7 @@ void HeartBeats(int machine_id_){
 //Communicate with the failure detector
 void HeartBeatsZK(struct thread_params* params){
     //live beacoins.
-    GreeterClient greeter(grpc::CreateChannel("10.10.1.1:50051", grpc::InsecureChannelCredentials()));
+    
     std::string user("node "+ machine_id_);
 
 	 struct timespec timer_start,timer_end;

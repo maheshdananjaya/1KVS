@@ -29,6 +29,7 @@ void CollectResult(std::string workload_name, std::string system_name);
 
 #ifdef FD
 void HeartBeats(int machine_id_);
+void ZK_HeartBeats(int machine_id_);
 void HeartBeatsZK(struct thread_params* params);
 #endif
 

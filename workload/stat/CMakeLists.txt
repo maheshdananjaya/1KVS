@@ -25,6 +25,8 @@ add_custom_command(
 # Include generated *.pb.h files
 include_directories("${CMAKE_CURRENT_BINARY_DIR}")
 
+#include_directories(../test_zk)
+
 add_library(hw_grpc_proto_client_stat
   ${hw_grpc_srcs}
   ${hw_grpc_hdrs}

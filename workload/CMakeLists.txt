@@ -19,7 +19,7 @@ set(WORKLOAD_LIB ford)
 
 add_subdirectory(test_zk)
 
-#set(ZK_CPP_CLIENT zk_zpp_client)
+set(ZK_CPP_CLIENT zk_cpp_client)
 
 add_subdirectory(stat)
 

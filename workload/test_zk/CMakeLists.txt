@@ -25,8 +25,15 @@ add_executable(zk_client ${WORKLOAD_RUN})
 target_link_libraries(zk_client zk_cpp zookeeper_mt)
 
 #for stat
-add_library(zk_cpp_client STATIC ${WORKLOAD_SOURCES} ${WORKLOAD_RUN})
+
+add_library(zk_cpp_client STATIC zk_cpp_client.h)
 set_target_properties(zk_cpp_client PROPERTIES LINKER_LANGUAGE CXX)
-target_link_libraries(zk_cpp_client zookeeper_mt)
+target_link_libraries(zk_cpp_client zk_cpp zookeeper_mt)
+
+target_include_directories(zk_cpp_client
+  PUBLIC
+    ${CMAKE_CURRENT_LIST_DIR}
+  )
+
 #add_subdirectory(test_zk)
 #set ()

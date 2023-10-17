@@ -51,7 +51,7 @@ endif()
 set(WORKLOAD_SOURCES result_collect.cc)
 add_library(stat STATIC ${WORKLOAD_SOURCES})
 set_target_properties(stat PROPERTIES LINKER_LANGUAGE CXX)
-target_link_libraries(stat client ${WORKLOAD_LIB})
+target_link_libraries(stat client ${WORKLOAD_LIB}  ${ZK_CPP_CLIENT})
 
 if(GRPC_FD)
 	#target_link_libraries(stat ${WORKLOAD_LIB} hw_grpc_proto_client_stat ${_REFLECTION} ${_GRPC_GRPCPP} ${_PROTOBUF_LIBPROTOBUF} )

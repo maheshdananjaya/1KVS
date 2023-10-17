@@ -17,6 +17,10 @@ set(WORKLOAD_LIB ford)
 #add_subdirectory(test_erpc)
 #grpc++
 
+add_subdirectory(test_zk)
+
+#set(ZK_CPP_CLIENT zk_zpp_client)
+
 add_subdirectory(stat)
 
 add_subdirectory(tpcc)
@@ -34,4 +38,4 @@ if(GRPC_FD)
 endif()
 
 
-add_subdirectory(test_zk)
+#add_subdirectory(test_zk)

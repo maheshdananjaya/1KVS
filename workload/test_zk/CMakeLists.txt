@@ -23,3 +23,10 @@ set(WORKLOAD_RUN zk_cpp_test.cpp)
 add_executable(zk_client ${WORKLOAD_RUN})
 
 target_link_libraries(zk_client zk_cpp zookeeper_mt)
+
+#for stat
+add_library(zk_cpp_client STATIC ${WORKLOAD_SOURCES} ${WORKLOAD_RUN})
+set_target_properties(zk_cpp_client PROPERTIES LINKER_LANGUAGE CXX)
+target_link_libraries(zk_cpp_client zookeeper_mt)
+#add_subdirectory(test_zk)
+#set ()

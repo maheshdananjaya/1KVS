@@ -114,6 +114,7 @@ extern std::atomic<uint64_t> mem_crash_tnums;
 //extern uint64_t num_mem_crashes;
 #endif
 extern uint64_t num_mem_crashes;
+extern int process_state; 
 /******************** The business logic (Transaction) start ********************/
 
 struct DataItemDuplicate {
@@ -553,12 +554,25 @@ void RunTx(coro_yield_t& yield, coro_id_t coro_id) {
       if( (stat_attempted_tx_total >= next_crash_count) && (thread_gid==0) && (num_crashes==0)){
           printf("Crashed-Recovery Start \n");
 
-          crash_emu = true;
+          struct timespec zk_timer_start,zk_timer_end; 
+	  double zk_start_time, zk_end_time;
+	  clock_gettime(CLOCK_REALTIME, &zk_timer_start);
+	  zk_start_time =  (double) zk_timer_start.tv_sec *1000000 + (double)(zk_timer_start.tv_nsec)/1000;
+          
+	crash_emu = true;
            __asm__ __volatile__("mfence":::"memory"); //NEEDED HERE
           //send a crash signal to failure detector.         
           // send a signal and get the ack back
           usleep(56); //
-          usleep(5000);
+          
+	#ifdef ZK_HEARTBEATS 
+		while(process_state==0){
+			 __asm__ __volatile__("mfence":::"memory"); //NEEDED HERE
+		}
+		RDMA_LOG(INFO) << "Get Recovery Start";
+	#else
+	  usleep(5000);
+	#endif  
           //Danger
           coro_sched->PollCompletion();
 
@@ -575,6 +589,15 @@ void RunTx(coro_yield_t& yield, coro_id_t coro_id) {
               dtx->TxUndoRecovery(yield, addr_caches, start_thread_id, end_thread_id);
 
               usleep(56); // grpc latency.
+
+		#ifdef ZK_HEARTBEAT
+		  process_state = 2;
+		   __asm__ __volatile__("mfence":::"memory"); //NEEDED HERE
+		  while(process_state ==2){
+			 __asm__ __volatile__("mfence":::"memory"); //NEEDED HERE	  
+		  }
+		  RDMA_LOG(INFO) << "Moving to Reconf";
+	      	#endif
 
               for(int f=0; f < (thread_num/2); f++){
 
@@ -602,7 +625,14 @@ void RunTx(coro_yield_t& yield, coro_id_t coro_id) {
 	  	usleep(300000000);
 		RDMA_LOG(INFO) << "END of SLEEP";
 	  #endif
-          crash_emu = false;
+         
+		clock_gettime(CLOCK_REALTIME, &zk_timer_end);
+                 zk_end_time = (double) zk_timer_end.tv_sec *1000000 + (double)(zk_timer_end.tv_nsec)/1000;
+
+                 RDMA_LOG(INFO) << "Total Recovery Time : " << (zk_end_time - zk_start_time);
+ 
+	       
+		crash_emu = false;
            __asm__ __volatile__("mfence":::"memory"); //NEEDED HERE
           printf("Crashed-Recovery End \n");
 

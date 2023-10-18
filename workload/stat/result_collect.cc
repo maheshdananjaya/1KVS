@@ -429,19 +429,20 @@ void HeartBeats(int machine_id_){
 
     clock_gettime(CLOCK_REALTIME, &timer_end);
 
-            usleep(2500); //200 microseconds. heartneats?.
+            usleep(1000); //200 microseconds. heartneats?.
 
             double grpc_start_time =  (double) timer_end.tv_sec *1000000 + (double)(timer_end.tv_nsec)/1000;
                      
               std::string reply;
               if(crash_emu &&  (process_state==0)){ 
-               RDMA_LOG(INFO) << "Suspect Failures";
+               //RDMA_LOG(INFO) << "Suspect Failures";
 		
 	       std::string sft= std::to_string( (num_crashes*thread_num_per_machine_)+1);
 	       std::string eft= std::to_string(  (num_crashes*thread_num_per_machine_)+1+(thread_num_per_machine_/2));
 
                 reply = greeter.SayHello(std::to_string(machine_id_) +",FAILED,"+ sft+"-" + eft+"0");
-		RDMA_LOG(INFO) << "Message:" << reply;
+		
+		//RDMA_LOG(INFO) << "Message:" << reply;
 
                 //std::string machine_id = (reply).substr(0, reply.find(",")); 
                 //std::string cmd = (reply).substr(1, reply.find(","));
@@ -460,7 +461,7 @@ void HeartBeats(int machine_id_){
 		std::string cmd = v.at(1);
 	
 
-		RDMA_LOG(WARNING) << cmd;
+		//RDMA_LOG(WARNING) << cmd;
                 if(cmd=="RECOVERY"){
 			RDMA_LOG(INFO) << "Recovery Message Received";
                   std::string failed_coords =  v.at(2);  // (reply).substr(2, reply.find(","));
@@ -469,13 +470,15 @@ void HeartBeats(int machine_id_){
                   std::string end_coord = (failed_coords).substr(failed_coords.find("-")+1, failed_coords.length());
                   //recovery. call recovery.
                   process_state=1; //failed.
+			__asm__ __volatile__("mfence":::"memory"); //NEEDED HERE
                 }
               }
 
               else if(process_state==1) {
                   //Recovery.
-		  RDMA_LOG(INFO) << "Staring Recovery"; 
-		  process_state=2;
+		  //RDMA_LOG(INFO) << "Staring Recovery"; 
+		  
+		  //process_state=2;
 
               }
               else if(process_state==2){
@@ -566,7 +569,7 @@ void ZK_HeartBeats(int machine_id_){
 	}while(1);
 
 	while(true){
-		usleep(2500);
+		usleep(1000);
 		if(!crash_emu){
 			path="/fd/"+std::to_string(machine_id_);
 			value= "0"; flag=0;
@@ -580,8 +583,7 @@ void ZK_HeartBeats(int machine_id_){
 		else{
 			path="/fd/"+std::to_string(machine_id_);	
 			utility::zoo_rc ret = zk.delete_node(path.c_str(), -1);
-                	printf("try delete path[%s], ret[%d][%s]\n",
-                    path.c_str(), ret, utility::zk_cpp::error_string(ret));
+                	//printf("try delete path[%s], ret[%d][%s]\n", path.c_str(), ret, utility::zk_cpp::error_string(ret));
 		}
 
 	}

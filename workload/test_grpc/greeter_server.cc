@@ -30,6 +30,9 @@
 #include "helloworld.grpc.pb.h"
 #endif
 
+#include <thread>
+#include "test_zk/zk_cpp_client.h"
+
 using grpc::Server;
 using grpc::ServerBuilder;
 using grpc::ServerContext;
@@ -73,6 +76,8 @@ int status_refconf [NUM_MAX_SERVERS];
 // 0- no. 1- sent 2- acked
 int tot_nume_config_sent=0;
 //we need to drop messages
+//
+bool  marked_failed=false;
 
 size_t split(const std::string &txt, std::vector<std::string> &strs, char ch)
 {
@@ -141,10 +146,15 @@ class GreeterServiceImpl final : public Greeter::Service {
 
       //failed_process_ids.assign ((req).substr(2, req.find(",")));
       failed_process_ids.assign(v.at(2));
-
+	
       //delineated by 
-      prefix.assign(std::to_string(machine_id)+",RECOVERY,"+ failed_process_ids); // start-end
-
+      if(marked_failed){
+	std::cout << "Marked Suspected Recovery ";
+	prefix.assign(std::to_string(machine_id)+",RECOVERY,"+ failed_process_ids); // start-end
+      }
+      else{
+      	prefix.assign(std::to_string(machine_id)+",WAIT_RECOVERY,"+ failed_process_ids); // start-end
+       }
     }
 
     else if(status == "RECOVERY_DONE") {
@@ -214,8 +224,109 @@ void RunServer() {
   server->Wait();
 }
 
+
+void init_zk_watch(std::string msg){
+		
+	 struct timespec timer_start,timer_end;
+   //clock_gettime(CLOCK_REALTIME, &timer_start);
+   double zk_start_time, zk_end_time;
+
+        std::string urls = "10.10.1.3:2181,10.10.1.4:2181,10.10.1.7:2181"; //use command for quorums
+        utility::zk_cpp zk;
+        utility::zoo_rc ret = zk.connect(urls);
+
+        if (ret != utility::z_ok) {
+            printf("try connect zk server failed, code[%d][%s]\n",
+                ret, utility::zk_cpp::error_string(ret));
+
+        }
+
+	printf("zookeeper connected!");
+
+        std::string path, value;
+        int32_t flag;
+	 std::string rpath = path;
+          //utility::zoo_rc ret = utility::z_ok;
+
+        bool is_fd_alive=false;
+        do{
+
+                clock_gettime(CLOCK_REALTIME, &timer_start);
+                zk_start_time =  (double) timer_start.tv_sec *1000000 + (double)(timer_start.tv_nsec)/1000;
+
+                path="/fd";
+                 utility::zoo_rc ret = zk.exists_node(path.c_str(), nullptr, true);
+		   clock_gettime(CLOCK_REALTIME, &timer_end);
+                 zk_end_time = (double) timer_end.tv_sec *1000000 + (double)(timer_end.tv_nsec)/1000;
+
+		 std::cout  << "ZK ROun Trip Time " << (zk_end_time - zk_start_time);
+
+                 printf("try_check path[%s] exist[%d], ret[%d][%s]\n",
+                         path.c_str(), ret == utility::z_ok, ret, utility::zk_cpp::error_string(ret));
+
+         if(ret == utility::z_ok) break;
+	 else{
+		 	path="/fd";
+                        value= "0"; flag=0;
+                        std::vector<utility::zoo_acl_t> acl;
+                        acl.push_back(utility::zk_cpp::create_world_acl(utility::zoo_perm_all));
+                        ret = zk.create_persistent_node(path.c_str(), value, acl);
+                        printf("create path[%s] flag[%d] ret[%d][%s], rpath[%s]\n",
+                           path.c_str(), flag, ret, utility::zk_cpp::error_string(ret), rpath.c_str());
+	
+	 }
+
+        }while(1);
+
+        while(true){
+                usleep(2500);
+                
+                std::vector<std::string> children;
+
+                path="/fd";
+
+                utility::zoo_rc ret = zk.get_children(path.c_str(), children, true);
+                //printf("try get path[%s]'s children's, children count[%d], ret[%d][%s]\n",
+                   // path.c_str(), (int32_t)children.size(), ret, utility::zk_cpp::error_string(ret));
+
+                std::string list;
+                list.append("[");
+
+                for (int32_t i = 0; i < (int32_t)children.size(); ++i) {
+                    //printf("%s\n", children[i].c_str());
+                    list.append(children[i]).append(", ");
+                }
+
+                list.append("]");
+
+                //printf("%s\n", list.c_str());
+		//
+		if((int32_t)children.size() ==0){
+			
+			usleep(5000);
+			marked_failed = true;
+			__asm__ __volatile__("mfence":::"memory"); //NEEDED HERE
+
+		}else{
+			 marked_failed = false;
+                        __asm__ __volatile__("mfence":::"memory"); //NEEDED HERE
+
+		}	
+
+        }
+
+
+
+}
+
 int main(int argc, char** argv) {
-  RunServer();
+ 
+	//Init zookeeper
+	std::thread t(init_zk_watch, "NOW");
+
+	RunServer();
+
+	t.join();
 
   return 0;
 }

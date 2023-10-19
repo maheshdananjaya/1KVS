@@ -66,5 +66,7 @@ foreach(_target
     hw_grpc_proto
     ${_REFLECTION}
     ${_GRPC_GRPCPP}
-    ${_PROTOBUF_LIBPROTOBUF})
+    ${_PROTOBUF_LIBPROTOBUF}
+    zk_cpp_client
+    )
 endforeach()

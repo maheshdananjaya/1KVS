@@ -52,7 +52,7 @@ if(GRPC_FD)
 	FetchContent_Declare(
 	  gRPC
 	  GIT_REPOSITORY https://github.com/grpc/grpc
-	  GIT_TAG        master #v1.51.2 #master  # e.g v1.28.0
+	  GIT_TAG        v1.61.x #master #v1.51.2 #master  # e.g v1.28.0
 	)
 	set(FETCHCONTENT_QUIET OFF)
 	FetchContent_MakeAvailable(gRPC)

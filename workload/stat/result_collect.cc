@@ -59,7 +59,7 @@ t_id_t thread_num_per_machine_;
  uint64_t tx_attempted alignas(8)[STAT_NUM_MAX_THREADS];
  uint64_t tx_commited alignas(8) [STAT_NUM_MAX_THREADS];
  bool thread_done [STAT_NUM_MAX_THREADS];
- 
+ bool all_thread_done {false};
  double window_start_time alignas(8) [STAT_NUM_MAX_THREADS];
  double window_curr_time alignas (8) [STAT_NUM_MAX_THREADS];
 
@@ -240,14 +240,12 @@ void CollectStats(struct thread_params* params){
           clock_gettime(CLOCK_REALTIME, &timer_end);
           double curr_time =  (double) timer_end.tv_sec *1000000 + (double)(timer_end.tv_nsec)/1000;
 
-          bool all_thread_done=true;
-
-
+          bool all_done = true;
 
             for(int t = 0; t < thread_num_per_machine_ ; t++){
               
               if (!thread_done[t]) {
-                  all_thread_done &= false;;
+                  all_done &= false;;
                 //file_out.close(); return;
               }else{
                 continue;
@@ -332,7 +330,8 @@ void CollectStats(struct thread_params* params){
           //For GRPC round trips
           //std::cout << "Ack received: " << reply  << " Time spent(RTT) " << (grpc_end_time - grpc_start_time) << std::endl;
 
-          if(all_thread_done){
+          if(all_done){
+	    all_thread_done = true;
             usleep(1000000);
             file_out.close(); 
             return;
@@ -513,11 +512,11 @@ void HeartBeats(int machine_id_){
 
 
           //termination condition
-          //if(all_thread_done){
-            //usleep(1000000);
+          if(all_thread_done){
+            usleep(1000000);
             //file_out.close(); 
-            //return;
-          //}
+            return;
+          }
     }
 
     #endif //HEARTBEATS

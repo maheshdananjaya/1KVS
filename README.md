@@ -62,14 +62,14 @@ git clone https://github.com/maheshdananjaya/cloudlab-config.git
 # Running Experiments
  We typically start out experients from node-2 which is 10.1.1.2. You can do the following with the correct ip.
 
-- You can run experients from your machine or from 10.1.1.2. For exmaple you can fail-over throughut experiments like
+You can run experients from your machine or from 10.1.1.2. For exmaple you can fail-over throughut experiments like
 
 ```sh
 ssh 10.1.1.2
 cd 1KVS/scripts
 ./run_failover_tput.sh
 ```
-
+ NOTE:  All these scripts can be run from cx_init_cloudlab.sh. No need to run seperately or do ssh. 
 
 # Extracting Results
 All the results are saved into results/ folder. We usually get these files and load them into google docs which we use to generate plots.

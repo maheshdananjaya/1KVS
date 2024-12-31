@@ -62,6 +62,8 @@ git clone https://github.com/maheshdananjaya/cloudlab-config.git
 # Running Experiments
  We typically start out experients from node-2 which is 10.1.1.2. You can do the following with the correct ip.
 
+- You can run experients from your machine or from 10.1.1.2. For exmaple you can fail-over throughut experiments like
+
 ```sh
 ssh 10.1.1.2
 cd 1KVS/scripts

@@ -675,13 +675,14 @@ void RunTx(coro_yield_t& yield, coro_id_t coro_id) {
     #ifdef MEM_FAILURES
       #ifdef MEM_CRASH_ENABLE
         
-        if(thread_gid==0 && ((stat_attempted_tx_total==(ATTEMPED_NUM/3)) && !mem_crash_enable) && (num_mem_crashes==0)){  
+        //if(thread_gid==0 && ((stat_attempted_tx_total==(ATTEMPED_NUM/3)) && !mem_crash_enable) && (num_mem_crashes==0)){  
+        if((thread_gid==0) && (stat_attempted_tx_total >= next_crash_count) && (!mem_crash_enable) && (num_mem_crashes==0)){
           mem_crash_enable = true;
           mem_crash_coros++ ;
            __asm__ __volatile__("mfence":::"memory");
 
           //sleep(50);
-
+          while (!coro_sched->CheckLogAck(coro_id));
           coro_sched->Yield(yield, coro_id, true); //r emmeber to use waiting one. not
   
           //dtx->TxUndoRecovery(yield, addr_caches, 0, STAT_NUM_MAX_THREADS);
@@ -883,7 +884,7 @@ void run_thread(struct thread_params* params) {
       #endif
 
       #ifdef LATCH_STALL_RECOVERY
-	break;
+	//break;
   	#endif	
 
       #ifdef MEM_FAILURES

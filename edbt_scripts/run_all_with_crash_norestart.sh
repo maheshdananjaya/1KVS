@@ -13,6 +13,8 @@ sed -i '100c #define CRASH_ENABLE' include/common/common.h
 sed -i '101c #define NORESUME' include/common/common.h
 sed -i '108c //#define LATCH_STALL' include/common/common.h
 sed -i '109c #define LATCH_STALL_RECOVERY' include/common/common.h
+sed -i '103c //#define MEM_FAILURES' include/common/common.h
+sed -i '104c //#define MEM_CRASH_ENABLE' include/common/common.h
 
 rm -rf build
 bash build.sh

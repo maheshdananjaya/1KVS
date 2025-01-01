@@ -29,6 +29,8 @@ do
         bash tatp.sh
         bash tpcc.sh
 
+        bash run_extract_compute.sh
+
         mv ../build/workload/micro/result_all_threads.txt ../edbt_results/micro_crash_no_restart_${INDEX}
         mv ../build/workload/smallbank/result_all_threads.txt ../edbt_results/smallbank_crash_norestart_${INDEX}
         mv ../build/workload/tatp/result_all_threads.txt ../edbt_results/tatp_crash_norestart_${INDEX}

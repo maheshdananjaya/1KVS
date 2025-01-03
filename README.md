@@ -72,4 +72,17 @@ cd 1KVS/scripts
  NOTE:  All these scripts can be run from cx_init_cloudlab.sh. No need to run seperately or do ssh. 
 
 # Extracting Results
-All the results are saved into results/ folder. We usually get these files and load them into google docs which we use to generate plots.
+All the results are saved into results/ folder. These files contains raw and average data files sampled with a given interval. We usually get these files and load them into google docs which we use to generate plots.
+
+# Zookeeper Setup
+In order to run zookepeer in distributed setting we curently manually set up the zookeeper cluster using DAM-RFD project. On each machien we run this.
+```sh
+git clone https://github.com/maheshdananjaya/DAM-RFD
+cd DAM_RFD
+bash build_zk_server
+```
+
+And then we manuallty configure zookeeper. Experiments can then use zookeeper cluster with ZK flags. 
+
+# Ltmus Testing
+All the litmus tests are in workload/validation folder. 

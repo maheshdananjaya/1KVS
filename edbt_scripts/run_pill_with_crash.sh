@@ -8,7 +8,7 @@ cd ../
 for MTTS in 5000000 500000 100000 50000 25000 12500;
 do
 
-sed -i '96c #define CRASH_INTERVAL ${MTTS}' workload/micro/micro_bench.cc
+sed -i "96c #define CRASH_INTERVAL ${MTTS}" workload/micro/micro_bench.cc
 
 
 sed -i '100c #define CRASH_ENABLE' include/common/common.h

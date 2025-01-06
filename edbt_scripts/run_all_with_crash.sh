@@ -37,4 +37,10 @@ do
 
 done
 
+bash average.sh ../edbt_results/micro_with_crash 5
+bash average.sh ../edbt_results/smallbank_with_crash 5
+bash average.sh ../edbt_results/tatp_with_crash 5
+bash average.sh ../edbt_results/tpcc_with_crash 5
+
+
 #Experiment

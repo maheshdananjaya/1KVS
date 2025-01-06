@@ -19,8 +19,8 @@ do
         new_file_name="${full_path}/${file}"
         #grep -Fn 'COMPUTE CRASH' result_all_threads_16x8.txt    | head -n1 #multiple fields
         line=$(sed -n '/COMPUTE CRASH/=' "${file_name}"  | head -1)
-        end_line="$(($line + 500))"
-        start_line="$(($line - 500))"
+        end_line="$(($line + 100))"
+        start_line="$(($line - 100))"
         echo $start_line
         echo $end_line
         echo $file_name

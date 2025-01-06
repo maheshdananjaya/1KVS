@@ -31,12 +31,17 @@ do
 
         bash run_extract_compute.sh
 
-        mv ../build/workload/micro/result_all_threads.txt ../edbt_results/micro_crash_no_restart_${INDEX}
-        mv ../build/workload/smallbank/result_all_threads.txt ../edbt_results/smallbank_crash_norestart_${INDEX}
-        mv ../build/workload/tatp/result_all_threads.txt ../edbt_results/tatp_crash_norestart_${INDEX}
-        mv ../build/workload/tpcc/result_all_threads.txt ../edbt_results/tpcc_crash_restart_${INDEX}
+        mv ../build/workload/micro/result_all_threads.txt ../edbt_results/micro_with_crash_norestart_${INDEX}
+        mv ../build/workload/smallbank/result_all_threads.txt ../edbt_results/smallbank_with_crash_norestart_${INDEX}
+        mv ../build/workload/tatp/result_all_threads.txt ../edbt_results/tatp_with_crash_norestart_${INDEX}
+        mv ../build/workload/tpcc/result_all_threads.txt ../edbt_results/tpcc_with_crash_restart_${INDEX}
 
 
 done
+
+bash average.sh ../edbt_results/micro_with_crash_no_norestart 5
+bash average.sh ../edbt_results/smallbank_with_crash_no_norestart 5
+bash average.sh ../edbt_results/tatp_with_crash_no_norestart 5
+bash average.sh ../edbt_results/tpcc_with_crash_no_norestart 5
 
 #Experiment

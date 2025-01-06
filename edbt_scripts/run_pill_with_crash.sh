@@ -33,7 +33,7 @@ do
 done
 
 bash average.sh ../edbt_results/micro_with_crash_${MTTS} 5
-
+cd ..
 
 done
 #Experiment

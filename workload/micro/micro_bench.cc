@@ -92,10 +92,10 @@ const coro_id_t POLL_ROUTINE_ID = 0;            // The poll coroutine ID
 extern bool crash_emu;
 extern t_id_t new_base_tid;
 extern uint64_t num_crashes;
-
+#define WARMUP_COUNT 0
 #define CRASH_INTERVAL 500000
 __thread uint64_t next_crash_count=CRASH_INTERVAL;
-
+__thread uint64_t warmup_count=CRASH_INTERVAL;
 
 #ifdef CRASH_TPUT
 thread_local std::ofstream file_out;// per thread file writes
@@ -551,7 +551,7 @@ void RunTx(coro_yield_t& yield, coro_id_t coro_id) {
 
 
      #ifdef CRASH_ENABLE
-      if( (stat_attempted_tx_total >= next_crash_count) && (thread_gid==0) && (num_crashes==0)){
+      if( (stat_attempted_tx_total >= (warmup_count+next_crash_count)) && (thread_gid==0) && (num_crashes==0 || warmup_count > 0)){
           printf("Crashed-Recovery Start \n");
 
           struct timespec zk_timer_start,zk_timer_end; 

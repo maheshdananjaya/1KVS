@@ -8,7 +8,7 @@ add_library(valid STATIC ${WROKLOAD_SOURCES})
 set_target_properties(valid PROPERTIES LINKER_LANGUAGE CXX)
 
 
-set(WORKLOAD_RUN main.cc micro_bench.cc)
+set(WORKLOAD_RUN main.cc litmus_testing.cc)
 
 add_executable(validations ${WORKLOAD_RUN})
 

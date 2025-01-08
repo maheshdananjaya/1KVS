@@ -99,5 +99,11 @@ Then we manuallty configure and run zookeeper replicas using scripts in the DAM-
 - todo: new scripts to fully automate this.
 
 # Litmus Testing
-All the litmus tests are in workload/validation folder (workload/validation/litmus_testing.cc). We can run the litmus tests as a regular application.
+All the litmus tests are in workload/validation folder (workload/validation/litmus_testing.cc). We can run the litmus tests as a regular application. For example,
+
+```sh
+cd build/workload/validation
+./validation
+```
+- todo: we will add a script to edbt_scripts to felxibly run each litmus test.
 

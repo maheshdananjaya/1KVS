@@ -7,7 +7,7 @@
 #include <mutex>
 #include <thread>
 
-#include "micro_bench.h"
+#include "litmus_testing.h"
 #include "stat/result_collect.h"
 #include "util/json_config.h"
 

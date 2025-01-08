@@ -1,7 +1,7 @@
 // Author: Ming Zhang
 // Copyright (c) 2021
 
-#include "micro/micro_bench.h"
+#include "micro/litmus_testing.h"
 
 #include <atomic>
 #include <cstdio>

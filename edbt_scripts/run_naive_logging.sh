@@ -1,5 +1,7 @@
 #Experiment
 
+#todo: Still need to fully test the ew script
+
 cd ../
 
 

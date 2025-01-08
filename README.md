@@ -1,6 +1,6 @@
 # Pandora: Fast, Recoverable, Highly Available Transactions on Disaggregated Datastores
 
-Pandor is first one-sided transactional protocol that is specifically designed to enable fast and correct recovery on disaggregated KVSes. Pandora's fast recovery hinges on two innovations: (a) the PILL (Pandora's Implicit Latch Logging), a novel technique for managing latches in the presence of compute failures; and (b) an RDMA-based recovery algorithm that detects and quickly recovers from failures. 
+This is the repository for Pandora, a disaggregated-memory transactional key-value store (or DKVS). Pandor is the first one-sided transactional protocol that is specifically designed to enable fast and correct recovery on disaggregated KVSes. Pandora's fast recovery hinges on two innovations: (a) the PILL (Pandora's Implicit Latch Logging), a novel technique for managing latches in the presence of compute failures; and (b) an RDMA-based recovery algorithm that detects and quickly recovers from failures. 
 To validate that Pandora recovers correctly in the presence of failures, we introduce a new litmus-testing framework for end-to-end validation of transactional protocols. Our evaluation (and validation) reveals that Pandora achieves fast and correct recovery in the range of a few milliseconds without compromising the performance of failure-free runtime execution.
 
 
@@ -23,7 +23,7 @@ To validate that Pandora recovers correctly in the presence of failures, we intr
   - 3 servers for failures detector (You can use the same servers used for compute and memory, but not recommend)
  
 # Setting Up
-We have two ways to configure, build and run experiments. Normally, we run our experiments on 8 cloudlab servers with a preconfigured ubuntu image. Additionally, you can build the this project manually and run experiments. In this section, we briefly explain both apporaches. 
+We have two methods to configure, build and run experiments. Normally, we run our experiments on 8 cloudlab servers with a preconfigured ubuntu image. Additionally, you can build the this project manually and run experiments. In this section, we briefly explain both apporaches. 
 
 ## Cloudlab
 We use 8 r650 cloudlab servers for the experiments becuase sometimes some servers are faulty in which case we need to manuallty set up. 
@@ -66,23 +66,38 @@ You can run experients from your machine or from 10.1.1.2. For exmaple you can f
 
 ```sh
 ssh 10.1.1.2
-cd 1KVS/scripts
+cd 1KVS/edbt_scripts
 ./run_failover_tput.sh
 ```
  NOTE:  All these scripts can be run from cx_init_cloudlab.sh. No need to run seperately or do ssh. 
 
-# Extracting Results
-All the results are saved into results/ folder. These files contains raw and average data files sampled with a given interval. We usually get these files and load them into google docs which we use to generate plots.
+We have now added scripts to run most of the experiment using this script
+```sh
+cd 1KVS/scripts
+./run_experiments.sh
+```
+This script runs, PILL and fail-over experiments. We have included scripts for naive log scheme as well which is not fully tested. Finally, we will new scripts for stallings. 
+
+# Results
+All the results are saved into edbt_results/ folder. These files contains raw and average data files sampled with a given interval.
+
+- PILL plots (6): 2 no-crash and 4 with crash
+- Fail-Over plots (12):  3 plots, with_crash, with_crash_norestart, with_crash_memory, for all 4 benchmark (micro, smallbank, tatp, tpcc)
+- (not comeplete) Naive Logging (8): all 4 benchmarks with latch logging and without latch logging.
+- (todo) Stalls (4):
+- (todo) Rest :
 
 # Zookeeper Setup
-In order to run zookepeer in distributed setting we curently manually set up the zookeeper cluster using DAM-RFD project. On each machien we run this.
+In order to run zookepeer in distributed setting, we curently need to manually set up the zookeeper cluster using DAM-RFD project. On each machien we run this.
 ```sh
 git clone https://github.com/maheshdananjaya/DAM-RFD
 cd DAM_RFD
 bash build_zk_server
 ```
+Then we manuallty configure and run zookeeper replicas using scripts in the DAM-RFD. Experiments can then use the distributed failure detector.
 
-And then we manuallty configure zookeeper. Experiments can then use zookeeper cluster with ZK flags. 
+- todo: new scripts to fully automate this.
 
-# Ltmus Testing
-All the litmus tests are in workload/validation folder. 
+# Litmus Testing
+All the litmus tests are in workload/validation folder (workload/validation/litmus_testing.cc). We can run the litmus tests as a regular application.
+

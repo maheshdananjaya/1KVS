@@ -71,9 +71,10 @@ cd 1KVS/edbt_scripts
 ```
  NOTE:  All these scripts can be run from cx_init_cloudlab.sh. No need to run seperately or do ssh. 
 
-We have now added scripts to run most of the experiment using this script
+We have now added scripts to run most of the experiments. You can run, 
+
 ```sh
-cd 1KVS/scripts
+cd 1KVS/edbt_scripts
 ./run_experiments.sh
 ```
 This script runs, PILL and fail-over experiments. We have included scripts for naive log scheme as well which is not fully tested. Finally, we will new scripts for stallings. 

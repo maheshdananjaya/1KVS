@@ -108,3 +108,7 @@ cd build/workload/validation
 ```
 - todo: we will add a script to edbt_scripts to felxibly run each litmus test.
 
+
+# Contact
+
+If you have any questions, please contact us here or using dananjayamahesh@gmail.com.
